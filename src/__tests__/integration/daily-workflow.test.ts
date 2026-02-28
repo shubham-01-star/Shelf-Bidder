@@ -22,7 +22,6 @@ const mockTaskUpdate = jest.fn();
 const mockTaskQueryByStatus = jest.fn().mockReturnValue({ items: [] });
 // @ts-expect-error - Mock return typing mismatch
 const mockShopkeeperGet = jest.fn().mockImplementation((id: string) => Promise.resolve({ id, shopkeeperId: id, walletBalance: 1000 }));
-// @ts-expect-error - Mock return typing mismatch
 const mockShopkeeperUpdate = jest.fn().mockImplementation((id: unknown, updates: unknown) => Promise.resolve({ id, ...(updates as Record<string, unknown>) }));
 const mockWalletGet = jest.fn();
 const mockWalletUpdate = jest.fn();

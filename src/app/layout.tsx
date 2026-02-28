@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth/AuthContext';
+import OfflineIndicator from '@/components/offline/OfflineIndicator';
 
 export const metadata: Metadata = {
   title: 'Shelf-Bidder',
@@ -17,7 +18,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#000000',
+  themeColor: '#0F0F1A',
 };
 
 export default function RootLayout({
@@ -29,6 +30,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <AuthProvider>
+          <OfflineIndicator />
           {children}
         </AuthProvider>
       </body>

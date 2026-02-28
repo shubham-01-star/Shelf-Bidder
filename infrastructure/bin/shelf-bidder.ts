@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+/**
+ * CDK App Entry Point
+ *
+ * Task 1.2: Configure AWS infrastructure foundation
+ * Status: ✅ Completed
+ */
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { ShelfBidderStack } from '../lib/shelf-bidder-stack';

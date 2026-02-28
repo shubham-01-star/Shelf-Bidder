@@ -81,6 +81,32 @@ export async function generatePresignedViewUrl(
 }
 
 /**
+ * Get photo object (download) from S3
+ * @param photoKey - S3 key of the photo
+ * @returns Photo data as Buffer
+ */
+export async function getObject(photoKey: string): Promise<Buffer> {
+  const command = new GetObjectCommand({
+    Bucket: PHOTO_BUCKET_NAME,
+    Key: photoKey,
+  });
+
+  const response = await s3Client.send(command);
+
+  if (!response.Body) {
+    throw new Error(`No data returned for photo key: ${photoKey}`);
+  }
+
+  // Convert stream to buffer
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of response.Body as any) {
+    chunks.push(chunk);
+  }
+
+  return Buffer.concat(chunks);
+}
+
+/**
  * Get photo metadata from S3
  * @param photoKey - S3 key of the photo
  * @returns Photo metadata including size, content type, and custom metadata

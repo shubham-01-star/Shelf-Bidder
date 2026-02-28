@@ -12,6 +12,7 @@ export {
   generatePresignedUploadUrl,
   generatePresignedViewUrl,
   getPhotoMetadata as getS3PhotoMetadata,
+  getObject,
   validatePhotoFile,
   getFileExtension,
 } from './upload';

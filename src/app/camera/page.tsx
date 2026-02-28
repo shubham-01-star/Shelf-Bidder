@@ -17,7 +17,17 @@ import { compressImage } from '@/lib/utils/image-compression';
 import { queuePhoto } from '@/lib/offline/storage';
 import { useIsOffline } from '@/hooks/use-offline';
 
-type CameraState = 'ready' | 'capturing' | 'preview' | 'uploading' | 'analyzing' | 'done';
+type CameraState = 'ready' | 'capturing' | 'preview' | 'uploading' | 'analyzing' | 'inventory' | 'done';
+
+// Brands for inventory check (PRD: Inventory Check feature)
+const INVENTORY_BRANDS = [
+  { id: 'coke', name: 'Coca-Cola', emoji: '🥤' },
+  { id: 'pepsi', name: 'Pepsi', emoji: '🥤' },
+  { id: 'lays', name: 'Lays', emoji: '🍟' },
+  { id: 'parle', name: 'Parle-G', emoji: '🍪' },
+  { id: 'amul', name: 'Amul', emoji: '🧈' },
+  { id: 'local', name: 'Local Brand', emoji: '🏪' },
+];
 
 function CameraContent() {
   const { shopkeeper } = useAuth();
@@ -27,6 +37,7 @@ function CameraContent() {
   const [state, setState] = useState<CameraState>('ready');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
+  const [inventory, setInventory] = useState<Record<string, boolean>>({});
   const [analysisResult, setAnalysisResult] = useState<{
     emptySpaces?: number;
     confidence?: number;
@@ -141,9 +152,11 @@ function CameraContent() {
         
         // Let backend handle Auction creation or we trigger it here if needed
         // For now, backend might already do it or we assume it's an opportunity.
+        
+        // Go to inventory check before finishing
+        setState('inventory');
       }
 
-      setState('done');
     } catch (error) {
       console.error('Upload error:', error);
       alert('Failed to process image. Please try again.');
@@ -154,6 +167,7 @@ function CameraContent() {
   const handleRetake = () => {
     setCapturedImage(null);
     setAnalysisResult(null);
+    setInventory({});
     setState('ready');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -266,7 +280,46 @@ function CameraContent() {
           </div>
         )}
 
-        {state === 'done' && analysisResult && (
+      {/* Inventory Check State */}
+      {state === 'inventory' && (
+        <div className="w-full max-w-sm animate-fadeInUp">
+          <div className="glass-card p-6">
+            <h2 className="text-lg font-bold text-center">Current Stock</h2>
+            <p className="text-sm mt-1 text-center" style={{ color: 'var(--text-secondary)' }}>
+              What do you currently have in stock?
+            </p>
+            
+            <div className="mt-6 space-y-3">
+              {INVENTORY_BRANDS.map((brand) => (
+                <label key={brand.id} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer" style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 rounded"
+                    checked={inventory[brand.id] || false}
+                    onChange={(e) => setInventory({ ...inventory, [brand.id]: e.target.checked })}
+                  />
+                  <span className="text-xl">{brand.emoji}</span>
+                  <span className="font-medium flex-1">{brand.name}</span>
+                </label>
+              ))}
+            </div>
+
+            <button 
+              className="btn btn-primary w-full mt-6"
+              onClick={() => {
+                // Here we would ideally send the inventory to the backend
+                // apiClient.post('/api/inventory', { shopkeeperId: shopkeeper?.id, inventory });
+                setState('done');
+              }}
+            >
+              Submit & Start Auction
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Done State */}
+      {state === 'done' && analysisResult && (
           <div className="w-full max-w-sm animate-fadeInUp">
             <div className="glass-card p-6 text-center">
               <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center"

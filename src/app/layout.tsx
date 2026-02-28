@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth/AuthContext';
 import OfflineIndicator from '@/components/offline/OfflineIndicator';
+import { validateEnv } from '@/lib/config/env-validator';
+
+validateEnv();
 
 export const metadata: Metadata = {
   title: 'Shelf-Bidder',

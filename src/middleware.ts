@@ -7,16 +7,21 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/signin', '/signup', '/verify', '/', '/dashboard', '/camera', '/tasks', '/wallet'];
+const PUBLIC_ROUTES = ['/signin', '/signup', '/verify', '/', '/brand/login'];
 
 // API routes that don't require authentication
-const PUBLIC_API_ROUTES = ['/api/auth/signin', '/api/auth/signup', '/api/auth/verify'];
+const PUBLIC_API_ROUTES = ['/api/auth/signin', '/api/auth/signup', '/api/auth/verify', '/api/brand/auth'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
   if (PUBLIC_ROUTES.includes(pathname)) {
+    return NextResponse.next();
+  }
+
+  // Allow all brand portal routes (brand auth uses localStorage)
+  if (pathname.startsWith('/brand')) {
     return NextResponse.next();
   }
 

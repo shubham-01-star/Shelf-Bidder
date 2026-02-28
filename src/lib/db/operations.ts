@@ -553,6 +553,36 @@ export const AuctionOperations = {
 
 export const TaskOperations = {
   /**
+   * Get task by ID using GSI1
+   */
+  async getById(taskId: string): Promise<Task> {
+    return withRetry(async () => {
+      try {
+        const result = await dynamoDBClient.send(
+          new QueryCommand({
+            TableName: TABLE_NAMES.TASKS,
+            IndexName: 'GSI1',
+            KeyConditionExpression: 'GSI1PK = :gsi1pk AND GSI1SK = :gsi1sk',
+            ExpressionAttributeValues: {
+              ':gsi1pk': `TASK#${taskId}`,
+              ':gsi1sk': 'METADATA',
+            },
+            Limit: 1,
+          })
+        );
+
+        if (!result.Items || result.Items.length === 0) {
+          throw new ItemNotFoundError('Task', taskId);
+        }
+
+        return TaskMapper.fromItem(result.Items[0] as TaskItem);
+      } catch (error) {
+        throw handleDynamoDBError(error, 'getting task by id');
+      }
+    });
+  },
+
+  /**
    * Create a new task
    */
   async create(task: Task): Promise<Task> {

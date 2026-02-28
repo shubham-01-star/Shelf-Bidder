@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
+  customWorkerDir: 'src',
   disable: process.env.NODE_ENV === 'development',
   runtimeCaching: [
     {
@@ -125,7 +128,13 @@ const withPWA = require('next-pwa')({
           maxEntries: 16,
           maxAgeSeconds: 24 * 60 * 60 // 24 hours
         },
-        networkTimeoutSeconds: 10
+        networkTimeoutSeconds: 10,
+        backgroundSync: {
+          name: 'api-queue',
+          options: {
+            maxRetentionTime: 24 * 60 // 24 hours
+          }
+        }
       }
     },
     {

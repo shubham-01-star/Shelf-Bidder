@@ -5,6 +5,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as stepfunctions from 'aws-cdk-lib/aws-stepfunctions';
 
 export class ShelfBidderStack extends cdk.Stack {
   public readonly shopkeepersTable: dynamodb.Table;
@@ -16,6 +17,7 @@ export class ShelfBidderStack extends cdk.Stack {
   public readonly api: apigateway.RestApi;
   public readonly userPool: cognito.UserPool;
   public userPoolClient!: cognito.UserPoolClient;
+  public readonly workflowStateMachine: stepfunctions.StateMachine;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -35,6 +37,9 @@ export class ShelfBidderStack extends cdk.Stack {
 
     // API Gateway
     this.api = this.createApiGateway();
+
+    // Step Functions Workflow
+    this.workflowStateMachine = this.createWorkflowStateMachine();
 
     // Outputs
     this.createOutputs();
@@ -390,6 +395,74 @@ export class ShelfBidderStack extends cdk.Stack {
     cdk.Tags.of(api).add('Component', 'API');
 
     return api;
+  }
+
+  private createWorkflowStateMachine(): stepfunctions.StateMachine {
+    // We will use standard mock pass states or Lambda invocations tied to our application API.
+    // For the hackathon MVP, we define the structure of the state machine.
+    
+    // 1. Notify -> Wait for Photo 
+    const sendMorningNotification = new stepfunctions.Pass(this, 'SendMorningNotification', {
+      comment: 'Sends morning Push Notification to Shopkeeper to take a photo',
+    });
+    
+    const waitForPhoto = new stepfunctions.Wait(this, 'WaitForPhoto', {
+      time: stepfunctions.WaitTime.duration(cdk.Duration.hours(4)),
+    });
+
+    // 2. Analyze -> Auction -> Assign Task
+    const analyzePhoto = new stepfunctions.Pass(this, 'AnalyzePhoto', {
+      comment: 'Triggers Vision API analysis',
+    });
+    
+    const startAuction = new stepfunctions.Pass(this, 'StartAuction', {
+      comment: 'Triggers Kiro Agent Bidding',
+    });
+    
+    const assignTask = new stepfunctions.Pass(this, 'AssignTask', {
+      comment: 'Create Task for winning brand',
+    });
+
+    // 3. Connect Voice Call -> Wait for Proof
+    const voiceNotifyShopkeeper = new stepfunctions.Pass(this, 'VoiceNotifyShopkeeper', {
+      comment: 'Triggers AWS Connect Outbound Call (Polly Hindi)',
+    });
+    
+    // In a real implementation this would wait for a Task Token returned by the API
+    const waitForTaskCompletion = new stepfunctions.Wait(this, 'WaitForTaskCompletion', {
+      time: stepfunctions.WaitTime.duration(cdk.Duration.hours(24)),
+    });
+
+    // 4. Verification -> Payment
+    const verifyTaskCompletion = new stepfunctions.Pass(this, 'VerifyTaskCompletion', {
+      comment: 'Verifies proof photo against rules',
+    });
+    
+    const creditEarnings = new stepfunctions.Pass(this, 'CreditEarnings', {
+      comment: 'Credits wallet balance',
+    });
+
+    // Chain the states together in sequence
+    const definition = sendMorningNotification
+      .next(waitForPhoto)
+      .next(analyzePhoto)
+      .next(startAuction)
+      .next(assignTask)
+      .next(voiceNotifyShopkeeper)
+      .next(waitForTaskCompletion)
+      .next(verifyTaskCompletion)
+      .next(creditEarnings);
+
+    const stateMachine = new stepfunctions.StateMachine(this, 'DailyWorkflowStateMachine', {
+      definitionBody: stepfunctions.DefinitionBody.fromChainable(definition),
+      stateMachineName: 'ShelfBidder-DailyWorkflow',
+      timeout: cdk.Duration.hours(30), // Max workflow duration
+    });
+
+    cdk.Tags.of(stateMachine).add('Project', 'ShelfBidder');
+    cdk.Tags.of(stateMachine).add('Component', 'Orchestration');
+
+    return stateMachine;
   }
 
   private createOutputs(): void {

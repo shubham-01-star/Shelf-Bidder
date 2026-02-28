@@ -8,47 +8,147 @@
  * Requirements: 2.1, 7.3
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import BottomNav from '@/components/navigation/BottomNav';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { apiClient } from '@/lib/api-client';
+import { compressImage } from '@/lib/utils/image-compression';
+import { queuePhoto } from '@/lib/offline/storage';
+import { useIsOffline } from '@/hooks/use-offline';
 
 type CameraState = 'ready' | 'capturing' | 'preview' | 'uploading' | 'analyzing' | 'done';
 
-export default function CameraPage() {
+function CameraContent() {
+  const { shopkeeper } = useAuth();
+  const searchParams = useSearchParams();
+  const taskId = searchParams.get('taskId');
+  
   const [state, setState] = useState<CameraState>('ready');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [analysisResult, setAnalysisResult] = useState<{
-    emptySpaces: number;
-    confidence: number;
+    emptySpaces?: number;
+    confidence?: number;
+    message?: string;
+    isVerification?: boolean;
+    verified?: boolean;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isOffline = useIsOffline();
 
   const handleCapture = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setCapturedImage(event.target?.result as string);
-      setState('preview');
-    };
-    reader.readAsDataURL(file);
+    try {
+      // 1. Compress the image before anything else (Task 13.2)
+      const compressedFile = await compressImage(file, 1080, 1080, 0.7);
+      setCapturedFile(compressedFile);
+
+      // 2. Read for preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCapturedImage(event.target?.result as string);
+        setState('preview');
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (err) {
+      console.error('Failed to compress image:', err);
+      alert('Failed to process image format.');
+    }
   };
 
   const handleUpload = async () => {
-    setState('uploading');
+    if (!capturedFile || !shopkeeper?.id) return;
+    
+    try {
+      setState('uploading');
 
-    // Simulate upload delay
-    await new Promise((r) => setTimeout(r, 1500));
-    setState('analyzing');
+      // Task 8.4: Graceful Degradation / Offline Queue
+      if (isOffline) {
+        if (!capturedImage) throw new Error('Preview missing for offline queue');
+        await queuePhoto({
+          id: `queued-${Date.now()}`,
+          shopkeeperId: shopkeeper.id,
+          imageData: capturedImage, 
+          timestamp: new Date().toISOString(),
+          // Include taskId in imageData payload or a separate field if needed, but since QueuedPhoto schema expects standard structure, we can handle it later or append. For now, just save.
+        });
+        setAnalysisResult({
+          message: 'Saved offline. Will sync when back online.',
+        });
+        setState('done');
+        return;
+      }
 
-    // Simulate analysis
-    await new Promise((r) => setTimeout(r, 2000));
-    setAnalysisResult({ emptySpaces: 3, confidence: 94.5 });
-    setState('done');
+      // 1. Get Pre-signed URL
+      const { data: uploadData } = await apiClient.post<{ data: { uploadUrl: string; photoUrl: string } }>('/api/photos/upload-url', {
+        shopkeeperId: shopkeeper.id,
+        photoType: taskId ? 'proof' : 'shelf',
+        filename: capturedFile.name,
+        mimeType: capturedFile.type,
+        fileSize: capturedFile.size,
+      });
+
+      // 2. Upload to S3 directly
+      const uploadRes = await fetch(uploadData.uploadUrl, {
+        method: 'PUT',
+        body: capturedFile,
+        headers: {
+          'Content-Type': capturedFile.type,
+        },
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload image to S3');
+      }
+
+      setState('analyzing');
+
+      // 3. Analyze or Verify
+      if (taskId) {
+        // Task verification flow
+        const { data: verifyData } = await apiClient.post<{ data: { verified: boolean; feedback?: string; confidence?: number } }>(`/api/tasks/verify`, {
+          shopkeeperId: shopkeeper.id,
+          taskId,
+          photoUrl: uploadData.photoUrl,
+        });
+        
+        setAnalysisResult({
+          isVerification: true,
+          verified: verifyData.verified,
+          message: verifyData.feedback || 'Verification completed.',
+          confidence: verifyData.confidence || 100,
+        });
+      } else {
+        // New shelf analysis flow
+        const { data: analyzeData } = await apiClient.post<{ data: { emptySpaces: number; analysisConfidence: number } }>('/api/photos/analyze', {
+          shopkeeperId: shopkeeper.id,
+          photoUrl: uploadData.photoUrl,
+          mimeType: capturedFile.type,
+        });
+
+        setAnalysisResult({
+          isVerification: false,
+          emptySpaces: analyzeData.emptySpaces || 0,
+          confidence: analyzeData.analysisConfidence || 100,
+        });
+        
+        // Let backend handle Auction creation or we trigger it here if needed
+        // For now, backend might already do it or we assume it's an opportunity.
+      }
+
+      setState('done');
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to process image. Please try again.');
+      setState('preview'); // Allow them to retry
+    }
   };
 
   const handleRetake = () => {
@@ -62,9 +162,9 @@ export default function CameraPage() {
     <div className="page-container gradient-mesh flex flex-col">
       {/* Header */}
       <header className="p-4 pt-12 text-center">
-        <h1 className="text-xl font-bold">Scan Shelf</h1>
+        <h1 className="text-xl font-bold">{taskId ? 'Task Proof' : 'Scan Shelf'}</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Take a photo of your shelf to find opportunities
+          {taskId ? 'Take a photo of the completed task' : 'Take a photo of your shelf to find opportunities'}
         </p>
       </header>
 
@@ -121,6 +221,7 @@ export default function CameraPage() {
         {state === 'preview' && capturedImage && (
           <div className="w-full max-w-sm animate-fadeInUp">
             <div className="glass-card overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={capturedImage}
                 alt="Shelf preview"
@@ -172,33 +273,41 @@ export default function CameraPage() {
                    style={{ background: 'rgba(0, 214, 143, 0.15)' }}>
                 <span className="text-3xl">✅</span>
               </div>
-              <h2 className="text-lg font-bold mt-4">Analysis Complete!</h2>
+              <h2 className="text-lg font-bold mt-4">
+                {analysisResult.isVerification ? (analysisResult.verified ? 'Task Verified!' : 'Verification Failed') : 'Analysis Complete!'}
+              </h2>
               <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
-                Found opportunities on your shelf
+                {analysisResult.isVerification 
+                  ? analysisResult.message 
+                  : 'Found opportunities on your shelf'}
               </p>
 
-              <div className="flex justify-center gap-6 mt-4">
-                <div className="text-center">
-                  <p className="text-3xl font-bold" style={{ color: 'var(--accent-green)' }}>
-                    {analysisResult.emptySpaces}
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Empty Spaces
-                  </p>
+              {!analysisResult.isVerification && (
+                <div className="flex justify-center gap-6 mt-4">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold" style={{ color: 'var(--accent-green)' }}>
+                      {analysisResult.emptySpaces}
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                      Empty Spaces
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold" style={{ color: 'var(--primary-light)' }}>
+                      {analysisResult.confidence}%
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                      Confidence
+                    </p>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold" style={{ color: 'var(--primary-light)' }}>
-                    {analysisResult.confidence}%
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Confidence
-                  </p>
-                </div>
-              </div>
+              )}
 
               <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(108, 99, 255, 0.1)' }}>
                 <p className="text-sm" style={{ color: 'var(--primary-light)' }}>
-                  🏷️ Auction started! Brands are bidding for your shelf space.
+                  {analysisResult.isVerification 
+                    ? 'Payment has been processed if verified.' 
+                    : '🏷️ Auction started! Brands are bidding for your shelf space.'}
                 </p>
               </div>
             </div>
@@ -221,5 +330,13 @@ export default function CameraPage() {
 
       <BottomNav />
     </div>
+  );
+}
+
+export default function CameraPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center mt-20">Loading...</div>}>
+      <CameraContent />
+    </Suspense>
   );
 }

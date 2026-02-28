@@ -8,7 +8,7 @@ import type {
   Auction,
   EmptySpace,
   AuctionStatus,
-} from '@/types/models';
+} from '../../../types/models';
 
 // ============================================================================
 // Mocks
@@ -40,7 +40,6 @@ jest.mock('uuid', () => ({
 
 import {
   initializeAuctions,
-  submitBid,
   selectWinner,
   cancelAuction,
   getActiveAuctions,
@@ -87,8 +86,8 @@ describe('initializeAuctions', () => {
   });
 
   it('should create one auction per empty space', async () => {
-    mockCreate.mockImplementation((auction: Auction) =>
-      Promise.resolve(auction)
+    mockCreate.mockImplementation((auction: unknown) =>
+      Promise.resolve(auction as Auction)
     );
 
     const result = await initializeAuctions('shelf-1', mockEmptySpaces);
@@ -98,8 +97,8 @@ describe('initializeAuctions', () => {
   });
 
   it('should set auction status to active', async () => {
-    mockCreate.mockImplementation((auction: Auction) =>
-      Promise.resolve(auction)
+    mockCreate.mockImplementation((auction: unknown) =>
+      Promise.resolve(auction as Auction)
     );
 
     const result = await initializeAuctions('shelf-1', mockEmptySpaces);
@@ -110,8 +109,8 @@ describe('initializeAuctions', () => {
   });
 
   it('should set correct shelfSpaceId', async () => {
-    mockCreate.mockImplementation((auction: Auction) =>
-      Promise.resolve(auction)
+    mockCreate.mockImplementation((auction: unknown) =>
+      Promise.resolve(auction as Auction)
     );
 
     const result = await initializeAuctions('shelf-123', mockEmptySpaces);
@@ -122,8 +121,8 @@ describe('initializeAuctions', () => {
   });
 
   it('should set correct duration', async () => {
-    mockCreate.mockImplementation((auction: Auction) =>
-      Promise.resolve(auction)
+    mockCreate.mockImplementation((auction: unknown) =>
+      Promise.resolve(auction as Auction)
     );
 
     const result = await initializeAuctions('shelf-1', mockEmptySpaces, 30);
@@ -146,8 +145,8 @@ describe('initializeAuctions', () => {
   });
 
   it('should initialize with empty bids array', async () => {
-    mockCreate.mockImplementation((auction: Auction) =>
-      Promise.resolve(auction)
+    mockCreate.mockImplementation((auction: unknown) =>
+      Promise.resolve(auction as Auction)
     );
 
     const result = await initializeAuctions('shelf-1', [mockEmptySpaces[0]]);
@@ -204,10 +203,11 @@ describe('selectWinner', () => {
       },
     ]);
 
+    // @ts-expect-error - Mock return typing mismatch
     mockGet.mockResolvedValueOnce(auction);
     mockUpdate.mockImplementation(
-      (id: string, updates: Partial<Auction>) =>
-        Promise.resolve({ ...auction, ...updates })
+      (id: unknown, updates: unknown) =>
+        Promise.resolve({ ...auction, ...(updates as Partial<Auction>) })
     );
 
     const result = await selectWinner('auction-1');
@@ -220,10 +220,11 @@ describe('selectWinner', () => {
   it('should cancel auction when no bids exist', async () => {
     const auction = createActiveAuction([]);
 
+    // @ts-expect-error - Mock return typing mismatch
     mockGet.mockResolvedValueOnce(auction);
     mockUpdate.mockImplementation(
-      (id: string, updates: Partial<Auction>) =>
-        Promise.resolve({ ...auction, ...updates })
+      (id: unknown, updates: unknown) =>
+        Promise.resolve({ ...auction, ...(updates as Partial<Auction>) })
     );
 
     const result = await selectWinner('auction-1');
@@ -261,10 +262,11 @@ describe('selectWinner', () => {
       },
     ]);
 
+    // @ts-expect-error - Mock return typing mismatch
     mockGet.mockResolvedValueOnce(auction);
     mockUpdate.mockImplementation(
-      (id: string, updates: Partial<Auction>) =>
-        Promise.resolve({ ...auction, ...updates })
+      (id: unknown, updates: unknown) =>
+        Promise.resolve({ ...auction, ...(updates as Partial<Auction>) })
     );
 
     const result = await selectWinner('auction-1');
@@ -277,6 +279,7 @@ describe('selectWinner', () => {
     const auction = createActiveAuction();
     auction.status = 'completed' as AuctionStatus;
 
+    // @ts-expect-error - Mock return typing mismatch
     mockGet.mockResolvedValueOnce(auction);
 
     await expect(selectWinner('auction-1')).rejects.toThrow(
@@ -293,8 +296,8 @@ describe('cancelAuction', () => {
   it('should set auction status to cancelled', async () => {
     const auction = createActiveAuction();
     mockUpdate.mockImplementation(
-      (id: string, updates: Partial<Auction>) =>
-        Promise.resolve({ ...auction, ...updates })
+      (id: unknown, updates: unknown) =>
+        Promise.resolve({ ...auction, ...(updates as Partial<Auction>) })
     );
 
     const result = await cancelAuction('auction-1', 'Test cancellation');
@@ -313,6 +316,7 @@ describe('getActiveAuctions', () => {
 
   it('should return active auctions', async () => {
     const activeAuctions = [createActiveAuction()];
+    // @ts-expect-error - Mock return typing mismatch
     mockQueryByStatus.mockResolvedValueOnce({
       items: activeAuctions,
       count: 1,
@@ -325,6 +329,7 @@ describe('getActiveAuctions', () => {
   });
 
   it('should return empty array when no active auctions', async () => {
+    // @ts-expect-error - Mock return typing mismatch
     mockQueryByStatus.mockResolvedValueOnce({
       items: [],
       count: 0,

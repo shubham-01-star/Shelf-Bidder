@@ -1,0 +1,72 @@
+  console.log
+    Cancelling auction empty-auction: No valid bids received
+
+      at src/lib/auction/auction-engine.ts:208:11
+
+FAIL src/__tests__/integration/api-routes.test.ts
+  Integration: Cross-Service Data Flow
+    × should maintain data consistency: auction → task → wallet (9 ms)
+    √ should handle concurrent auctions independently (4 ms)
+
+  ● Integration: Cross-Service Data Flow › should maintain data consistency: auction → task → wallet
+
+    TypeError: db_1.WalletTransactionOperations.create is not a function
+
+    [0m [90m 86 |[39m
+     [90m 87 |[39m   [90m// Save transaction[39m
+    [31m[1m>[22m[39m[90m 88 |[39m   [36mawait[39m [33mWalletTransactionOperations[39m[33m.[39mcreate(transaction)[33m;[39m
+     [90m    |[39m                                     [31m[1m^[22m[39m
+     [90m 89 |[39m
+     [90m 90 |[39m   [90m// Update shopkeeper's wallet balance[39m
+     [90m 91 |[39m   [36mconst[39m shopkeeper [33m=[39m [36mawait[39m [33mShopkeeperOperations[39m[33m.[39m[36mget[39m(shopkeeperId)[33m;[39m[0m
+
+      at src/lib/wallet/wallet-service.ts:88:37
+      at src/lib/wallet/wallet-service.ts:16:71
+      at __awaiter (src/lib/wallet/wallet-service.ts:12:12)
+      at creditEarnings (src/lib/wallet/wallet-service.ts:67:12)
+      at src/__tests__/integration/api-routes.test.ts:118:25
+      at fulfilled (src/__tests__/integration/api-routes.test.ts:10:58)
+
+FAIL src/__tests__/integration/daily-workflow.test.ts
+  Integration: Complete Daily Workflow
+    Auction Initialization Flow
+      √ should create auctions for each empty space (10 ms)
+      √ should return empty array for no empty spaces
+    Bid & Winner Selection
+      √ should accept bids and select highest as winner (2 ms)
+      √ should cancel auction with no bids (50 ms)
+    Task Assignment from Auction
+      √ should create task from completed auction (2 ms)
+      √ should reject task for non-completed auction (10 ms)
+    Task Lifecycle
+      √ should support full lifecycle: assign → start → complete (1 ms)
+    Wallet Earnings
+      × should credit earnings and return balance (1 ms)
+      √ should reject payout below threshold (2 ms)
+
+  ● Integration: Complete Daily Workflow › Wallet Earnings › should credit earnings and return balance
+
+    TypeError: db_1.WalletTransactionOperations.create is not a function
+
+    [0m [90m 86 |[39m
+     [90m 87 |[39m   [90m// Save transaction[39m
+    [31m[1m>[22m[39m[90m 88 |[39m   [36mawait[39m [33mWalletTransactionOperations[39m[33m.[39mcreate(transaction)[33m;[39m
+     [90m    |[39m                                     [31m[1m^[22m[39m
+     [90m 89 |[39m
+     [90m 90 |[39m   [90m// Update shopkeeper's wallet balance[39m
+     [90m 91 |[39m   [36mconst[39m shopkeeper [33m=[39m [36mawait[39m [33mShopkeeperOperations[39m[33m.[39m[36mget[39m(shopkeeperId)[33m;[39m[0m
+
+      at src/lib/wallet/wallet-service.ts:88:37
+      at src/lib/wallet/wallet-service.ts:16:71
+      at __awaiter (src/lib/wallet/wallet-service.ts:12:12)
+      at creditEarnings (src/lib/wallet/wallet-service.ts:67:12)
+      at src/__tests__/integration/daily-workflow.test.ts:208:38
+      at src/__tests__/integration/daily-workflow.test.ts:14:71
+      at __awaiter (src/__tests__/integration/daily-workflow.test.ts:10:12)
+      at Object.<anonymous> (src/__tests__/integration/daily-workflow.test.ts:204:64)
+
+Test Suites: 2 failed, 2 total
+Tests:       2 failed, 9 passed, 11 total
+Snapshots:   0 total
+Time:        2.541 s
+Ran all test suites matching integration.

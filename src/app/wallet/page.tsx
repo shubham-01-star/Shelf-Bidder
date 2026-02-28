@@ -10,31 +10,57 @@
 
 import { useState } from 'react';
 import BottomNav from '@/components/navigation/BottomNav';
-
-interface Transaction {
-  id: string;
-  type: 'earning' | 'payout';
-  amount: number;
-  description: string;
-  date: string;
-  status: 'completed' | 'pending' | 'failed';
-}
-
-const mockTransactions: Transaction[] = [
-  { id: 'txn-1', type: 'earning', amount: 75, description: 'Pepsi 500ml placement', date: 'Today, 10:30 AM', status: 'completed' },
-  { id: 'txn-2', type: 'earning', amount: 50, description: 'Lay\'s Classic placement', date: 'Today, 9:15 AM', status: 'completed' },
-  { id: 'txn-3', type: 'earning', amount: 60, description: 'Coca-Cola placement', date: 'Yesterday', status: 'completed' },
-  { id: 'txn-4', type: 'payout', amount: 2000, description: 'Bank transfer', date: 'Feb 25', status: 'completed' },
-  { id: 'txn-5', type: 'earning', amount: 85, description: 'Sprite 300ml placement', date: 'Feb 24', status: 'completed' },
-  { id: 'txn-6', type: 'earning', amount: 45, description: 'Biscuit placement', date: 'Feb 24', status: 'completed' },
-  { id: 'txn-7', type: 'payout', amount: 1500, description: 'Bank transfer', date: 'Feb 20', status: 'completed' },
-];
+import { useWallet } from '@/hooks/use-wallet';
 
 export default function WalletPage() {
   const [showPayoutModal, setShowPayoutModal] = useState(false);
-  const balance = 4800;
-  const todayEarnings = 185;
-  const weeklyEarnings = 2450;
+  const [payoutAmount, setPayoutAmount] = useState<number>(0);
+  const { walletData, isLoading, isError, requestPayout } = useWallet();
+
+  const balance = walletData?.balance || 0;
+  const todayEarnings = walletData?.todayEarnings || 0;
+  const weeklyEarnings = walletData?.weeklyEarnings || 0;
+  const transactions = walletData?.transactions || [];
+
+  const handleRequestPayout = async () => {
+    try {
+      if (payoutAmount <= 0 || payoutAmount > balance) {
+        alert('Invalid payout amount.');
+        return;
+      }
+      await requestPayout(payoutAmount);
+      setShowPayoutModal(false);
+      alert('Payout requested successfully!');
+    } catch (error) {
+      alert('Failed to request payout.');
+      console.error(error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="page-container gradient-mesh p-4 pt-12 space-y-4">
+        <h1 className="text-xl font-bold">Wallet</h1>
+        <div className="skeleton h-40 w-full rounded-2xl" />
+        <div className="flex gap-3">
+          <div className="skeleton h-24 flex-1 rounded-2xl" />
+          <div className="skeleton h-24 flex-1 rounded-2xl" />
+        </div>
+        <div className="skeleton h-64 w-full rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="page-container gradient-mesh p-4 pt-12 space-y-4 text-center">
+        <h1 className="text-xl font-bold text-left">Wallet</h1>
+        <div className="glass-card p-8 text-red-400 font-bold">
+          Failed to load wallet data.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container gradient-mesh">
@@ -88,31 +114,41 @@ export default function WalletPage() {
           Recent Transactions
         </h2>
         <div className="space-y-2">
-          {mockTransactions.map((txn) => (
-            <div key={txn.id} className="glass-card p-4 flex items-center justify-between"
-                 id={`txn-${txn.id}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center"
-                     style={{
-                       background: txn.type === 'earning'
-                         ? 'rgba(0, 214, 143, 0.15)'
-                         : 'rgba(255, 107, 107, 0.15)',
-                     }}>
-                  {txn.type === 'earning' ? '💰' : '💸'}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{txn.description}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {txn.date}
-                  </p>
-                </div>
-              </div>
-              <p className="font-bold text-sm"
-                 style={{ color: txn.type === 'earning' ? 'var(--accent-green)' : 'var(--accent)' }}>
-                {txn.type === 'earning' ? '+' : '-'}₹{txn.amount}
-              </p>
+          {transactions.length === 0 ? (
+            <div className="p-4 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+              No transactions yet.
             </div>
-          ))}
+          ) : (
+            transactions.map((txn) => (
+              <div key={txn.id} className="glass-card p-4 flex items-center justify-between"
+                   id={`txn-${txn.id}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center"
+                       style={{
+                         background: txn.type === 'earning'
+                           ? 'rgba(0, 214, 143, 0.15)'
+                           : 'rgba(255, 107, 107, 0.15)',
+                       }}>
+                    {txn.type === 'earning' ? '💰' : '💸'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{txn.description}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {new Intl.DateTimeFormat('en-IN', { 
+                        month: 'short', day: 'numeric', 
+                        hour: 'numeric', minute: '2-digit' 
+                      }).format(new Date(txn.timestamp))}
+                      {txn.status === 'pending' && ' (Pending)'}
+                    </p>
+                  </div>
+                </div>
+                <p className="font-bold text-sm"
+                   style={{ color: txn.type === 'earning' ? 'var(--accent-green)' : 'var(--accent)' }}>
+                  {txn.type === 'earning' ? '+' : '-'}₹{txn.amount}
+                </p>
+              </div>
+            ))
+          )}
         </div>
       </section>
 
@@ -136,7 +172,10 @@ export default function WalletPage() {
               </label>
               <input
                 type="number"
-                defaultValue={balance}
+                value={payoutAmount || ''}
+                onChange={(e) => setPayoutAmount(Number(e.target.value))}
+                placeholder={balance.toString()}
+                max={balance}
                 className="w-full mt-2 text-2xl font-bold bg-transparent outline-none"
                 style={{ color: 'var(--text-primary)' }}
                 id="payout-amount-input"
@@ -152,11 +191,11 @@ export default function WalletPage() {
                 Cancel
               </button>
               <button
-                className="btn btn-success flex-1"
-                onClick={() => { setShowPayoutModal(false); }}
+                className="btn btn-primary flex-1"
+                onClick={handleRequestPayout}
                 id="btn-confirm-payout"
               >
-                Confirm Payout
+                Confirm
               </button>
             </div>
 

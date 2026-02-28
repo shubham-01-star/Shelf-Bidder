@@ -10,28 +10,12 @@
 
 import { useState, useEffect } from 'react';
 import BottomNav from '@/components/navigation/BottomNav';
-
-// Mock data for UI (will be replaced with API calls)
-interface DashboardData {
-  todayEarnings: number;
-  weeklyEarnings: number;
-  totalBalance: number;
-  activeTasks: number;
-  completedToday: number;
-  pendingAuctions: number;
-}
-
-const mockData: DashboardData = {
-  todayEarnings: 350,
-  weeklyEarnings: 2450,
-  totalBalance: 4800,
-  activeTasks: 2,
-  completedToday: 3,
-  pendingAuctions: 1,
-};
+import { useDashboard } from '@/hooks/use-dashboard';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const { data, isLoading, isError, mutate } = useDashboard();
+  const { shopkeeper } = useAuth();
   const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
@@ -40,13 +24,9 @@ export default function DashboardPage() {
     if (hour < 12) setGreeting('Good Morning');
     else if (hour < 17) setGreeting('Good Afternoon');
     else setGreeting('Good Evening');
-
-    // Simulate loading
-    const timer = setTimeout(() => setData(mockData), 500);
-    return () => clearTimeout(timer);
   }, []);
 
-  if (!data) {
+  if (isLoading || !data) {
     return (
       <div className="page-container gradient-mesh p-4">
         <div className="space-y-4 pt-12">
@@ -62,14 +42,35 @@ export default function DashboardPage() {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="page-container gradient-mesh p-4 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 font-bold mb-2">Failed to load dashboard data</p>
+          <button onClick={() => window.location.reload()} className="btn btn-outline text-sm">Retry</button>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
+
   return (
     <div className="page-container gradient-mesh">
       {/* Header */}
-      <header className="p-4 pt-12 pb-2">
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          {greeting} 👋
-        </p>
-        <h1 className="text-2xl font-bold mt-1">Ramesh</h1>
+      <header className="p-4 pt-12 pb-2 flex justify-between items-center">
+        <div>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            {greeting} 👋
+          </p>
+          <h1 className="text-2xl font-bold mt-1">{shopkeeper?.name || 'Shopkeeper'}</h1>
+        </div>
+        <button 
+          onClick={() => mutate()} 
+          className="p-2 w-10 h-10 flex items-center justify-center rounded-full glass-card hover:bg-white/10 transition-colors"
+          aria-label="Refresh Dashboard"
+        >
+          <span className="text-lg">🔄</span>
+        </button>
       </header>
 
       {/* Balance Card */}

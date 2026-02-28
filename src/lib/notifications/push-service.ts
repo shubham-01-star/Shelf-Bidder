@@ -157,7 +157,8 @@ export async function sendNotification(
         body: payload.body,
         icon: payload.icon,
         data: payload.data,
-        actions: payload.actions as NotificationAction[],
+        // @ts-expect-error - 'actions' is valid for ServiceWorkerRegistration but missing from standard DOM types
+        actions: payload.actions,
         badge: '/icon-192x192.png',
         vibrate: [200, 100, 200],
         tag: type,

@@ -8,58 +8,30 @@
  * Requirements: 4.4, 5.1, 5.2
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import BottomNav from '@/components/navigation/BottomNav';
+import { useTasks } from '@/hooks/use-tasks';
+import type { Task } from '@/types/models';
 
-interface TaskItem {
-  id: string;
-  productName: string;
-  brandName: string;
-  earnings: number;
-  status: 'assigned' | 'in_progress' | 'completed' | 'failed';
-  timeRemaining: string;
-  instructions: string[];
+// Helper to format remaining time
+function formatTimeRemaining(task: Task): string {
+  if (task.status === 'completed') return 'Done';
+  if (task.status === 'failed') return 'Failed';
+  
+  if (!task.instructions?.timeLimit) return 'No limit';
+  
+  const assigned = new Date(task.assignedDate).getTime();
+  const limitMs = task.instructions.timeLimit * 60 * 60 * 1000;
+  const now = Date.now();
+  const remaining = assigned + limitMs - now;
+  
+  if (remaining <= 0) return 'Overdue';
+  
+  const hours = Math.floor(remaining / (1000 * 60 * 60));
+  if (hours > 0) return `${hours}h left`;
+  const minutes = Math.floor(remaining / (1000 * 60));
+  return `${minutes}m left`;
 }
-
-const mockTasks: TaskItem[] = [
-  {
-    id: 'task-1',
-    productName: 'Pepsi 500ml',
-    brandName: 'PepsiCo',
-    earnings: 75,
-    status: 'assigned',
-    timeRemaining: '22h left',
-    instructions: [
-      'Find the empty space on shelf level 2',
-      'Place Pepsi 500ml bottle with label facing forward',
-      'Ensure product is stable and visible',
-      'Take a proof photo when done',
-    ],
-  },
-  {
-    id: 'task-2',
-    productName: 'Lay\'s Classic',
-    brandName: 'Frito-Lay',
-    earnings: 50,
-    status: 'in_progress',
-    timeRemaining: '18h left',
-    instructions: [
-      'Place at eye level on shelf 3',
-      'Keep the product bag standing upright',
-      'Brand logo must be visible from 2 meters',
-      'Snap a clear proof photo',
-    ],
-  },
-  {
-    id: 'task-3',
-    productName: 'Coca-Cola 300ml',
-    brandName: 'Coca-Cola',
-    earnings: 60,
-    status: 'completed',
-    timeRemaining: 'Done',
-    instructions: [],
-  },
-];
 
 const statusConfig = {
   assigned: { badge: 'badge-warning', label: 'New', icon: '🆕' },
@@ -71,12 +43,25 @@ const statusConfig = {
 export default function TasksPage() {
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+  const { tasks: allTasks, isLoading, isError, startTask } = useTasks();
 
-  const filteredTasks = mockTasks.filter((t) =>
-    activeTab === 'active'
-      ? t.status === 'assigned' || t.status === 'in_progress'
-      : t.status === 'completed' || t.status === 'failed'
-  );
+  const filteredTasks = useMemo(() => {
+    return allTasks.filter((t) =>
+      activeTab === 'active'
+        ? t.status === 'assigned' || t.status === 'in_progress'
+        : t.status === 'completed' || t.status === 'failed'
+    );
+  }, [allTasks, activeTab]);
+
+  const handleStartTask = async (taskId: string) => {
+    try {
+      await startTask(taskId);
+      alert('Task started! Get to work on the shelf.');
+    } catch (error) {
+      alert('Failed to start task.');
+      console.error(error);
+    }
+  };
 
   return (
     <div className="page-container gradient-mesh">
@@ -99,7 +84,7 @@ export default function TasksPage() {
             style={activeTab !== 'active' ? { color: 'var(--text-muted)' } : {}}
             onClick={() => setActiveTab('active')}
           >
-            Active ({mockTasks.filter((t) => t.status === 'assigned' || t.status === 'in_progress').length})
+            Active ({allTasks.filter((t) => t.status === 'assigned' || t.status === 'in_progress').length})
           </button>
           <button
             id="tab-completed"
@@ -109,14 +94,24 @@ export default function TasksPage() {
             style={activeTab !== 'completed' ? { color: 'var(--text-muted)' } : {}}
             onClick={() => setActiveTab('completed')}
           >
-            Completed ({mockTasks.filter((t) => t.status === 'completed').length})
+            Completed ({allTasks.filter((t) => t.status === 'completed' || t.status === 'failed').length})
           </button>
         </div>
       </div>
 
       {/* Task List */}
       <div className="px-4 space-y-3">
-        {filteredTasks.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-3 pt-4">
+            <div className="skeleton h-24 w-full" style={{ borderRadius: 'var(--radius-md)' }} />
+            <div className="skeleton h-24 w-full" style={{ borderRadius: 'var(--radius-md)' }} />
+            <div className="skeleton h-24 w-full" style={{ borderRadius: 'var(--radius-md)' }} />
+          </div>
+        ) : isError ? (
+          <div className="glass-card p-8 text-center text-red-400 font-bold">
+            Failed to load tasks
+          </div>
+        ) : filteredTasks.length === 0 ? (
           <div className="glass-card p-8 text-center animate-fadeInUp">
             <span className="text-4xl">📭</span>
             <p className="font-semibold mt-3">No tasks here</p>
@@ -147,9 +142,9 @@ export default function TasksPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{config.icon}</span>
                     <div>
-                      <p className="font-semibold text-sm">{task.productName}</p>
+                      <p className="font-semibold text-sm">{task.instructions?.productName || 'Product'}</p>
                       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {task.brandName}
+                        {task.instructions?.brandName || 'Brand'}
                       </p>
                     </div>
                   </div>
@@ -164,7 +159,7 @@ export default function TasksPage() {
                 </button>
 
                 {/* Expanded Instructions */}
-                {isExpanded && task.instructions.length > 0 && (
+                {isExpanded && task.instructions && (
                   <div className="px-4 pb-4 animate-fadeInUp"
                        style={{ borderTop: '1px solid var(--border)' }}>
                     <p className="text-xs font-semibold mt-3 mb-2"
@@ -172,7 +167,12 @@ export default function TasksPage() {
                       INSTRUCTIONS
                     </p>
                     <ol className="space-y-2">
-                      {task.instructions.map((step, i) => (
+                      {[
+                        `Find empty space on ${task.instructions.targetLocation?.shelfLevel ? 'shelf level ' + task.instructions.targetLocation.shelfLevel : 'the shelf'}`,
+                        ...(task.instructions.positioningRules || []),
+                        ...(task.instructions.visualRequirements || []),
+                        'Snap a clear proof photo'
+                      ].map((step, i) => (
                         <li key={i} className="flex gap-2 text-sm">
                           <span className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
                                 style={{ background: 'rgba(108, 99, 255, 0.15)', color: 'var(--primary-light)' }}>
@@ -185,12 +185,20 @@ export default function TasksPage() {
 
                     <div className="flex gap-3 mt-4">
                       {task.status === 'assigned' && (
-                        <button className="btn btn-primary flex-1 text-sm" id={`btn-start-${task.id}`}>
+                        <button 
+                          className="btn btn-primary flex-1 text-sm" 
+                          id={`btn-start-${task.id}`}
+                          onClick={() => handleStartTask(task.id)}
+                        >
                           ▶️ Start Task
                         </button>
-                      )}
+                       )}
                       {task.status === 'in_progress' && (
-                        <button className="btn btn-success flex-1 text-sm" id={`btn-complete-${task.id}`}>
+                        <button 
+                          className="btn btn-success flex-1 text-sm" 
+                          id={`btn-complete-${task.id}`}
+                          onClick={() => window.location.href = `/camera?taskId=${task.id}`}
+                        >
                           📷 Upload Proof
                         </button>
                       )}
@@ -198,7 +206,7 @@ export default function TasksPage() {
 
                     <p className="text-xs text-center mt-3"
                        style={{ color: 'var(--accent-yellow)' }}>
-                      ⏰ {task.timeRemaining}
+                      ⏰ {formatTimeRemaining(task)}
                     </p>
                   </div>
                 )}

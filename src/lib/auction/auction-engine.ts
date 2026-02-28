@@ -19,6 +19,11 @@ import {
 } from '@/types/models';
 import { AuctionOperations, ShelfSpaceOperations } from '@/lib/db';
 import { validateBid, BidValidationError } from './bid-validator';
+import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
+
+// Initialize the Step Functions client
+const sfnClient = new SFNClient({ region: process.env.AWS_REGION || 'us-west-2' });
+const STATE_MACHINE_ARN = process.env.WORKFLOW_STATE_MACHINE_ARN;
 
 // ============================================================================
 // Constants
@@ -59,7 +64,7 @@ export async function initializeAuctions(
 
   const auctions: Auction[] = [];
 
-  for (const space of emptySpaces) {
+  for (let i = 0; i < emptySpaces.length; i++) {
     const auction: Auction = {
       id: uuidv4(),
       shelfSpaceId,
@@ -183,6 +188,31 @@ export async function selectWinner(auctionId: string): Promise<Auction> {
     winnerId: winningBid.agentId,
     winningBid: winningBid.amount,
   });
+
+  // Start the Step Functions Orkestration workflow if configured
+  if (STATE_MACHINE_ARN) {
+    try {
+      const command = new StartExecutionCommand({
+        stateMachineArn: STATE_MACHINE_ARN,
+        input: JSON.stringify({
+          auctionId: updatedAuction.id,
+          shelfSpaceId: updatedAuction.shelfSpaceId,
+          auctionResult: {
+            winnerId: updatedAuction.winnerId,
+            winningBid: updatedAuction.winningBid,
+            productName: winningBid.productDetails.name,
+            brandName: winningBid.productDetails.brand,
+          }
+        }),
+      });
+      await sfnClient.send(command);
+      console.log(`Started Step Functions workflow for auction ${auctionId}`);
+    } catch (error) {
+      console.error('Failed to start Step Functions workflow:', error);
+      // We don't throw here to avoid failing the auction completion 
+      // if just the orchestration trigger fails in a hackathon setting
+    }
+  }
 
   return updatedAuction;
 }

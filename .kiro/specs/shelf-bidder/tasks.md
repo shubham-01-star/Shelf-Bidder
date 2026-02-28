@@ -157,25 +157,25 @@ This implementation plan breaks down the Shelf-Bidder Autonomous Retail Ad-Netwo
     - _Requirements: 1.1, 4.1, 4.2_
 
 - [ ] 8. Frontend PWA Implementation
-  - [x] 8.1 Implement camera interface and photo capture
+  - [/] 8.1 Implement camera interface and photo capture
     - Create camera component with guidance overlay
     - Implement photo capture with compression
     - Add offline photo queuing functionality
     - _Requirements: 2.1, 7.3_
 
-  - [x] 8.2 Implement dashboard and earnings display
+  - [/] 8.2 Implement dashboard and earnings display
     - Create main dashboard with earnings overview
     - Implement wallet interface with transaction history
     - Add daily and weekly earnings summaries
     - _Requirements: 6.1, 6.2, 6.3_
 
-  - [x] 8.3 Implement task management interface
+  - [/] 8.3 Implement task management interface
     - Create task display with visual instructions
     - Implement step-by-step guidance system
     - Add proof photo capture and submission
     - _Requirements: 4.4, 5.1, 5.2_
 
-  - [x] 8.4 Implement PWA offline capabilities
+  - [/] 8.4 Implement PWA offline capabilities
     - Configure service worker for offline functionality
     - Implement background sync for photo uploads
     - Add offline data caching and sync

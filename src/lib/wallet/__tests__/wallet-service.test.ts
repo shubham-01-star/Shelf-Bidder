@@ -11,12 +11,12 @@ import type { Shopkeeper, WalletTransaction } from '@/types/models';
 // Mocks
 // ============================================================================
 
-const mockTxnCreate = jest.fn();
-const mockTxnGet = jest.fn();
-const mockTxnUpdateStatus = jest.fn();
-const mockTxnQueryByShopkeeper = jest.fn();
-const mockShopkeeperGet = jest.fn();
-const mockShopkeeperUpdate = jest.fn();
+const mockTxnCreate = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockTxnGet = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockTxnUpdateStatus = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockTxnQueryByShopkeeper = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockShopkeeperGet = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockShopkeeperUpdate = jest.fn<(...args: unknown[]) => Promise<unknown>>();
 
 jest.mock('@/lib/db', () => ({
   WalletTransactionOperations: {
@@ -68,7 +68,7 @@ const mockShopkeeper: Shopkeeper = {
 // ============================================================================
 
 describe('creditEarnings', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should create a transaction and update balance', async () => {
     mockTxnCreate.mockResolvedValueOnce({});
@@ -97,7 +97,7 @@ describe('creditEarnings', () => {
 });
 
 describe('getBalance', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should return current wallet balance', async () => {
     mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 250 });
@@ -109,7 +109,7 @@ describe('getBalance', () => {
 });
 
 describe('getTransactionHistory', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should return transactions for a shopkeeper', async () => {
     const mockTransactions: WalletTransaction[] = [
@@ -138,7 +138,7 @@ describe('getTransactionHistory', () => {
 });
 
 describe('getEarningsSummary', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should calculate correct earnings summary', async () => {
     const mockTransactions: WalletTransaction[] = [
@@ -187,7 +187,7 @@ describe('getEarningsSummary', () => {
 });
 
 describe('checkPayoutEligibility', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should be eligible when balance >= threshold', async () => {
     mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 200 });
@@ -210,7 +210,7 @@ describe('checkPayoutEligibility', () => {
 });
 
 describe('requestPayout', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should create payout transaction and deduct balance', async () => {
     mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 500 });
@@ -260,7 +260,7 @@ describe('requestPayout', () => {
 });
 
 describe('failPayout', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should refund amount and mark transaction as failed', async () => {
     const mockTxn: WalletTransaction = {

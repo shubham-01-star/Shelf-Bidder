@@ -54,7 +54,7 @@ infrastructure/node_modules/
 Thumbs.db
 
 # PRD
-Product Requirement Document (PRD)_ Shelf-Bidder.md
-PROJECT_SETUP.md
-.kiro/
-.kiro/specs/
+# Product Requirement Document (PRD)_ Shelf-Bidder.md
+# PROJECT_SETUP.md
+# .kiro/
+# .kiro/specs/

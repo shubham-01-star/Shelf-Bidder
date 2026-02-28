@@ -5,9 +5,9 @@
 import { describe, it, expect, jest } from '@jest/globals';
 
 // Mock Next.js request/response
-const mockJson = jest.fn();
+const mockJson = jest.fn<(...args: any[]) => any>();
 const mockRequest = (body: any) => ({
-  json: jest.fn().mockResolvedValue(body),
+  json: jest.fn<(...args: any[]) => any>().mockResolvedValue(body),
 });
 
 describe('POST /api/photos/upload-url', () => {

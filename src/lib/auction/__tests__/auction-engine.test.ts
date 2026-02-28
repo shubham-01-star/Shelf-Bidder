@@ -14,12 +14,12 @@ import type {
 // Mocks
 // ============================================================================
 
-const mockCreate = jest.fn();
-const mockGet = jest.fn();
-const mockUpdate = jest.fn();
-const mockQueryByStatus = jest.fn();
-const mockQueryByShelfSpace = jest.fn();
-const mockShelfSpaceGet = jest.fn();
+const mockCreate = jest.fn<(...args: any[]) => any>();
+const mockGet = jest.fn<(...args: any[]) => any>();
+const mockUpdate = jest.fn<(...args: any[]) => any>();
+const mockQueryByStatus = jest.fn<(...args: any[]) => any>();
+const mockQueryByShelfSpace = jest.fn<(...args: any[]) => any>();
+const mockShelfSpaceGet = jest.fn<(...args: any[]) => any>();
 
 jest.mock('@/lib/db', () => ({
   AuctionOperations: {

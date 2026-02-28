@@ -13,7 +13,7 @@ import type {
 } from '@/types/models';
 
 // Mock the DynamoDB client before importing operations
-const mockSend = jest.fn();
+const mockSend = jest.fn<(...args: any[]) => any>();
 jest.mock('../client', () => ({
   dynamoDBClient: {
     send: mockSend,

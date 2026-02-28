@@ -10,11 +10,11 @@ import type { Auction, Task } from '@/types/models';
 // Mocks
 // ============================================================================
 
-const mockTaskCreate = jest.fn();
-const mockTaskUpdate = jest.fn();
-const mockTaskQueryByStatus = jest.fn();
-const mockAuctionGet = jest.fn();
-const mockShelfSpaceGet = jest.fn();
+const mockTaskCreate = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockTaskUpdate = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockTaskQueryByStatus = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockAuctionGet = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockShelfSpaceGet = jest.fn<(...args: unknown[]) => Promise<unknown>>();
 
 jest.mock('@/lib/db', () => ({
   TaskOperations: {
@@ -91,13 +91,13 @@ const createCompletedAuction = (): Auction => ({
 // ============================================================================
 
 describe('createTaskFromAuction', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should create task from completed auction', async () => {
     const auction = createCompletedAuction();
     mockAuctionGet.mockResolvedValueOnce(auction);
     mockShelfSpaceGet.mockRejectedValueOnce(new Error('Not found'));
-    mockTaskCreate.mockImplementation((task: Task) => Promise.resolve(task));
+    mockTaskCreate.mockImplementation((task: unknown) => Promise.resolve(task as Task));
 
     const result = await createTaskFromAuction('auction-1', 'shop-123');
 
@@ -137,7 +137,7 @@ describe('createTaskFromAuction', () => {
     const auction = createCompletedAuction();
     mockAuctionGet.mockResolvedValueOnce(auction);
     mockShelfSpaceGet.mockRejectedValueOnce(new Error('Not found'));
-    mockTaskCreate.mockImplementation((task: Task) => Promise.resolve(task));
+    mockTaskCreate.mockImplementation((task: unknown) => Promise.resolve(task as Task));
 
     const result = await createTaskFromAuction('auction-1', 'shop-123');
 
@@ -148,12 +148,12 @@ describe('createTaskFromAuction', () => {
 });
 
 describe('startTask', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should update task status to in_progress', async () => {
     const mockTask: Task = {
       id: 'task-1', auctionId: 'auction-1', shopkeeperId: 'shop-123',
-      instructions: {} as any, status: 'in_progress',
+      instructions: {} as unknown as Task['instructions'], status: 'in_progress',
       assignedDate: '2024-01-15T10:00:00.000Z', earnings: 50,
     };
     mockTaskUpdate.mockResolvedValueOnce(mockTask);
@@ -169,12 +169,12 @@ describe('startTask', () => {
 });
 
 describe('completeTask', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should update task with proof photo and completed status', async () => {
     const mockTask: Task = {
       id: 'task-1', auctionId: 'auction-1', shopkeeperId: 'shop-123',
-      instructions: {} as any, status: 'completed',
+      instructions: {} as unknown as Task['instructions'], status: 'completed',
       assignedDate: '2024-01-15T10:00:00.000Z', earnings: 50,
       proofPhotoUrl: 'https://s3.com/proof.jpg',
     };
@@ -190,12 +190,12 @@ describe('completeTask', () => {
 });
 
 describe('failTask', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should update task status to failed', async () => {
     const mockTask: Task = {
       id: 'task-1', auctionId: 'auction-1', shopkeeperId: 'shop-123',
-      instructions: {} as any, status: 'failed',
+      instructions: {} as unknown as Task['instructions'], status: 'failed',
       assignedDate: '2024-01-15T10:00:00.000Z', earnings: 50,
     };
     mockTaskUpdate.mockResolvedValueOnce(mockTask);
@@ -207,20 +207,20 @@ describe('failTask', () => {
 });
 
 describe('getPendingTasks', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should return assigned and in-progress tasks for shopkeeper', async () => {
     mockTaskQueryByStatus
       .mockResolvedValueOnce({
         items: [
-          { id: 'task-1', shopkeeperId: 'shop-123', status: 'assigned' },
-          { id: 'task-2', shopkeeperId: 'shop-999', status: 'assigned' },
+          { id: 'task-1', shopkeeperId: 'shop-123', status: 'assigned' } as unknown as Task,
+          { id: 'task-2', shopkeeperId: 'shop-999', status: 'assigned' } as unknown as Task,
         ],
         count: 2,
       })
       .mockResolvedValueOnce({
         items: [
-          { id: 'task-3', shopkeeperId: 'shop-123', status: 'in_progress' },
+          { id: 'task-3', shopkeeperId: 'shop-123', status: 'in_progress' } as unknown as Task,
         ],
         count: 1,
       });
@@ -234,7 +234,7 @@ describe('getPendingTasks', () => {
 });
 
 describe('checkOverdueTasks', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should mark overdue tasks as failed', async () => {
     const oldDate = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(); // 72 hours ago
@@ -243,16 +243,16 @@ describe('checkOverdueTasks', () => {
     mockTaskQueryByStatus
       .mockResolvedValueOnce({
         items: [
-          { id: 'task-old', shopkeeperId: 'shop-1', assignedDate: oldDate, status: 'assigned' },
-          { id: 'task-recent', shopkeeperId: 'shop-2', assignedDate: recentDate, status: 'assigned' },
+          { id: 'task-old', shopkeeperId: 'shop-1', assignedDate: oldDate, status: 'assigned' } as unknown as Task,
+          { id: 'task-recent', shopkeeperId: 'shop-2', assignedDate: recentDate, status: 'assigned' } as unknown as Task,
         ],
         count: 2,
       })
       .mockResolvedValueOnce({ items: [], count: 0 });
 
     mockTaskUpdate.mockImplementation(
-      (id: string, _shopkeeperId: string, _date: string, updates: Partial<Task>) =>
-        Promise.resolve({ id, ...updates, status: 'failed' })
+      (id: unknown, _shopkeeperId: unknown, _date: unknown, updates: unknown) =>
+        Promise.resolve({ id, ...(updates as Partial<Task>), status: 'failed' } as unknown as Task)
     );
 
     const result = await checkOverdueTasks();

@@ -10,22 +10,22 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 // Mocks
 // ============================================================================
 
-const mockAuctionCreate = jest.fn();
-const mockAuctionGet = jest.fn();
-const mockAuctionUpdate = jest.fn();
-const mockAuctionQueryByStatus = jest.fn().mockReturnValue({ items: [] });
-const mockAuctionQueryByShelfSpace = jest.fn().mockReturnValue({ items: [] });
-const mockShelfSpaceGet = jest.fn();
-const mockTaskCreate = jest.fn();
-const mockTaskUpdate = jest.fn();
-const mockTaskQueryByStatus = jest.fn().mockReturnValue({ items: [] });
+const mockAuctionCreate = jest.fn<(...args: any[]) => any>();
+const mockAuctionGet = jest.fn<(...args: any[]) => any>();
+const mockAuctionUpdate = jest.fn<(...args: any[]) => any>();
+const mockAuctionQueryByStatus = jest.fn<(...args: any[]) => any>().mockReturnValue({ items: [] });
+const mockAuctionQueryByShelfSpace = jest.fn<(...args: any[]) => any>().mockReturnValue({ items: [] });
+const mockShelfSpaceGet = jest.fn<(...args: any[]) => any>();
+const mockTaskCreate = jest.fn<(...args: any[]) => any>();
+const mockTaskUpdate = jest.fn<(...args: any[]) => any>();
+const mockTaskQueryByStatus = jest.fn<(...args: any[]) => any>().mockReturnValue({ items: [] });
 // @ts-expect-error - Mock return typing mismatch
-const mockShopkeeperGet = jest.fn().mockImplementation((id: string) => Promise.resolve({ id, shopkeeperId: id, walletBalance: 1000 }));
+const mockShopkeeperGet = jest.fn<(...args: any[]) => any>().mockImplementation((id: string) => Promise.resolve({ id, shopkeeperId: id, walletBalance: 1000 }));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockShopkeeperUpdate = jest.fn().mockImplementation((id: any, updates: any) => Promise.resolve({ id, ...updates }));
-const mockWalletGet = jest.fn();
-const mockWalletUpdate = jest.fn();
-const mockWalletQueryTransactions = jest.fn().mockReturnValue({ items: [] });
+const mockShopkeeperUpdate = jest.fn<(...args: any[]) => any>().mockImplementation((id: any, updates: any) => Promise.resolve({ id, ...updates }));
+const mockWalletGet = jest.fn<(...args: any[]) => any>();
+const mockWalletUpdate = jest.fn<(...args: any[]) => any>();
+const mockWalletQueryTransactions = jest.fn<(...args: any[]) => any>().mockReturnValue({ items: [] });
 
 jest.mock('../../lib/db', () => ({
   AuctionOperations: {
@@ -56,7 +56,7 @@ jest.mock('../../lib/db', () => ({
 }));
 
 jest.mock('../../lib/auction/bid-validator', () => ({
-  validateBid: jest.fn().mockReturnValue({ valid: true, errors: [] }),
+  validateBid: jest.fn<(...args: any[]) => any>().mockReturnValue({ valid: true, errors: [] }),
   BidValidationError: class BidValidationError extends Error {
     code: string;
     constructor(msg: string, code: string) { super(msg); this.code = code; }

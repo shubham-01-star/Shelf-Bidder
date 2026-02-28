@@ -15,7 +15,7 @@ export class ShelfBidderStack extends cdk.Stack {
   public readonly photoBucket: s3.Bucket;
   public readonly api: apigateway.RestApi;
   public readonly userPool: cognito.UserPool;
-  public readonly userPoolClient: cognito.UserPoolClient;
+  public userPoolClient!: cognito.UserPoolClient;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -357,8 +357,8 @@ export class ShelfBidderStack extends cdk.Stack {
       },
     });
 
-    // Create Cognito authorizer
-    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(
+    // Create Cognito authorizer (will be used when Lambda integrations are added)
+    new apigateway.CognitoUserPoolsAuthorizer(
       this,
       'ApiAuthorizer',
       {
@@ -368,14 +368,14 @@ export class ShelfBidderStack extends cdk.Stack {
     );
 
     // Create API resources (endpoints will be added by Lambda functions in later tasks)
-    const shopkeepers = api.root.addResource('shopkeepers');
-    const shelfSpaces = api.root.addResource('shelf-spaces');
-    const auctions = api.root.addResource('auctions');
-    const tasks = api.root.addResource('tasks');
-    const wallet = api.root.addResource('wallet');
+    api.root.addResource('shopkeepers');
+    api.root.addResource('shelf-spaces');
+    api.root.addResource('auctions');
+    api.root.addResource('tasks');
+    api.root.addResource('wallet');
 
     // Add request validators
-    const requestValidator = new apigateway.RequestValidator(
+    new apigateway.RequestValidator(
       this,
       'RequestValidator',
       {

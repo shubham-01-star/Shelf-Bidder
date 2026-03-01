@@ -158,17 +158,22 @@ export async function refreshAccessToken(
  */
 export function decodeIdToken(idToken: string): ShopkeeperProfile {
   try {
-    // Decode JWT token (base64)
-    const payload = idToken.split('.')[1];
-    const decoded = JSON.parse(atob(payload));
-    
+    // Decode JWT token payload (supports both base64 and base64url)
+    const parts = idToken.split('.');
+    if (parts.length < 2) throw new Error('Malformed token');
+    // Convert base64url → base64 (replace - with +, _ with /)
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    // Pad to multiple of 4
+    const padded = base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4);
+    const decoded = JSON.parse(atob(padded));
+
     return {
       id: decoded.sub,
       phoneNumber: decoded.phone_number,
       name: decoded.name,
       email: decoded.email,
     };
-  } catch (error) {
+  } catch {
     throw new Error('Invalid ID token');
   }
 }

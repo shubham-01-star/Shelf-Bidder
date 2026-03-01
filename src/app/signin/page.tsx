@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import Link from 'next/link';
+import { ArrowRight, ShieldCheck, Store } from 'lucide-react';
 
 export default function SignInPage() {
-  const [phoneNumber, setPhoneNumber] = useState('+91');
+  const [phoneWithoutCode, setPhoneWithoutCode] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,8 +20,8 @@ export default function SignInPage() {
     setError('');
     
     // Basic validation
-    if (phoneNumber.length < 13) { // +91 + 10 digits
-      setError('Please enter a valid 10-digit mobile number with country code.');
+    if (phoneWithoutCode.length < 10) {
+      setError('Please enter a valid 10-digit mobile number.');
       return;
     }
     if (!password) {
@@ -30,16 +31,14 @@ export default function SignInPage() {
 
     try {
       setIsLoading(true);
-      await signIn(phoneNumber, password);
-      // AuthContext will automatically redirect or handle tokens,
-      // but we explicitly push them to dashboard
+      const fullPhoneNumber = `+91${phoneWithoutCode}`;
+      await signIn(fullPhoneNumber, password);
       router.push('/dashboard');
     } catch (err: unknown) {
       console.error('Sign in error:', err);
-      // Cognito throws specific errors, we try to parse them
       if (err instanceof Error) {
         if (err.message.includes('UserNotConfirmedException')) {
-          router.push(`/verify?phone=${encodeURIComponent(phoneNumber)}`);
+          router.push(`/verify?phone=${encodeURIComponent(`+91${phoneWithoutCode}`)}`);
           return;
         }
         setError(err.message || 'Failed to sign in. Please check your credentials.');
@@ -52,82 +51,87 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="page-container gradient-mesh flex flex-col items-center justify-center p-4 min-h-screen">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex flex-col items-center justify-start overflow-x-hidden bg-white font-sans text-[#0a2e16] antialiased">
+      <div className="relative flex min-h-screen w-full max-w-[430px] flex-col bg-white overflow-hidden mx-auto shadow-sm">
+        <div className="h-11 w-full"></div> {/* iOS status bar spacer */}
         
-        <div className="text-center mb-8 animate-fadeInUp">
-          <div className="w-16 h-16 mx-auto bg-white/10 rounded-2xl flex items-center justify-center mb-4 border border-white/20">
-            <span className="text-3xl">🏪</span>
+        <div className="flex flex-col items-center pt-12 pb-10">
+          <div className="bg-[#11d452]/10 p-5 rounded-2xl mb-5 border border-[#11d452]/20">
+            <Store className="text-[#11d452] w-12 h-12" strokeWidth={2} />
           </div>
-          <h1 className="text-2xl font-bold">Welcome Back</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            Sign in to manage your shelf and earnings
-          </p>
+          <h2 className="text-[#11d452] text-2xl font-bold tracking-tight">Shelf-Bidder</h2>
         </div>
+        
+        <div className="flex-1 px-8">
+          <div className="mb-12">
+            <h1 className="text-[#0a2e16] text-3xl font-bold leading-tight mb-3">Welcome!</h1>
+            <p className="text-slate-500 text-lg font-light leading-snug">Enter your credentials to get started</p>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="flex flex-col h-full">
+            <div className="space-y-6">
+              {/* Phone Input */}
+              <div className="group relative flex items-center bg-[#f9fafb] border-2 border-slate-100 rounded-2xl p-1.5 focus-within:border-[#11d452] focus-within:bg-white transition-all duration-200">
+                <div className="flex items-center justify-center px-4 border-r-2 border-slate-200 py-4">
+                  <span className="text-xl font-bold text-[#0a2e16]">+91</span>
+                </div>
+                <div className="flex-1">
+                  <input 
+                    className="w-full bg-transparent border-none focus:ring-0 text-xl font-semibold tracking-widest p-4 text-[#0a2e16] placeholder:text-slate-300 focus:outline-none" 
+                    maxLength={10} 
+                    placeholder="98765 43210" 
+                    type="tel"
+                    value={phoneWithoutCode}
+                    onChange={(e) => setPhoneWithoutCode(e.target.value.replace(/\D/g, ''))}
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
 
-        <div className="glass-card p-6 animate-fadeInUp animate-fadeInUp-delay-1 w-full">
-          <form onSubmit={handleSubmit} className="space-y-4 w-full">
-            
-            <div className="space-y-1">
-              <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                MOBILE NUMBER
-              </label>
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="+919876543210"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)] transition-colors"
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                PASSWORD
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)] transition-colors"
-                disabled={isLoading}
-              />
+              {/* Password Input */}
+              <div className="group relative flex items-center bg-[#f9fafb] border-2 border-slate-100 rounded-2xl p-1.5 focus-within:border-[#11d452] focus-within:bg-white transition-all duration-200">
+                <div className="flex-1">
+                  <input 
+                    className="w-full bg-transparent border-none focus:ring-0 text-xl font-semibold p-4 text-[#0a2e16] placeholder:text-slate-300 focus:outline-none" 
+                    placeholder="Password" 
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
             </div>
 
             {error && (
-              <p className="text-xs text-red-400 font-medium bg-red-500/10 p-2 rounded-lg border border-red-500/20">
+              <p className="mt-4 text-sm text-red-600 font-medium bg-red-50 p-3 rounded-lg border border-red-100">
                 {error}
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="btn btn-primary w-full py-3 mt-2"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <span className="animate-spin mr-2 h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></span>
-                  Signing In...
-                </span>
-              ) : (
-                'Sign In'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="font-bold text-white hover:underline">
-                Register here
-              </Link>
+            <p className="mt-6 text-center text-xs text-slate-400 px-6 leading-relaxed">
+              Don&apos;t have an account? <Link href="/signup" className="text-[#0a2e16] font-bold underline">Register here</Link>
             </p>
-          </div>
-        </div>
 
+            <div className="mt-auto pt-12 pb-12 w-full">
+              <button 
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#11d452] hover:bg-[#0fbf49] text-white text-xl font-bold py-5 rounded-2xl transition-all active:scale-[0.97] shadow-lg shadow-[#11d452]/30 flex items-center justify-center gap-3 disabled:opacity-70 disabled:active:scale-100"
+              >
+                {isLoading ? 'Signing In...' : 'Sign In'}
+                {!isLoading && <ArrowRight className="w-6 h-6" strokeWidth={3} />}
+              </button>
+              
+              <div className="mt-10 flex justify-center items-center gap-2 text-slate-400">
+                <ShieldCheck className="w-5 h-5" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Secure Kirana Network</span>
+              </div>
+            </div>
+          </form>
+        </div>
+        
+        <div className="absolute top-0 left-0 w-full h-80 -z-10 bg-gradient-to-b from-[#11d452]/5 to-transparent"></div>
       </div>
     </div>
   );

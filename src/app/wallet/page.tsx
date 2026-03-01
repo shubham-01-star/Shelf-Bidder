@@ -9,17 +9,20 @@
  */
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/navigation/BottomNav';
 import { useWallet } from '@/hooks/use-wallet';
+import { ArrowLeft, TrendingUp, Package, Building2, Landmark, CheckCircle2, Clock } from 'lucide-react';
 
 export default function WalletPage() {
+  const router = useRouter();
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState<number>(0);
   const { walletData, isLoading, isError, requestPayout } = useWallet();
 
   const balance = walletData?.balance || 0;
-  const todayEarnings = walletData?.todayEarnings || 0;
-  const weeklyEarnings = walletData?.weeklyEarnings || 0;
+  // const todayEarnings = walletData?.todayEarnings || 0;
+  // const weeklyEarnings = walletData?.weeklyEarnings || 0;
   const transactions = walletData?.transactions || [];
 
   const handleRequestPayout = async () => {
@@ -39,168 +42,191 @@ export default function WalletPage() {
 
   if (isLoading) {
     return (
-      <div className="page-container gradient-mesh p-4 pt-12 space-y-4">
-        <h1 className="text-xl font-bold">Wallet</h1>
-        <div className="skeleton h-40 w-full rounded-2xl" />
-        <div className="flex gap-3">
-          <div className="skeleton h-24 flex-1 rounded-2xl" />
-          <div className="skeleton h-24 flex-1 rounded-2xl" />
+      <div className="relative flex h-screen max-w-md mx-auto flex-col bg-[#f6f8f6] font-sans">
+        <div className="flex items-center p-6 pb-4 justify-between">
+          <div className="size-10 rounded-full bg-slate-200 animate-pulse"></div>
+          <div className="h-6 w-32 bg-slate-200 rounded animate-pulse mr-10"></div>
         </div>
-        <div className="skeleton h-64 w-full rounded-2xl" />
+        <div className="flex-1 px-6 pb-24 space-y-6">
+          <div className="h-48 bg-slate-200 rounded-2xl animate-pulse"></div>
+          <div className="space-y-4">
+            <div className="h-20 bg-slate-200 rounded-xl animate-pulse"></div>
+            <div className="h-20 bg-slate-200 rounded-xl animate-pulse"></div>
+          </div>
+        </div>
+        <BottomNav />
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="page-container gradient-mesh p-4 pt-12 space-y-4 text-center">
-        <h1 className="text-xl font-bold text-left">Wallet</h1>
-        <div className="glass-card p-8 text-red-400 font-bold">
-          Failed to load wallet data.
+      <div className="relative flex h-screen max-w-md mx-auto flex-col bg-[#f6f8f6] font-sans">
+        <div className="flex items-center p-6 pb-4 justify-between">
+           <button onClick={() => router.back()} className="flex size-10 items-center justify-center rounded-full bg-[#11d452]/10 text-[#1a1c1e] active:scale-95 transition-transform">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h2 className="text-[#1a1c1e] text-xl font-bold mr-10">My Wallet</h2>
         </div>
+        <div className="flex-1 px-6 flex items-center justify-center">
+           <div className="text-center bg-white p-6 rounded-2xl shadow-sm border border-red-100">
+             <p className="text-red-500 font-bold">Failed to load wallet data.</p>
+             <button onClick={() => window.location.reload()} className="mt-4 text-sm font-semibold text-[#11d452]">Try Again</button>
+           </div>
+        </div>
+        <BottomNav />
       </div>
     );
   }
 
   return (
-    <div className="page-container gradient-mesh">
+    <div className="relative flex h-screen max-w-md mx-auto flex-col bg-[#f6f8f6] text-[#1a1c1e] font-sans antialiased overflow-hidden shadow-2xl">
       {/* Header */}
-      <header className="p-4 pt-12">
-        <h1 className="text-xl font-bold">Wallet</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Track your earnings & payouts
-        </p>
-      </header>
+      <div className="flex items-center bg-[#f6f8f6] p-6 pb-4 justify-between z-10">
+        <button onClick={() => router.back()} className="flex size-10 items-center justify-center rounded-full bg-[#11d452]/10 text-[#1a1c1e] active:scale-95 transition-transform">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+        <h2 className="text-[#1a1c1e] text-xl font-extrabold flex-1 text-center mr-10 tracking-tight">My Wallet</h2>
+      </div>
 
-      {/* Balance Card */}
-      <section className="px-4 py-2 animate-fadeInUp" id="wallet-balance">
-        <div className="gradient-success rounded-2xl p-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20"
-               style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-          <p className="text-sm opacity-80 font-medium">Available Balance</p>
-          <p className="text-4xl font-extrabold mt-2">₹{balance.toLocaleString()}</p>
-          <button
-            className="mt-4 px-5 py-2 rounded-full text-sm font-semibold transition-all"
-            style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)' }}
-            onClick={() => setShowPayoutModal(true)}
-            id="btn-request-payout"
-          >
-            💸 Request Payout
-          </button>
-        </div>
-      </section>
-
-      {/* Earnings Summary */}
-      <section className="px-4 py-3 animate-fadeInUp animate-fadeInUp-delay-1">
-        <div className="flex gap-3">
-          <div className="glass-card flex-1 p-4 text-center">
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Today</p>
-            <p className="text-xl font-bold mt-1" style={{ color: 'var(--accent-green)' }}>
-              ₹{todayEarnings}
-            </p>
-          </div>
-          <div className="glass-card flex-1 p-4 text-center">
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>This Week</p>
-            <p className="text-xl font-bold mt-1" style={{ color: 'var(--primary-light)' }}>
-              ₹{weeklyEarnings.toLocaleString()}
-            </p>
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-6 pb-28 pt-2">
+        {/* Hero Earnings Card */}
+        <div className="mb-8 animate-fadeInUp">
+          <div className="flex flex-col items-center justify-center rounded-[1.5rem] p-8 bg-[#11d452] shadow-[0_12px_30px_rgba(17,212,82,0.3)] text-center relative overflow-hidden">
+             {/* Decorative background circle */}
+             <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+             
+             <p className="text-[#1a1c1e] text-lg font-bold opacity-80 mb-1 z-10">Available Balance</p>
+             <h1 className="text-[#1a1c1e] text-5xl font-black tracking-tight my-2 z-10">₹{balance.toLocaleString('en-IN')}</h1>
+             
+             <div className="mt-4 inline-flex items-center gap-2 bg-white/25 backdrop-blur-sm px-4 py-2 rounded-full z-10 border border-white/20">
+                <TrendingUp className="w-4 h-4 text-[#1a1c1e]" />
+                <span className="text-[#1a1c1e] text-sm font-bold">Updated Just Now</span>
+             </div>
           </div>
         </div>
-      </section>
 
-      {/* Transaction History */}
-      <section className="px-4 py-3 animate-fadeInUp animate-fadeInUp-delay-2" id="transaction-history">
-        <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
-          Recent Transactions
-        </h2>
-        <div className="space-y-2">
-          {transactions.length === 0 ? (
-            <div className="p-4 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-              No transactions yet.
-            </div>
-          ) : (
-            transactions.map((txn) => (
-              <div key={txn.id} className="glass-card p-4 flex items-center justify-between"
-                   id={`txn-${txn.id}`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center"
-                       style={{
-                         background: txn.type === 'earning'
-                           ? 'rgba(0, 214, 143, 0.15)'
-                           : 'rgba(255, 107, 107, 0.15)',
-                       }}>
-                    {txn.type === 'earning' ? '💰' : '💸'}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{txn.description}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {new Intl.DateTimeFormat('en-IN', { 
-                        month: 'short', day: 'numeric', 
-                        hour: 'numeric', minute: '2-digit' 
-                      }).format(new Date(txn.timestamp))}
-                      {txn.status === 'pending' && ' (Pending)'}
-                    </p>
-                  </div>
-                </div>
-                <p className="font-bold text-sm"
-                   style={{ color: txn.type === 'earning' ? 'var(--accent-green)' : 'var(--accent)' }}>
-                  {txn.type === 'earning' ? '+' : '-'}₹{txn.amount}
-                </p>
-              </div>
-            ))
-          )}
+        {/* Recent Earnings Header */}
+        <div className="flex items-center justify-between mb-5 animate-fadeInUp animate-fadeInUp-delay-1">
+          <h3 className="text-[#1a1c1e] text-xl font-bold">Recent Earnings</h3>
+          <button className="text-[#11d452] font-extrabold text-sm hover:underline">View All</button>
         </div>
-      </section>
+
+        {/* Transactions List */}
+        <div className="space-y-4 animate-fadeInUp animate-fadeInUp-delay-2">
+           {transactions.length === 0 ? (
+             <div className="bg-white p-8 rounded-[1.5rem] shadow-sm border border-slate-100 text-center">
+                <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500 font-medium text-sm">No transactions yet. Complete tasks to earn!</p>
+             </div>
+           ) : (
+             transactions.map((txn, index) => (
+               <div key={txn.id} className="flex items-center gap-4 bg-white p-4 rounded-[1.25rem] shadow-sm border border-[#11d452]/5 hover:border-[#11d452]/20 transition-colors"
+                   style={{ animationDelay: `${index * 50}ms` }}
+               >
+                 <div className={`flex items-center justify-center rounded-xl shrink-0 size-14 ${
+                    txn.type === 'earning' ? 'bg-[#11d452]/10 text-[#11d452]' : 'bg-red-50 text-red-500'
+                 }`}>
+                   {txn.type === 'earning' ? (
+                     <Package className="w-7 h-7" />
+                   ) : (
+                     <Landmark className="w-7 h-7" />
+                   )}
+                 </div>
+                 
+                 <div className="flex flex-1 flex-col justify-center">
+                   <p className="text-[#1a1c1e] text-base font-bold leading-tight line-clamp-1">{txn.description}</p>
+                   <div className="flex items-center gap-1.5 mt-1">
+                     {txn.status === 'pending' ? (
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                     ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#11d452]" />
+                     )}
+                     <p className="text-slate-500 text-xs font-semibold">
+                       {new Intl.DateTimeFormat('en-IN', { 
+                         month: 'short', day: 'numeric', 
+                         hour: 'numeric', minute: '2-digit' 
+                       }).format(new Date(txn.timestamp))}
+                     </p>
+                   </div>
+                 </div>
+                 
+                 <div className="shrink-0 text-right">
+                   <p className={`text-lg font-black ${
+                     txn.type === 'earning' ? 'text-[#11d452]' : 'text-[#1a1c1e]'
+                   }`}>
+                     {txn.type === 'earning' ? '+' : '-'}₹{txn.amount}
+                   </p>
+                 </div>
+               </div>
+             ))
+           )}
+        </div>
+
+        {/* Primary Action Button (positioned at bottom of scroll content) */}
+        <div className="mt-10 animate-fadeInUp animate-fadeInUp-delay-3 pb-6">
+           <button 
+             onClick={() => setShowPayoutModal(true)}
+             disabled={balance <= 0}
+             className="w-full bg-[#11d452] hover:bg-[#11d452]/90 disabled:opacity-50 disabled:active:scale-100 text-[#1a1c1e] text-lg font-black py-4 rounded-[1.25rem] shadow-[0_8px_20px_rgba(17,212,82,0.25)] active:scale-95 transition-all flex items-center justify-center gap-3"
+           >
+             <Landmark className="w-6 h-6" />
+             Withdraw to Bank
+           </button>
+        </div>
+      </div>
 
       {/* Payout Modal */}
       {showPayoutModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center"
-             style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <div className="w-full max-w-md glass-card rounded-t-3xl p-6 animate-fadeInUp"
-               style={{ background: 'var(--bg-card)' }}
-               id="payout-modal">
-            <div className="w-10 h-1 rounded-full mx-auto mb-4"
-                 style={{ background: 'var(--border)' }} />
-            <h3 className="text-lg font-bold">Request Payout</h3>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-              Available: ₹{balance.toLocaleString()}
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-t-[2rem] p-6 animate-fadeInUp shadow-2xl relative">
+            <div className="w-12 h-1.5 rounded-full mx-auto mb-6 bg-slate-200" />
+            
+            <h3 className="text-2xl font-black text-[#1a1c1e]">Transfer to Bank</h3>
+            <p className="text-sm mt-1 font-semibold text-slate-500">
+              Available: <span className="text-[#1a1c1e] font-bold">₹{balance.toLocaleString('en-IN')}</span>
             </p>
 
-            <div className="mt-4 p-4 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
-              <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Amount (₹)
+            <div className="mt-8 p-4 rounded-2xl bg-[#f6f8f6] border border-slate-200 focus-within:border-[#11d452] focus-within:ring-2 focus-within:ring-[#11d452]/20 transition-all flex flex-col items-center">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest self-start">
+                Amount to withdraw
               </label>
-              <input
-                type="number"
-                value={payoutAmount || ''}
-                onChange={(e) => setPayoutAmount(Number(e.target.value))}
-                placeholder={balance.toString()}
-                max={balance}
-                className="w-full mt-2 text-2xl font-bold bg-transparent outline-none"
-                style={{ color: 'var(--text-primary)' }}
-                id="payout-amount-input"
-              />
+              <div className="flex items-center justify-center w-full mt-2">
+                <span className="text-3xl font-bold text-slate-400 mr-1">₹</span>
+                <input
+                  type="number"
+                  value={payoutAmount || ''}
+                  onChange={(e) => setPayoutAmount(Number(e.target.value))}
+                  placeholder={balance.toString()}
+                  max={balance}
+                  className="w-full text-5xl font-black bg-transparent border-none outline-none text-[#1a1c1e] placeholder:text-slate-300 text-left p-0 focus:ring-0"
+                  autoFocus
+                />
+              </div>
+              <div className="w-full flex justify-between mt-4 border-t border-slate-200 pt-3">
+                 <button onClick={() => setPayoutAmount(balance)} className="text-xs font-bold text-[#11d452] bg-[#11d452]/10 px-3 py-1.5 rounded-lg active:bg-[#11d452]/20 transition-colors">Max Fill</button>
+                 <span className="text-xs font-semibold text-slate-500 flex items-center gap-1"><Landmark className="w-3.5 h-3.5"/> State Bank of India •••• 1234</span>
+              </div>
             </div>
 
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-4 mt-8">
               <button
-                className="btn btn-outline flex-1"
+                className="flex-1 bg-slate-100 text-[#1a1c1e] hover:bg-slate-200 font-bold py-4 rounded-2xl transition-colors"
                 onClick={() => setShowPayoutModal(false)}
-                id="btn-cancel-payout"
               >
                 Cancel
               </button>
               <button
-                className="btn btn-primary flex-1"
+                className="flex-[2] bg-[#1a1c1e] text-white font-bold py-4 rounded-2xl shadow-xl shadow-black/20 active:scale-95 transition-transform"
                 onClick={handleRequestPayout}
-                id="btn-confirm-payout"
               >
-                Confirm
+                Confirm Transfer
               </button>
             </div>
 
-            <p className="text-xs text-center mt-3" style={{ color: 'var(--text-muted)' }}>
-              Payout will be processed within 24 hours
+            <p className="text-xs text-center mt-6 font-medium text-slate-400">
+              Secured by <span className="font-bold text-slate-500">Shelf-Bidder Payments</span>
             </p>
           </div>
         </div>

@@ -47,88 +47,105 @@ export default function BrandDashboardPage() {
   })();
 
   return (
-    <div className="page-container gradient-mesh">
+    <div className="flex flex-col min-h-screen relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] aspect-square rounded-full bg-[var(--brand-violet)]/10 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] aspect-square rounded-full bg-blue-600/10 blur-[100px] pointer-events-none" />
+
       {/* Header */}
-      <header className="p-4 pt-12 pb-2">
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{greeting} 👋</p>
-        <h1 className="text-2xl font-bold mt-1">{brandName}</h1>
-        <span className="badge badge-info mt-2">Brand Portal</span>
+      <header className="p-4 pt-12 pb-2 relative z-10">
+        <p className="text-sm font-medium text-slate-400">{greeting} 👋</p>
+        <h1 className="text-2xl font-black mt-1 text-white/90 tracking-tight">{brandName}</h1>
+        <span className="inline-block mt-3 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full bg-[var(--brand-violet)]/20 text-[var(--brand-violet)] border border-[var(--brand-violet)]/30">
+          Brand Portal
+        </span>
       </header>
 
       {/* Spending Overview */}
-      <section className="px-4 py-3 animate-fadeInUp" id="spending-card">
-        <div className="rounded-2xl p-5 relative overflow-hidden"
-             style={{ background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' }}>
-          <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20"
+      <section className="px-4 py-3 animate-fadeInUp relative z-10" id="spending-card">
+        <div className="rounded-3xl p-6 relative overflow-hidden shadow-2xl shadow-[var(--brand-violet)]/20 border border-white/10"
+             style={{ background: 'linear-gradient(135deg, var(--brand-violet) 0%, #4c1d95 100%)' }}>
+          <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-20"
                style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-          <p className="text-sm opacity-80 font-medium">Total Ad Spend</p>
-          <p className="text-4xl font-extrabold mt-2">₹{data.totalSpent.toLocaleString()}</p>
-          <div className="flex gap-6 mt-4">
+          <p className="text-sm font-bold text-white/70 uppercase tracking-widest">Total Ad Spend</p>
+          <p className="text-4xl font-black mt-2 text-white">₹{data.totalSpent.toLocaleString()}</p>
+          <div className="flex gap-8 mt-6">
             <div>
-              <p className="text-xs opacity-70">This Month</p>
-              <p className="text-lg font-bold">₹{data.monthlySpend.toLocaleString()}</p>
+              <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">This Month</p>
+              <p className="text-lg font-bold text-white">₹{data.monthlySpend.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-xs opacity-70">Active Bids</p>
-              <p className="text-lg font-bold">{data.activeBids}</p>
+              <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Active Bids</p>
+              <p className="text-lg font-bold text-white">{data.activeBids}</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Stats Grid */}
-      <section className="px-4 py-3 animate-fadeInUp animate-fadeInUp-delay-1">
+      <section className="px-4 py-3 animate-fadeInUp animate-fadeInUp-delay-1 relative z-10">
         <div className="grid grid-cols-2 gap-3">
-          <div className="glass-card p-4 text-center">
-            <p className="text-2xl font-bold" style={{ color: 'var(--accent-green)' }}>{data.auctionsWon}</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Auctions Won</p>
+          <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-5 rounded-3xl text-center shadow-lg hover:bg-slate-800/60 transition-colors cursor-default">
+            <p className="text-3xl font-black text-[var(--accent-green)]">{data.auctionsWon}</p>
+            <p className="text-[10px] font-bold mt-2 text-slate-400 uppercase tracking-widest">Auctions Won</p>
           </div>
-          <div className="glass-card p-4 text-center">
-            <p className="text-2xl font-bold" style={{ color: 'var(--accent)' }}>{data.auctionsLost}</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Auctions Lost</p>
+          <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-5 rounded-3xl text-center shadow-lg hover:bg-slate-800/60 transition-colors cursor-default">
+            <p className="text-3xl font-black text-red-500">{data.auctionsLost}</p>
+            <p className="text-[10px] font-bold mt-2 text-slate-400 uppercase tracking-widest">Auctions Lost</p>
           </div>
         </div>
       </section>
 
       {/* Quick Actions */}
-      <section className="px-4 py-3 animate-fadeInUp animate-fadeInUp-delay-1">
-        <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>Quick Actions</h2>
+      <section className="px-4 py-3 animate-fadeInUp animate-fadeInUp-delay-1 relative z-10">
+        <h2 className="text-base font-bold mb-3 text-slate-300">Quick Actions</h2>
         <div className="grid grid-cols-2 gap-3">
-          <button className="glass-card p-4 text-left" onClick={() => window.location.href = '/brand/auctions'}>
-            <span className="text-2xl">🏷️</span>
-            <p className="text-sm font-semibold mt-2">View Auctions</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--accent-yellow)' }}>{data.activeBids} active</p>
+          <button className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-5 rounded-3xl text-left shadow-lg hover:bg-slate-800/80 hover:border-slate-700 transition-all group" onClick={() => window.location.href = '/brand/auctions'}>
+            <span className="text-3xl group-hover:scale-110 transition-transform block">🏷️</span>
+            <p className="text-sm font-bold mt-3 text-white/90 group-hover:text-white">View Auctions</p>
+            <p className="text-[10px] font-bold mt-1 text-[var(--brand-violet)] uppercase tracking-widest">{data.activeBids} active</p>
           </button>
-          <button className="glass-card p-4 text-left" onClick={() => window.location.href = '/brand/products'}>
-            <span className="text-2xl">📦</span>
-            <p className="text-sm font-semibold mt-2">My Products</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Manage catalog</p>
+          <button className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-5 rounded-3xl text-left shadow-lg hover:bg-slate-800/80 hover:border-slate-700 transition-all group" onClick={() => window.location.href = '/brand/products'}>
+            <span className="text-3xl group-hover:scale-110 transition-transform block">📦</span>
+            <p className="text-sm font-bold mt-3 text-white/90 group-hover:text-white">My Products</p>
+            <p className="text-[10px] font-bold mt-1 text-slate-500 uppercase tracking-widest">Manage catalog</p>
           </button>
         </div>
       </section>
 
       {/* Recent Bids */}
-      <section className="px-4 py-3 animate-fadeInUp animate-fadeInUp-delay-2">
-        <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>Recent Bids</h2>
+      <section className="px-4 py-3 animate-fadeInUp animate-fadeInUp-delay-2 relative z-10 pb-24">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-base font-bold text-slate-300">Recent Bids</h2>
+          <button className="text-[10px] font-bold text-[var(--brand-violet)] uppercase tracking-widest hover:text-purple-400" onClick={() => window.location.href = '/brand/auctions'}>View All</button>
+        </div>
         <div className="space-y-3">
           {data.recentBids.map((bid: BrandBid) => {
             const status = statusConfig[bid.status];
+            // Override styles for dark theme
+            const statusStyles = {
+              won: { bg: 'bg-green-500/10', text: 'text-[var(--accent-green)]', border: 'border-green-500/20' },
+              lost: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
+              pending: { bg: 'bg-[var(--brand-violet)]/10', text: 'text-[var(--brand-violet)]', border: 'border-[var(--brand-violet)]/20' },
+              rejected: { bg: 'bg-slate-800', text: 'text-slate-400', border: 'border-slate-700' }
+            }[bid.status] || { bg: 'bg-slate-800', text: 'text-slate-400', border: 'border-slate-700' };
+
             return (
-              <div key={bid.id} className="glass-card p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: status.bg }}>
+              <div key={bid.id} className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-4 rounded-3xl flex items-center justify-between hover:bg-slate-800/60 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${statusStyles.bg} ${statusStyles.border} border`}>
                     🏷️
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">{bid.productName}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm font-bold text-white/90">{bid.productName}</p>
+                    <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">
                       {new Date(bid.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold">₹{bid.amount}</p>
-                  <span className="badge text-xs" style={{ background: status.bg, color: status.color }}>
+                  <p className="text-sm font-black text-white">₹{bid.amount}</p>
+                  <span className={`inline-block mt-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest rounded-md ${statusStyles.bg} ${statusStyles.text} ${statusStyles.border} border`}>
                     {status.label}
                   </span>
                 </div>

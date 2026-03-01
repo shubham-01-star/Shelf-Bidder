@@ -55,7 +55,6 @@ export class ShelfBidderStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      replicationRegions: ['us-west-2'], // Multi-region replication for Requirement 9.5
     });
 
     // Add tags for organization
@@ -79,7 +78,6 @@ export class ShelfBidderStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      replicationRegions: ['us-west-2'],
     });
 
     // GSI for querying by shelf space ID
@@ -108,7 +106,6 @@ export class ShelfBidderStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      replicationRegions: ['us-west-2'],
     });
 
     // GSI for querying auctions by shelf space and start time
@@ -159,7 +156,6 @@ export class ShelfBidderStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      replicationRegions: ['us-west-2'],
     });
 
     // GSI for querying tasks by ID
@@ -206,7 +202,6 @@ export class ShelfBidderStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       pointInTimeRecovery: true,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
-      replicationRegions: ['us-west-2'],
     });
 
     // GSI for querying transactions by ID
@@ -362,15 +357,18 @@ export class ShelfBidderStack extends cdk.Stack {
       },
     });
 
-    // Create Cognito authorizer (will be used when Lambda integrations are added)
-    new apigateway.CognitoUserPoolsAuthorizer(
+    // Create Cognito authorizer — attached to this API for protected routes
+    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(
       this,
       'ApiAuthorizer',
       {
         cognitoUserPools: [this.userPool],
         authorizerName: 'ShopkeeperAuthorizer',
+        identitySource: 'method.request.header.Authorization',
       }
     );
+    // Explicitly bind to this RestApi (required by CDK validation)
+    authorizer._attachToApi(api);
 
     // Create API resources (endpoints will be added by Lambda functions in later tasks)
     api.root.addResource('shopkeepers');

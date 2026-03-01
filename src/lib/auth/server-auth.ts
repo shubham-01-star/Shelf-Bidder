@@ -8,28 +8,30 @@ export class AuthenticationError extends Error {
 }
 
 /**
- * Parses the Authorization header and returns the shopkeeperId (sub)
- * In a real production app (or behind AWS API Gateway), the token signature 
- * would be verified. For this Next.js MVP layer, we decode the JWT payload.
+ * Parses the Authorization header and returns the shopkeeperId (sub).
+ * Supports both standard base64 JWTs (production) and base64url JWTs (local mock tokens).
  */
 export function getShopkeeperIdFromRequest(request: NextRequest): string {
   const authHeader = request.headers.get('Authorization');
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new AuthenticationError('Missing or invalid Authorization header');
   }
 
   const token = authHeader.split(' ')[1];
-  
+
   try {
-    // Decode JWT token (base64)
-    const payload = token.split('.')[1];
-    const decoded = JSON.parse(atob(payload));
-    
+    // Decode JWT payload - convert base64url → base64 before parsing
+    const parts = token.split('.');
+    if (parts.length < 2) throw new Error('Malformed token');
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4);
+    const decoded = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8'));
+
     if (!decoded.sub) {
       throw new AuthenticationError('Token missing subject (sub)');
     }
-    
+
     return decoded.sub;
   } catch {
     throw new AuthenticationError('Invalid token format');

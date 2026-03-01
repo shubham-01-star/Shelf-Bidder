@@ -1,6 +1,7 @@
 /**
  * Phone Verification API Route
- * Handles phone number verification with AWS Cognito
+ * Handles phone number verification with AWS Cognito.
+ * In local dev, any 6-digit code is accepted for testing.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,7 +11,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { phoneNumber, code } = body;
 
-    // Validate input
     if (!phoneNumber || !code) {
       return NextResponse.json(
         { error: 'Missing required fields', message: 'Phone number and verification code are required' },
@@ -27,20 +27,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Implement AWS Cognito phone verification
-    // This is a placeholder that will be implemented when AWS SDK is added
-    
-    // In production, this would:
-    // 1. Use AWS Cognito SDK to verify the code
-    // 2. Confirm user registration
-    // 3. Return success response
-    // 4. Handle errors (invalid code, expired code, etc.)
+    // ── Local dev mock: accept any 6-digit code ──────────────────────
+    const isLocalDev = process.env.NODE_ENV !== 'production';
+    const userPoolId = process.env.NEXT_PUBLIC_USER_POOL_ID || '';
+    const isPlaceholderPool = userPoolId.includes('localDev') || userPoolId === '';
 
+    if (isLocalDev && isPlaceholderPool) {
+      console.log(`[Local Dev] Phone verified for: ${phoneNumber} with code: ${code}`);
+      return NextResponse.json({ message: 'Phone number verified successfully.' });
+    }
+    // ── End local dev mock ───────────────────────────────────────────
+
+    // TODO (Production): Use AWS Cognito SDK here
     return NextResponse.json(
-      {
-        error: 'Not implemented',
-        message: 'AWS Cognito integration pending. This endpoint will verify phone numbers with Cognito.',
-      },
+      { error: 'Not implemented', message: 'AWS Cognito integration pending.' },
       { status: 501 }
     );
   } catch (error) {

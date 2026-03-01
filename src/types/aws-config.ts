@@ -26,10 +26,38 @@ export interface AWSConfig {
 }
 
 /**
- * Get AWS configuration from environment variables
+ * Get AWS configuration from environment variables.
+ * In local development (when NEXT_PUBLIC_USER_POOL_ID contains 'localDev' or is a placeholder),
+ * missing vars will use safe fallbacks instead of throwing.
  */
 export function getAWSConfig(): AWSConfig {
-  // Validate required environment variables
+  const userPoolId = process.env.NEXT_PUBLIC_USER_POOL_ID || '';
+  const isLocalDev =
+    typeof window !== 'undefined'
+      ? process.env.NODE_ENV !== 'production'
+      : process.env.NODE_ENV !== 'production';
+  const isPlaceholderPool = !userPoolId || userPoolId.includes('localDev');
+
+  // In local dev with placeholder pool, return config with available values
+  // instead of throwing — the auth flow will use mock API routes anyway.
+  if (isLocalDev && isPlaceholderPool) {
+    return {
+      apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+      userPoolId: userPoolId || 'us-east-1_localDevPool',
+      userPoolClientId: process.env.NEXT_PUBLIC_USER_POOL_CLIENT_ID || 'localDevClientId',
+      region: process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1',
+      photoBucket: process.env.NEXT_PUBLIC_PHOTO_BUCKET || 'shelf-bidder-photos-local-dev',
+      tables: {
+        shopkeepers: process.env.DYNAMODB_SHOPKEEPERS_TABLE || 'ShelfBidder-Shopkeepers',
+        shelfSpaces: process.env.DYNAMODB_SHELF_SPACES_TABLE || 'ShelfBidder-ShelfSpaces',
+        auctions: process.env.DYNAMODB_AUCTIONS_TABLE || 'ShelfBidder-Auctions',
+        tasks: process.env.DYNAMODB_TASKS_TABLE || 'ShelfBidder-Tasks',
+        transactions: process.env.DYNAMODB_TRANSACTIONS_TABLE || 'ShelfBidder-Transactions',
+      },
+    };
+  }
+
+  // Production: validate required vars and throw if missing
   const requiredVars = [
     'NEXT_PUBLIC_API_URL',
     'NEXT_PUBLIC_USER_POOL_ID',
@@ -37,9 +65,7 @@ export function getAWSConfig(): AWSConfig {
     'NEXT_PUBLIC_PHOTO_BUCKET',
   ];
 
-  const missing = requiredVars.filter(
-    (varName) => !process.env[varName]
-  );
+  const missing = requiredVars.filter((varName) => !process.env[varName]);
 
   if (missing.length > 0) {
     throw new Error(

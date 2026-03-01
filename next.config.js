@@ -155,7 +155,11 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  turbopack: {
+    root: __dirname,
+  },
+  // Allow both localhost and 127.0.0.1 as dev origins to avoid CORS issues
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
 };
 
 module.exports = withPWA(nextConfig);

@@ -9,17 +9,16 @@
  */
 
 import { useState, useRef, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import BottomNav from '@/components/navigation/BottomNav';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { apiClient } from '@/lib/api-client';
 import { compressImage } from '@/lib/utils/image-compression';
 import { queuePhoto } from '@/lib/offline/storage';
 import { useIsOffline } from '@/hooks/use-offline';
+import { ChevronLeft, Zap, Grid, Image as ImageIcon, History, Camera as CameraIcon, Check, X, RefreshCw, UploadCloud, CheckCircle2, AlertCircle } from 'lucide-react';
 
 type CameraState = 'ready' | 'capturing' | 'preview' | 'uploading' | 'analyzing' | 'inventory' | 'done';
 
-// Brands for inventory check (PRD: Inventory Check feature)
 const INVENTORY_BRANDS = [
   { id: 'coke', name: 'Coca-Cola', emoji: '🥤' },
   { id: 'pepsi', name: 'Pepsi', emoji: '🥤' },
@@ -32,6 +31,7 @@ const INVENTORY_BRANDS = [
 function CameraContent() {
   const { shopkeeper } = useAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const taskId = searchParams.get('taskId');
   
   const [state, setState] = useState<CameraState>('ready');
@@ -57,11 +57,9 @@ function CameraContent() {
     if (!file) return;
 
     try {
-      // 1. Compress the image before anything else (Task 13.2)
       const compressedFile = await compressImage(file, 1080, 1080, 0.7);
       setCapturedFile(compressedFile);
 
-      // 2. Read for preview
       const reader = new FileReader();
       reader.onload = (event) => {
         setCapturedImage(event.target?.result as string);
@@ -80,7 +78,6 @@ function CameraContent() {
     try {
       setState('uploading');
 
-      // Task 8.4: Graceful Degradation / Offline Queue
       if (isOffline) {
         if (!capturedImage) throw new Error('Preview missing for offline queue');
         await queuePhoto({
@@ -88,7 +85,6 @@ function CameraContent() {
           shopkeeperId: shopkeeper.id,
           imageData: capturedImage, 
           timestamp: new Date().toISOString(),
-          // Include taskId in imageData payload or a separate field if needed, but since QueuedPhoto schema expects standard structure, we can handle it later or append. For now, just save.
         });
         setAnalysisResult({
           message: 'Saved offline. Will sync when back online.',
@@ -97,7 +93,6 @@ function CameraContent() {
         return;
       }
 
-      // 1. Get Pre-signed URL
       const { data: uploadData } = await apiClient.post<{ data: { uploadUrl: string; photoUrl: string } }>('/api/photos/upload-url', {
         shopkeeperId: shopkeeper.id,
         photoType: taskId ? 'proof' : 'shelf',
@@ -106,7 +101,6 @@ function CameraContent() {
         fileSize: capturedFile.size,
       });
 
-      // 2. Upload to S3 directly
       const uploadRes = await fetch(uploadData.uploadUrl, {
         method: 'PUT',
         body: capturedFile,
@@ -121,9 +115,7 @@ function CameraContent() {
 
       setState('analyzing');
 
-      // 3. Analyze or Verify
       if (taskId) {
-        // Task verification flow
         const { data: verifyData } = await apiClient.post<{ data: { verified: boolean; feedback?: string; confidence?: number } }>(`/api/tasks/verify`, {
           shopkeeperId: shopkeeper.id,
           taskId,
@@ -136,8 +128,8 @@ function CameraContent() {
           message: verifyData.feedback || 'Verification completed.',
           confidence: verifyData.confidence || 100,
         });
+        setState('done');
       } else {
-        // New shelf analysis flow
         const { data: analyzeData } = await apiClient.post<{ data: { emptySpaces: number; analysisConfidence: number } }>('/api/photos/analyze', {
           shopkeeperId: shopkeeper.id,
           photoUrl: uploadData.photoUrl,
@@ -150,17 +142,12 @@ function CameraContent() {
           confidence: analyzeData.analysisConfidence || 100,
         });
         
-        // Let backend handle Auction creation or we trigger it here if needed
-        // For now, backend might already do it or we assume it's an opportunity.
-        
-        // Go to inventory check before finishing
         setState('inventory');
       }
-
     } catch (error) {
       console.error('Upload error:', error);
       alert('Failed to process image. Please try again.');
-      setState('preview'); // Allow them to retry
+      setState('preview');
     }
   };
 
@@ -173,222 +160,249 @@ function CameraContent() {
   };
 
   return (
-    <div className="page-container gradient-mesh flex flex-col">
-      {/* Header */}
-      <header className="p-4 pt-12 text-center">
-        <h1 className="text-xl font-bold">{taskId ? 'Task Proof' : 'Scan Shelf'}</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          {taskId ? 'Take a photo of the completed task' : 'Take a photo of your shelf to find opportunities'}
-        </p>
-      </header>
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-white text-[#1a1c1e] font-sans antialiased">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
-      {/* Camera Area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-4">
-        {state === 'ready' && (
-          <div className="w-full max-w-sm animate-fadeInUp">
-            {/* Camera Viewfinder */}
-            <div
-              className="glass-card w-full aspect-[3/4] flex flex-col items-center justify-center gap-4 cursor-pointer"
-              onClick={handleCapture}
-              id="camera-viewfinder"
-            >
-              <div className="w-20 h-20 rounded-full flex items-center justify-center"
-                   style={{ background: 'rgba(108, 99, 255, 0.15)' }}>
-                <span className="text-4xl">📷</span>
-              </div>
-              <div className="text-center">
-                <p className="font-semibold">Tap to Take Photo</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Point camera at your shelf
-                </p>
-              </div>
-
-              {/* Corner guides */}
-              <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 rounded-tl"
-                   style={{ borderColor: 'var(--primary)' }} />
-              <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 rounded-tr"
-                   style={{ borderColor: 'var(--primary)' }} />
-              <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 rounded-bl"
-                   style={{ borderColor: 'var(--primary)' }} />
-              <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 rounded-br"
-                   style={{ borderColor: 'var(--primary)' }} />
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handleFileChange}
-              id="camera-input"
-            />
-
-            <div className="mt-4 text-center">
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                💡 Make sure the entire shelf is visible
-              </p>
-            </div>
-          </div>
-        )}
-
-        {state === 'preview' && capturedImage && (
-          <div className="w-full max-w-sm animate-fadeInUp">
-            <div className="glass-card overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={capturedImage}
-                alt="Shelf preview"
-                className="w-full aspect-[3/4] object-cover"
-                id="photo-preview"
-              />
-            </div>
-            <div className="flex gap-3 mt-4">
-              <button className="btn btn-outline flex-1" onClick={handleRetake} id="btn-retake">
-                🔄 Retake
-              </button>
-              <button className="btn btn-primary flex-1" onClick={handleUpload} id="btn-upload">
-                ✨ Analyze
-              </button>
-            </div>
-          </div>
-        )}
-
-        {(state === 'uploading' || state === 'analyzing') && (
-          <div className="w-full max-w-sm text-center animate-fadeInUp">
-            <div className="glass-card p-8">
-              <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center pulse-glow"
-                   style={{ background: 'rgba(108, 99, 255, 0.15)' }}>
-                <span className="text-3xl">
-                  {state === 'uploading' ? '☁️' : '🔍'}
-                </span>
-              </div>
-              <p className="font-semibold mt-4">
-                {state === 'uploading' ? 'Uploading photo...' : 'Analyzing shelf...'}
-              </p>
-              <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
-                {state === 'uploading' ? 'Please wait' : 'AI is finding empty spaces'}
-              </p>
-              <div className="mt-4 h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
-                <div className="h-full rounded-full gradient-primary"
-                     style={{
-                       width: state === 'uploading' ? '50%' : '80%',
-                       transition: 'width 1.5s ease'
-                     }} />
-              </div>
-            </div>
-          </div>
-        )}
-
-      {/* Inventory Check State */}
-      {state === 'inventory' && (
-        <div className="w-full max-w-sm animate-fadeInUp">
-          <div className="glass-card p-6">
-            <h2 className="text-lg font-bold text-center">Current Stock</h2>
-            <p className="text-sm mt-1 text-center" style={{ color: 'var(--text-secondary)' }}>
-              What do you currently have in stock?
-            </p>
-            
-            <div className="mt-6 space-y-3">
-              {INVENTORY_BRANDS.map((brand) => (
-                <label key={brand.id} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer" style={{ background: 'rgba(255, 255, 255, 0.05)' }}>
-                  <input
-                    type="checkbox"
-                    className="w-5 h-5 rounded"
-                    checked={inventory[brand.id] || false}
-                    onChange={(e) => setInventory({ ...inventory, [brand.id]: e.target.checked })}
-                  />
-                  <span className="text-xl">{brand.emoji}</span>
-                  <span className="font-medium flex-1">{brand.name}</span>
-                </label>
-              ))}
-            </div>
-
-            <button 
-              className="btn btn-primary w-full mt-6"
-              onClick={() => {
-                // Here we would ideally send the inventory to the backend
-                // apiClient.post('/api/inventory', { shopkeeperId: shopkeeper?.id, inventory });
-                setState('done');
-              }}
-            >
-              Submit & Start Auction
-            </button>
+      {/* Top Half: Viewfinder or Preview */}
+      <div 
+        className="relative h-[68%] w-full bg-slate-900 bg-cover bg-center transition-all duration-300"
+        style={{
+          backgroundImage: capturedImage 
+            ? `url(${capturedImage})` 
+            : 'linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuA3l8ZeAV8ebZ788HlmorfKUnX80Azy_Veki0-9npFiQZT-1PYRICyIzwuIGM1KkkOI4YMRYriXHvTsgVNJmFPyPn765fJDRDKg2rn3IiBjqwfR68G9PlrZ76vqARkc11Dg34HeCzZBsPw9bp7ZFJKiCM2FjtzXcqJIxAZ8chRAhZuFSmwVIVe2soh-yhfXZz8TfLGauUxjzh7xYeUG1cD3COKovzKyUG_NudE9mf_RwzDfT8GXseaAOIxIKQ6GJ6IdR5eNmU61A3M)'
+        }}
+      >
+        <div className="h-12 w-full"></div> {/* Status bar spacer */}
+        
+        <div className="absolute top-0 left-0 right-0 flex items-center p-5 bg-gradient-to-b from-black/50 to-transparent">
+          <button onClick={() => router.back()} className="flex items-center justify-center rounded-xl w-10 h-10 bg-white/20 backdrop-blur-md text-white border border-white/30 active:scale-95 transition-transform">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <div className="ml-4">
+            <h1 className="text-white font-semibold text-lg">{taskId ? 'Task Proof' : 'Shelf Scan'}</h1>
+            <p className="text-white/80 text-xs font-light">{taskId ? 'Verify Completion' : 'Inventory Audit Mode'}</p>
           </div>
         </div>
-      )}
 
-      {/* Done State */}
-      {state === 'done' && analysisResult && (
-          <div className="w-full max-w-sm animate-fadeInUp">
-            <div className="glass-card p-6 text-center">
-              <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center"
-                   style={{ background: 'rgba(0, 214, 143, 0.15)' }}>
-                <span className="text-3xl">✅</span>
-              </div>
-              <h2 className="text-lg font-bold mt-4">
-                {analysisResult.isVerification ? (analysisResult.verified ? 'Task Verified!' : 'Verification Failed') : 'Analysis Complete!'}
-              </h2>
-              <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
-                {analysisResult.isVerification 
-                  ? analysisResult.message 
-                  : 'Found opportunities on your shelf'}
-              </p>
-
-              {!analysisResult.isVerification && (
-                <div className="flex justify-center gap-6 mt-4">
-                  <div className="text-center">
-                    <p className="text-3xl font-bold" style={{ color: 'var(--accent-green)' }}>
-                      {analysisResult.emptySpaces}
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                      Empty Spaces
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-3xl font-bold" style={{ color: 'var(--primary-light)' }}>
-                      {analysisResult.confidence}%
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                      Confidence
-                    </p>
-                  </div>
+        {/* Viewfinder Overlay */}
+        {(state === 'ready' || state === 'uploading' || state === 'analyzing') && (
+          <div className="absolute inset-0 flex items-center justify-center p-12 pointer-events-none z-10">
+            <div className={`w-full h-full border-2 border-white/50 border-dashed rounded-[1.25rem] flex flex-col items-center justify-center transition-all duration-1000 ${
+              (state === 'uploading' || state === 'analyzing') ? 'border-[#11d452] bg-[#11d452]/20 scale-105 animate-pulse' : ''
+            }`}>
+              {state === 'ready' && (
+                <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                  <p className="text-white text-xs font-medium">Position product in frame</p>
                 </div>
               )}
-
-              <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(108, 99, 255, 0.1)' }}>
-                <p className="text-sm" style={{ color: 'var(--primary-light)' }}>
-                  {analysisResult.isVerification 
-                    ? 'Payment has been processed if verified.' 
-                    : '🏷️ Auction started! Brands are bidding for your shelf space.'}
-                </p>
-              </div>
+              {state === 'uploading' && (
+                <div className="bg-black/60 backdrop-blur-md p-4 rounded-full flex flex-col items-center gap-2 border border-[#11d452]/50">
+                   <UploadCloud className="w-8 h-8 text-[#11d452] animate-bounce" />
+                   <p className="text-white text-xs font-bold">Uploading...</p>
+                </div>
+              )}
+              {state === 'analyzing' && (
+                <div className="bg-black/60 backdrop-blur-md p-4 rounded-full flex flex-col items-center gap-2 border border-[#11d452]/50">
+                   <RefreshCw className="w-8 h-8 text-[#11d452] animate-spin" />
+                   <p className="text-white text-xs font-bold">AI Analyzing...</p>
+                </div>
+              )}
             </div>
+          </div>
+        )}
 
-            <div className="flex gap-3 mt-4">
-              <button className="btn btn-outline flex-1" onClick={handleRetake} id="btn-scan-again">
-                📷 Scan Again
-              </button>
-              <button
-                className="btn btn-success flex-1"
-                onClick={() => window.location.href = '/tasks'}
-                id="btn-view-tasks-result"
-              >
-                📋 View Tasks
-              </button>
-            </div>
+        {state === 'ready' && (
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-10">
+            <button className="flex items-center justify-center rounded-xl w-11 h-11 bg-black/30 backdrop-blur-md text-white border border-white/10 active:bg-white/20 transition-colors">
+              <Zap className="w-5 h-5" />
+            </button>
+            <button className="flex items-center justify-center rounded-xl w-11 h-11 bg-black/30 backdrop-blur-md text-white border border-white/10 active:bg-white/20 transition-colors">
+              <Grid className="w-5 h-5" />
+            </button>
           </div>
         )}
       </div>
 
-      <BottomNav />
+      {/* Bottom Half: Controls & Context */}
+      <div className="relative flex-1 flex flex-col bg-white -mt-6 rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] z-20 px-6 pt-6 overflow-y-auto">
+        <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6 shrink-0"></div>
+        
+        <div className="flex flex-col flex-1 pb-8 animate-fadeInUp">
+          
+          {/* READY STATE */}
+          {state === 'ready' && (
+            <>
+              <div className="text-center mb-6">
+                <span className="inline-block px-3 py-1 bg-[#11d452]/10 text-[#11d452] text-[10px] font-bold uppercase tracking-widest rounded-full mb-2">Camera</span>
+                <h2 className="text-[#1a1c1e] text-xl font-bold">Capture the whole shelf</h2>
+              </div>
+              
+              <div className="mt-auto flex items-center justify-between">
+                <button className="flex flex-col items-center gap-1.5 group">
+                  <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 group-active:bg-slate-100 transition-colors">
+                    <ImageIcon className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400">ALBUM</span>
+                </button>
+                
+                <div className="relative" onClick={handleCapture}>
+                  <div className="absolute -inset-2.5 border-2 border-[#11d452]/20 rounded-full"></div>
+                  <button className="relative flex items-center justify-center rounded-full w-20 h-20 bg-[#11d452] text-white shadow-[0_8px_20px_rgba(17,212,82,0.4)] active:scale-90 transition-all">
+                    <div className="w-[68px] h-[68px] border-2 border-white/30 rounded-full flex items-center justify-center">
+                      <CameraIcon className="w-8 h-8" fill="currentColor" />
+                    </div>
+                  </button>
+                </div>
+                
+                <button className="flex flex-col items-center gap-1.5 group">
+                  <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 group-active:bg-slate-100 transition-colors">
+                    <History className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400">LOGS</span>
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* PREVIEW STATE */}
+          {state === 'preview' && (
+            <>
+              <div className="text-center mb-6">
+                <span className="inline-block px-3 py-1 bg-[#11d452]/10 text-[#11d452] text-[10px] font-bold uppercase tracking-widest rounded-full mb-2">Confirm Photo</span>
+                <h2 className="text-[#1a1c1e] text-xl font-bold">Looks good?</h2>
+              </div>
+              <div className="mt-auto flex w-full gap-4">
+                <button 
+                  onClick={handleRetake}
+                  className="flex-1 flex flex-col items-center justify-center gap-2 bg-slate-100 py-4 rounded-xl text-slate-600 active:scale-95 transition-all"
+                >
+                  <RefreshCw className="w-6 h-6" />
+                  <span className="text-sm font-bold">Retake</span>
+                </button>
+                <button 
+                  onClick={handleUpload}
+                  className="flex-[2] flex items-center justify-center gap-3 bg-[#11d452] py-4 rounded-xl text-white shadow-lg shadow-[#11d452]/30 active:scale-95 transition-all"
+                >
+                  <span className="text-lg font-bold">Analyze Photo</span>
+                  <Check className="w-6 h-6 stroke-[3]" />
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* UPLOADING / ANALYZING STATE */}
+          {(state === 'uploading' || state === 'analyzing') && (
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
+               <h2 className="text-[#1a1c1e] text-2xl font-bold">{state === 'uploading' ? 'Uploading...' : 'AI Analyzing...'}</h2>
+               <p className="text-slate-500 mt-2">{state === 'uploading' ? 'Securely sending photo' : 'Detecting shelf space and products'}</p>
+               <div className="w-full max-w-[200px] h-2 bg-slate-100 rounded-full mt-8 overflow-hidden">
+                 <div className="h-full bg-[#11d452] rounded-full transition-all duration-700 w-2/3 animate-pulse"></div>
+               </div>
+            </div>
+          )}
+
+          {/* INVENTORY STATE */}
+          {state === 'inventory' && (
+            <>
+              <div className="text-center mb-6 shrink-0">
+                <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-widest rounded-full mb-2">Live Verification</span>
+                <h2 className="text-[#1a1c1e] text-xl font-bold">What's in stock right now?</h2>
+              </div>
+              
+              <div className="space-y-3 mb-8">
+                {INVENTORY_BRANDS.map((brand) => (
+                  <label key={brand.id} className="flex items-center gap-4 p-4 rounded-xl cursor-pointer bg-slate-50 border border-slate-100 hover:border-[#11d452]/50 transition-colors shadow-sm">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 rounded text-[#11d452] focus:ring-[#11d452]"
+                      checked={inventory[brand.id] || false}
+                      onChange={(e) => setInventory({ ...inventory, [brand.id]: e.target.checked })}
+                    />
+                    <span className="text-2xl">{brand.emoji}</span>
+                    <span className="font-bold flex-1 text-slate-700">{brand.name}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="mt-auto">
+                <button 
+                  onClick={() => setState('done')}
+                  className="w-full flex items-center justify-center gap-3 bg-[#11d452] py-4 rounded-xl text-white shadow-lg shadow-[#11d452]/30 active:scale-95 transition-all text-lg font-bold"
+                >
+                  Submit Inventory
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* DONE STATE */}
+          {state === 'done' && analysisResult && (
+             <div className="flex-1 flex flex-col items-center justify-center text-center">
+                <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-6">
+                  {analysisResult.isVerification ? (analysisResult.verified ? <CheckCircle2 className="w-10 h-10 text-green-600" /> : <AlertCircle className="w-10 h-10 text-red-600" />) : <CheckCircle2 className="w-10 h-10 text-green-600" />}
+                </div>
+                
+                <h2 className="text-[#1a1c1e] text-2xl font-bold mb-2">
+                  {analysisResult.isVerification ? (analysisResult.verified ? 'Task Verified!' : 'Verification Failed') : 'Analysis Complete!'}
+                </h2>
+                <p className="text-slate-500 mb-8">
+                  {analysisResult.isVerification 
+                    ? analysisResult.message 
+                    : 'We found opportunities on your shelf.'}
+                </p>
+
+                {!analysisResult.isVerification && (
+                  <div className="flex justify-center gap-8 w-full mb-8">
+                    <div className="flex flex-col items-center">
+                      <span className="text-4xl font-extrabold text-[#11d452]">{analysisResult.emptySpaces}</span>
+                      <span className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Gaps Found</span>
+                    </div>
+                    <div className="w-px h-12 bg-slate-200"></div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-4xl font-extrabold text-[#8c25f4]">{analysisResult.confidence}%</span>
+                      <span className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Confidence</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-auto w-full flex gap-4">
+                  <button 
+                    onClick={handleRetake}
+                    className="flex-1 bg-slate-100 py-4 rounded-xl text-slate-700 font-bold active:bg-slate-200 transition-colors"
+                  >
+                    Scan Another
+                  </button>
+                  <button 
+                    onClick={() => router.push('/dashboard')}
+                    className="flex-1 bg-[#11d452] py-4 rounded-xl text-white shadow-lg shadow-[#11d452]/30 font-bold active:scale-95 transition-transform"
+                  >
+                    Back to Home
+                  </button>
+                </div>
+             </div>
+          )}
+
+        </div>
+      </div>
+      
+      {/* Safety indicator for edge swipes */}
+      <div className="bg-white flex justify-center pb-2 z-20">
+        <div className="w-32 h-1.5 bg-slate-200 rounded-full"></div>
+      </div>
     </div>
   );
 }
 
 export default function CameraPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center mt-20">Loading...</div>}>
+    <Suspense fallback={<div className="p-8 text-center mt-20 font-sans font-medium text-slate-500">Loading camera...</div>}>
       <CameraContent />
     </Suspense>
   );

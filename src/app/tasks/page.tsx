@@ -9,9 +9,11 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/navigation/BottomNav';
 import { useTasks } from '@/hooks/use-tasks';
 import type { Task } from '@/types/models';
+import { PackageSearch, Bell, Camera, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Play, Check } from 'lucide-react';
 
 // Helper to format remaining time
 function formatTimeRemaining(task: Task): string {
@@ -33,25 +35,16 @@ function formatTimeRemaining(task: Task): string {
   return `${minutes}m left`;
 }
 
-const statusConfig = {
-  assigned: { badge: 'badge-warning', label: 'New', icon: '🆕' },
-  in_progress: { badge: 'badge-info', label: 'In Progress', icon: '🔄' },
-  completed: { badge: 'badge-success', label: 'Completed', icon: '✅' },
-  failed: { badge: 'badge-danger', label: 'Failed', icon: '❌' },
-};
-
 export default function TasksPage() {
+  const router = useRouter();
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const { tasks: allTasks, isLoading, isError, startTask } = useTasks();
 
-  const filteredTasks = useMemo(() => {
-    return allTasks.filter((t) =>
-      activeTab === 'active'
-        ? t.status === 'assigned' || t.status === 'in_progress'
-        : t.status === 'completed' || t.status === 'failed'
-    );
-  }, [allTasks, activeTab]);
+  const activeTasks = useMemo(() => allTasks.filter(t => t.status === 'assigned' || t.status === 'in_progress'), [allTasks]);
+  const completedTasks = useMemo(() => allTasks.filter(t => t.status === 'completed' || t.status === 'failed'), [allTasks]);
+
+  const filteredTasks = activeTab === 'active' ? activeTasks : completedTasks;
 
   const handleStartTask = async (taskId: string) => {
     try {
@@ -64,155 +57,205 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="page-container gradient-mesh">
+    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-[#f6f8f6] font-sans text-[#1a1c1e] antialiased">
       {/* Header */}
-      <header className="p-4 pt-12">
-        <h1 className="text-xl font-bold">My Tasks</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Complete tasks to earn money
-        </p>
-      </header>
+      <div className="flex items-center p-6 pb-4 justify-between bg-white sticky top-0 z-30 shadow-sm border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <PackageSearch className="w-8 h-8 text-slate-700" />
+          <h1 className="text-2xl font-black tracking-tight text-[#1a1c1e]">My Tasks</h1>
+        </div>
+        <button className="flex items-center justify-center size-10 rounded-full bg-slate-100 text-slate-600 active:scale-95 transition-transform">
+          <Bell className="w-5 h-5" />
+        </button>
+      </div>
 
-      {/* Tab Switcher */}
-      <div className="px-4 pb-3">
-        <div className="flex rounded-xl overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
-          <button
-            id="tab-active"
-            className={`flex-1 py-3 text-sm font-semibold transition-all ${
-              activeTab === 'active' ? 'gradient-primary text-white' : ''
+      {/* Tabs */}
+      <div className="bg-white px-4 sticky top-[76px] z-20 shadow-sm">
+        <div className="flex border-b border-slate-100">
+          <button 
+            className={`flex flex-col items-center justify-center border-b-[3px] flex-1 pb-4 pt-4 transition-colors ${
+              activeTab === 'active' ? 'border-[#11d452] text-[#1a1c1e]' : 'border-transparent text-slate-400'
             }`}
-            style={activeTab !== 'active' ? { color: 'var(--text-muted)' } : {}}
             onClick={() => setActiveTab('active')}
           >
-            Active ({allTasks.filter((t) => t.status === 'assigned' || t.status === 'in_progress').length})
+            <p className="text-[17px] font-black">Active</p>
           </button>
-          <button
-            id="tab-completed"
-            className={`flex-1 py-3 text-sm font-semibold transition-all ${
-              activeTab === 'completed' ? 'gradient-primary text-white' : ''
+          <button 
+            className={`flex flex-col items-center justify-center border-b-[3px] flex-1 pb-4 pt-4 transition-colors ${
+              activeTab === 'completed' ? 'border-[#11d452] text-[#1a1c1e]' : 'border-transparent text-slate-400'
             }`}
-            style={activeTab !== 'completed' ? { color: 'var(--text-muted)' } : {}}
             onClick={() => setActiveTab('completed')}
           >
-            Completed ({allTasks.filter((t) => t.status === 'completed' || t.status === 'failed').length})
+            <p className="text-[17px] font-black">Completed</p>
           </button>
         </div>
       </div>
 
-      {/* Task List */}
-      <div className="px-4 space-y-3">
+      {/* Main Content */}
+      <div className="flex flex-col gap-6 p-4 pt-6 pb-32">
         {isLoading ? (
-          <div className="space-y-3 pt-4">
-            <div className="skeleton h-24 w-full" style={{ borderRadius: 'var(--radius-md)' }} />
-            <div className="skeleton h-24 w-full" style={{ borderRadius: 'var(--radius-md)' }} />
-            <div className="skeleton h-24 w-full" style={{ borderRadius: 'var(--radius-md)' }} />
+          <div className="space-y-4">
+            <div className="h-64 bg-slate-200 rounded-2xl animate-pulse"></div>
+            <div className="h-64 bg-slate-200 rounded-2xl animate-pulse"></div>
           </div>
         ) : isError ? (
-          <div className="glass-card p-8 text-center text-red-400 font-bold">
-            Failed to load tasks
+          <div className="bg-red-50 border border-red-100 p-8 text-center rounded-2xl">
+             <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+             <p className="text-red-700 font-bold">Failed to load tasks</p>
           </div>
         ) : filteredTasks.length === 0 ? (
-          <div className="glass-card p-8 text-center animate-fadeInUp">
-            <span className="text-4xl">📭</span>
-            <p className="font-semibold mt-3">No tasks here</p>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+          <div className="bg-white p-8 text-center rounded-[1.5rem] shadow-sm border border-slate-100 mt-4 animate-fadeInUp">
+            <div className="size-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+              <PackageSearch className="w-10 h-10 text-slate-300" />
+            </div>
+            <p className="font-bold text-lg text-slate-800">No {activeTab} tasks</p>
+            <p className="text-sm mt-1 font-medium text-slate-500">
               {activeTab === 'active'
-                ? 'Scan your shelf to get new tasks!'
-                : 'Completed tasks will appear here'}
+                ? "You're all caught up! Scan a shelf to find new opportunities."
+                : 'Your finished tasks will appear here.'}
             </p>
           </div>
         ) : (
-          filteredTasks.map((task, index) => {
-            const config = statusConfig[task.status];
-            const isExpanded = expandedTask === task.id;
+          <>
+            {/* Section Header */}
+            <div className="flex items-center justify-between px-2 animate-fadeInUp">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500">
+                {activeTab === 'active' ? 'To Do Now' : 'Recently Done'}
+              </h3>
+              <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                activeTab === 'active' ? 'bg-[#11d452]/20 text-emerald-800' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {filteredTasks.length} Task{filteredTasks.length !== 1 && 's'}
+              </span>
+            </div>
 
-            return (
-              <div
-                key={task.id}
-                className={`glass-card overflow-hidden animate-fadeInUp`}
-                style={{ animationDelay: `${index * 0.1}s` }}
-                id={`task-card-${task.id}`}
-              >
-                {/* Task Header */}
-                <button
-                  className="w-full p-4 flex items-center justify-between text-left"
-                  onClick={() => setExpandedTask(isExpanded ? null : task.id)}
-                  id={`task-toggle-${task.id}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{config.icon}</span>
-                    <div>
-                      <p className="font-semibold text-sm">{task.instructions?.productName || 'Product'}</p>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {task.instructions?.brandName || 'Brand'}
-                      </p>
+            {filteredTasks.map((task, index) => {
+              const isExpanded = expandedTask === task.id;
+
+              if (activeTab === 'active') {
+                return (
+                  <div key={task.id} className="flex flex-col rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.06)] bg-white overflow-hidden border border-slate-100 animate-fadeInUp transition-all" style={{ animationDelay: `${index * 0.1}s` }}>
+                    <div 
+                      className="w-full h-40 bg-center bg-cover bg-slate-100 relative cursor-pointer"
+                      onClick={() => setExpandedTask(isExpanded ? null : task.id)}
+                      style={{ 
+                        backgroundImage: `url(${(task.instructions?.targetLocation as any)?.image || 'https://images.unsplash.com/photo-1601598851547-4302969d0614?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'})` 
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                      <div className="absolute bottom-3 left-4 right-4 flex justify-between items-end">
+                        <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-black tracking-wider uppercase rounded-lg shadow-sm">
+                          {formatTimeRemaining(task)}
+                        </span>
+                        <div className="size-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30">
+                           {isExpanded ? <ChevronUp className="w-5 h-5"/> : <ChevronDown className="w-5 h-5"/>}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold" style={{ color: 'var(--accent-green)' }}>
-                      ₹{task.earnings}
-                    </p>
-                    <span className={`badge ${config.badge} mt-1`}>
-                      {config.label}
-                    </span>
-                  </div>
-                </button>
+                    
+                    <div className="flex flex-col p-6 gap-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-[22px] font-black leading-tight text-[#1a1c1e]">{task.instructions?.productName || 'Product Verification'}</p>
+                          <p className="text-lg font-black text-[#11d452] mt-1">Reward: ₹{task.earnings}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                           {task.status === 'assigned' ? (
+                              <span className="px-3 py-1.5 bg-amber-100 text-amber-700 text-[11px] font-black uppercase tracking-wider rounded-lg border border-amber-200 shadow-sm whitespace-nowrap">
+                                New Task
+                              </span>
+                           ) : (
+                              <span className="px-3 py-1.5 bg-blue-100 text-blue-700 text-[11px] font-black uppercase tracking-wider rounded-lg border border-blue-200 shadow-sm whitespace-nowrap">
+                                In Progress
+                              </span>
+                           )}
+                        </div>
+                      </div>
 
-                {/* Expanded Instructions */}
-                {isExpanded && task.instructions && (
-                  <div className="px-4 pb-4 animate-fadeInUp"
-                       style={{ borderTop: '1px solid var(--border)' }}>
-                    <p className="text-xs font-semibold mt-3 mb-2"
-                       style={{ color: 'var(--text-secondary)' }}>
-                      INSTRUCTIONS
-                    </p>
-                    <ol className="space-y-2">
-                      {[
-                        `Find empty space on ${task.instructions.targetLocation?.shelfLevel ? 'shelf level ' + task.instructions.targetLocation.shelfLevel : 'the shelf'}`,
-                        ...(task.instructions.positioningRules || []),
-                        ...(task.instructions.visualRequirements || []),
-                        'Snap a clear proof photo'
-                      ].map((step, i) => (
-                        <li key={i} className="flex gap-2 text-sm">
-                          <span className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
-                                style={{ background: 'rgba(108, 99, 255, 0.15)', color: 'var(--primary-light)' }}>
-                            {i + 1}
-                          </span>
-                          <span style={{ color: 'var(--text-secondary)' }}>{step}</span>
-                        </li>
-                      ))}
-                    </ol>
-
-                    <div className="flex gap-3 mt-4">
-                      {task.status === 'assigned' && (
+                      {/* Expanded Content */}
+                      {isExpanded && task.instructions && (
+                        <div className="mt-2 pt-4 border-t border-slate-100 animate-fadeInUp">
+                           <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Instructions</p>
+                           <ol className="space-y-4">
+                              {[
+                                `Find space on ${task.instructions.targetLocation?.shelfLevel ? 'Level ' + task.instructions.targetLocation.shelfLevel : 'the shelf'}`,
+                                ...(task.instructions.positioningRules || []),
+                                ...(task.instructions.visualRequirements || []),
+                                'Take a clear photo for proof'
+                              ].map((step, i) => (
+                                <li key={i} className="flex gap-4 text-sm items-start">
+                                  <span className="size-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-black bg-[#11d452]/20 text-emerald-800 shadow-sm mt-0.5">
+                                    {i + 1}
+                                  </span>
+                                  <span className="text-slate-600 font-bold leading-relaxed pt-1">{step}</span>
+                                </li>
+                              ))}
+                           </ol>
+                        </div>
+                      )}
+                      
+                      {/* Action Button */}
+                      {task.status === 'assigned' ? (
                         <button 
-                          className="btn btn-primary flex-1 text-sm" 
-                          id={`btn-start-${task.id}`}
                           onClick={() => handleStartTask(task.id)}
+                          className="flex w-full mt-2 cursor-pointer items-center justify-center gap-2 rounded-xl h-14 bg-[#1a1c1e] text-white text-lg font-black shadow-lg shadow-black/20 active:scale-95 transition-transform"
                         >
-                          ▶️ Start Task
+                          <Play className="w-5 h-5 fill-current" />
+                          <span>Start This Task</span>
                         </button>
-                       )}
-                      {task.status === 'in_progress' && (
+                      ) : (
                         <button 
-                          className="btn btn-success flex-1 text-sm" 
-                          id={`btn-complete-${task.id}`}
-                          onClick={() => window.location.href = `/camera?taskId=${task.id}`}
+                          onClick={() => router.push(`/camera?taskId=${task.id}`)}
+                          className="flex w-full mt-2 cursor-pointer items-center justify-center gap-2 rounded-xl h-14 bg-[#11d452] text-[#1a1c1e] text-lg font-black shadow-[0_8px_20px_rgba(17,212,82,0.3)] active:scale-95 transition-transform"
                         >
-                          📷 Upload Proof
+                          <Camera className="w-6 h-6 stroke-[2.5]" />
+                          <span>Upload Proof</span>
                         </button>
                       )}
                     </div>
-
-                    <p className="text-xs text-center mt-3"
-                       style={{ color: 'var(--accent-yellow)' }}>
-                      ⏰ {formatTimeRemaining(task)}
-                    </p>
                   </div>
-                )}
-              </div>
-            );
-          })
+                );
+              } else {
+                // Completed Task Row
+                return (
+                  <div key={task.id} className="flex items-center p-4 rounded-[1.25rem] bg-white border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] gap-4 animate-fadeInUp" style={{ animationDelay: `${index * 0.05}s` }}>
+                    <div className="size-20 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden border border-slate-200">
+                      <div 
+                        className="w-full h-full bg-center bg-cover" 
+                        style={{ 
+                          backgroundImage: `url(${(task.instructions?.targetLocation as any)?.image || 'https://images.unsplash.com/photo-1628102491629-77858c6734fb?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'})` 
+                        }}
+                      ></div>
+                    </div>
+                    
+                    <div className="flex flex-col flex-1 pb-1">
+                      <p className="text-lg font-black leading-tight text-[#1a1c1e] line-clamp-1">{task.instructions?.productName || 'Task'}</p>
+                      <p className="text-sm font-bold text-slate-500 mt-0.5">Reward: ₹{task.earnings}</p>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        {task.status === 'completed' ? (
+                           <>
+                             <CheckCircle2 className="w-4 h-4 text-[#11d452]" />
+                             <span className="text-xs font-black text-[#11d452] uppercase tracking-wider">Paid</span>
+                           </>
+                        ) : (
+                           <>
+                             <AlertCircle className="w-4 h-4 text-red-500" />
+                             <span className="text-xs font-black text-red-500 uppercase tracking-wider">Failed</span>
+                           </>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className={`flex items-center justify-center size-12 rounded-full shrink-0 ${
+                       task.status === 'completed' ? 'bg-[#11d452]/10 text-[#11d452]' : 'bg-red-50 text-red-500'
+                    }`}>
+                      {task.status === 'completed' ? <Check className="w-6 h-6 stroke-[3]" /> : <AlertCircle className="w-6 h-6 stroke-[2.5]" />}
+                    </div>
+                  </div>
+                );
+              }
+            })}
+          </>
         )}
       </div>
 

@@ -8,9 +8,19 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-lexend)', 'sans-serif'],
+        brand: ['var(--font-space)', 'sans-serif'],
+      },
       colors: {
-        background: 'var(--background)',
-        foreground: 'var(--foreground)',
+        background: 'var(--bg-primary)',
+        foreground: 'var(--text-primary)',
+        // Match Stitch custom colors
+        brand: {
+          green: '#0df259',
+          greenDark: '#11d452',
+          violet: '#8c25f4',
+        }
       },
     },
   },

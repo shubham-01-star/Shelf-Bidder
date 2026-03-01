@@ -1,3 +1,10 @@
+/* Shopkeeper Font (Friendly, Accessible) */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap');
+/* Brand Portal Font (Technical, Enterprise) */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+/* Material Symbols Outlined for icons */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,35 +12,34 @@
 /* ============================================
    Shelf-Bidder Design System
    Premium mobile-first PWA for shopkeepers
+   Stitch Design: kirana-green #11d452, Lexend, light bg
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
 :root {
-  /* Brand Colors */
-  --primary: #6c63ff;
-  --primary-dark: #5a52d5;
-  --primary-light: #8b85ff;
-  --accent: #ff6b6b;
-  --accent-green: #00d68f;
-  --accent-yellow: #ffaa00;
+  /* Brand Colors (Stitch Design) */
+  --primary: #11d452;
+  --primary-dark: #0eb847;
+  --primary-light: #5efb94;
 
-  /* Neutrals */
-  --bg-primary: #0f0f1a;
-  --bg-secondary: #1a1a2e;
-  --bg-card: #16213e;
-  --bg-card-hover: #1c2a4a;
-  --text-primary: #f0f0f5;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-active: rgba(108, 99, 255, 0.4);
+  /* Brand Portal Colors */
+  --brand-violet: #8c25f4;
+  --brand-violet-dark: #6a1bb9;
+
+  /* Light UI (matches Stitch HTML) */
+  --bg-app: #f8faf9;
+  --bg-card: #ffffff;
+  --bg-surface: #f6f8f6;
+  --text-primary: #1a1c1e;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border: rgba(0, 0, 0, 0.06);
+  --border-active: rgba(17, 212, 82, 0.4);
 
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(108, 99, 255, 0.3);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-green: 0 8px 24px rgba(17, 212, 82, 0.25);
 
   /* Radius */
   --radius-sm: 8px;
@@ -49,75 +55,54 @@
   padding: 0;
 }
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   font-family:
-    'Inter',
+    'Lexend',
     -apple-system,
     BlinkMacSystemFont,
     sans-serif;
-  background: var(--bg-primary);
+  background: var(--bg-app);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
+/* font-sans utility should resolve to Lexend */
+.font-sans {
+  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
 /* ============================================
-   Glassmorphism Card
+   Material Symbols Helper
    ============================================ */
 
-.glass-card {
-  background: rgba(22, 33, 62, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 24px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.material-symbols-filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ============================================
+   Card Styles
+   ============================================ */
+
+.card {
+  background: var(--bg-card);
   border-radius: var(--radius-lg);
-  transition: all 0.3s ease;
-}
-
-.glass-card:hover {
-  border-color: var(--border-active);
-  box-shadow: var(--shadow-glow);
-}
-
-/* ============================================
-   Gradient Backgrounds
-   ============================================ */
-
-.gradient-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, #9b59b6 100%);
-}
-
-.gradient-success {
-  background: linear-gradient(135deg, var(--accent-green) 0%, #00b894 100%);
-}
-
-.gradient-warning {
-  background: linear-gradient(135deg, var(--accent-yellow) 0%, #e17055 100%);
-}
-
-.gradient-danger {
-  background: linear-gradient(135deg, var(--accent) 0%, #e17055 100%);
-}
-
-.gradient-mesh {
-  background:
-    radial-gradient(
-      ellipse at 20% 50%,
-      rgba(108, 99, 255, 0.15) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 80% 20%,
-      rgba(155, 89, 182, 0.1) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 60% 80%,
-      rgba(0, 214, 143, 0.08) 0%,
-      transparent 50%
-    ),
-    var(--bg-primary);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ============================================
@@ -129,7 +114,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-family: inherit;
+  font-family: 'Lexend', sans-serif;
   font-weight: 600;
   font-size: 16px;
   padding: 14px 24px;
@@ -148,30 +133,18 @@ body {
 
 .btn-primary {
   background: var(--primary);
-  color: white;
-  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.4);
+  color: #1a1c1e;
+  box-shadow: var(--shadow-green);
 }
 
 .btn-primary:hover {
   background: var(--primary-dark);
-  box-shadow: 0 6px 16px rgba(108, 99, 255, 0.5);
-}
-
-.btn-success {
-  background: var(--accent-green);
-  color: white;
-  box-shadow: 0 4px 12px rgba(0, 214, 143, 0.4);
 }
 
 .btn-outline {
   background: transparent;
   color: var(--text-primary);
   border: 1.5px solid var(--border);
-}
-
-.btn-outline:hover {
-  border-color: var(--primary);
-  color: var(--primary-light);
 }
 
 .btn-large {
@@ -181,15 +154,8 @@ body {
   border-radius: var(--radius-lg);
 }
 
-.btn-icon {
-  width: 52px;
-  height: 52px;
-  padding: 0;
-  border-radius: var(--radius-full);
-}
-
 /* ============================================
-   Bottom Navigation
+   Bottom Navigation (Stitch Design)
    ============================================ */
 
 .bottom-nav {
@@ -197,28 +163,32 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(15, 15, 26, 0.95);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   justify-content: space-around;
   padding: 8px 0;
   padding-bottom: max(8px, env(safe-area-inset-bottom));
   z-index: 50;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
+  gap: 3px;
+  padding: 6px 16px;
   border: none;
   background: none;
   color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Lexend', sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
@@ -229,7 +199,7 @@ body {
 }
 
 .nav-item .nav-icon {
-  font-size: 22px;
+  font-size: 26px;
   line-height: 1;
 }
 
@@ -242,29 +212,24 @@ body {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   padding: 4px 10px;
   border-radius: var(--radius-full);
 }
 
 .badge-success {
-  background: rgba(0, 214, 143, 0.15);
-  color: var(--accent-green);
+  background: rgba(17, 212, 82, 0.12);
+  color: #0a7a2e;
 }
 
 .badge-warning {
-  background: rgba(255, 170, 0, 0.15);
-  color: var(--accent-yellow);
+  background: rgba(251, 146, 60, 0.12);
+  color: #c2410c;
 }
 
 .badge-danger {
-  background: rgba(255, 107, 107, 0.15);
-  color: var(--accent);
-}
-
-.badge-info {
-  background: rgba(108, 99, 255, 0.15);
-  color: var(--primary-light);
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
 }
 
 /* ============================================
@@ -282,22 +247,21 @@ body {
   }
 }
 
-@keyframes pulse-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(108, 99, 255, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(108, 99, 255, 0.4);
-  }
-}
-
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
   }
   100% {
     background-position: 200% 0;
+  }
+}
+
+@keyframes greenPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(17, 212, 82, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(17, 212, 82, 0);
   }
 }
 
@@ -315,16 +279,17 @@ body {
   animation-delay: 0.3s;
 }
 
-.pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+.pulse-green {
+  animation: greenPulse 2s ease-in-out infinite;
 }
 
+/* Skeleton loader (light theme) */
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--bg-card) 25%,
-    var(--bg-card-hover) 50%,
-    var(--bg-card) 75%
+    #e2e8f0 25%,
+    #f1f5f9 50%,
+    #e2e8f0 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
@@ -337,7 +302,8 @@ body {
 
 .page-container {
   min-height: 100vh;
-  padding-bottom: 80px; /* Space for bottom nav */
+  padding-bottom: 80px;
+  background: var(--bg-app);
 }
 
 /* ============================================
@@ -351,7 +317,7 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: rgba(0, 0, 0, 0.12);
   border-radius: 4px;
 }
 

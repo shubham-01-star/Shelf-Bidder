@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shelf-Bidder My Tasks</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-[430px] mx-auto shadow-2xl bg-background-light dark:bg-background-dark">
+<!-- Header -->
+<div class="flex items-center p-6 pb-4 justify-between bg-white dark:bg-slate-900 sticky top-0 z-10 shadow-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-3xl text-slate-700 dark:text-slate-300">inventory_2</span>
+<h1 class="text-2xl font-bold tracking-tight">My Tasks</h1>
+</div>
+<button class="flex items-center justify-center size-10 rounded-full bg-slate-100 dark:bg-slate-800">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+<!-- Tabs -->
+<div class="bg-white dark:bg-slate-900 px-4">
+<div class="flex border-b border-slate-100 dark:border-slate-800">
+<a class="flex flex-col items-center justify-center border-b-4 border-primary text-slate-900 dark:text-white pb-4 pt-4 flex-1" href="#">
+<p class="text-lg font-bold">Active</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-4 border-transparent text-slate-400 dark:text-slate-500 pb-4 pt-4 flex-1" href="#">
+<p class="text-lg font-bold">Completed</p>
+</a>
+</div>
+</div>
+<!-- Main Content -->
+<div class="flex flex-col gap-6 p-4 pt-6 pb-32">
+<!-- Active Task Section Header -->
+<div class="flex items-center justify-between px-2">
+<h3 class="text-sm font-bold uppercase tracking-widest text-slate-500">To Do Now</h3>
+<span class="px-3 py-1 bg-primary/20 text-emerald-700 dark:text-primary text-xs font-bold rounded-full">1 Task</span>
+</div>
+<!-- Active Task Card -->
+<div class="flex flex-col rounded-xl shadow-lg bg-white dark:bg-slate-900 overflow-hidden border border-slate-100 dark:border-slate-800">
+<div class="w-full h-48 bg-center bg-cover bg-slate-200" data-alt="Red soda cans stacked on a store shelf" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCE7TdfyWpHmF6ZTodbUI9l82Pzj175g1rD_RIT4QY_D7ZdStPP2hYVjC6WVkghRbu23qIhpRPEsShP20cpuiYdz8FS-yVg9Urwjoh_DgfV0QWurxwANHytrHRHeE-B4y-dLXTIkS13mQuvtjIm6_Ye1mnK1Of7dGPFH1PoRgQArsHTEX4R0lXp6dFdUCQxyHx9Dgza7huiHJiTSXW84d56fTAtLYIUgKw__STmGbkFJqjL-nV6-IyCDGRn8YJqWh9wCcmq0iE5vvM");'></div>
+<div class="flex flex-col p-6 gap-4">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-2xl font-extrabold">Brand: Coke</p>
+<p class="text-xl font-semibold text-emerald-600 dark:text-primary mt-1">Reward: ₹200</p>
+</div>
+<div class="flex flex-col items-end">
+<span class="px-3 py-1 bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 text-sm font-bold rounded-lg border border-orange-200 dark:border-orange-800">
+                                Needs Photo
+                            </span>
+</div>
+</div>
+<button class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl h-16 bg-primary text-slate-900 text-lg font-bold shadow-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined font-bold">photo_camera</span>
+<span>Upload Proof</span>
+</button>
+</div>
+</div>
+<!-- Recently Finished Header -->
+<div class="flex items-center justify-between px-2 mt-4">
+<h3 class="text-sm font-bold uppercase tracking-widest text-slate-500">Recently Done</h3>
+</div>
+<!-- Completed Task Card -->
+<div class="flex items-center p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm gap-4">
+<div class="size-20 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden">
+<div class="w-full h-full bg-center bg-cover" data-alt="Blue soft drink bottle on retail shelf" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBF_KIZ4EFJ-lwQ8ehTXdDSfqkD3viTy_sDJ1W-i4W69U2fKlktL9sjzGL7L-hDQBWRaeNhIb7C3I5dAYeDgAcuXI9yD11pNg7SZH8CdxG9qd4Ce2-240ppHVzlEM_D4FO-m_A9J7nIGbg4CXhLo1uJziU62YpnDLGoJKPn8UmIurXkIWMMFVHBkwbM9bFEdeIdE5bEtFxMxKIrPf96CNxZmSVSSzjRuR8WKJZj3MK7ib9Xy_oNLd3DFMWnrF5fWGjNUVBE9Gj0uek");'></div>
+</div>
+<div class="flex flex-col flex-1">
+<p class="text-lg font-bold">Brand: Pepsi</p>
+<p class="text-base font-medium text-slate-500">Reward: ₹150</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-emerald-500 text-sm font-bold">check_circle</span>
+<span class="text-sm font-bold text-emerald-500 uppercase tracking-wide">Paid</span>
+</div>
+</div>
+<div class="flex items-center justify-center size-12 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500">
+<span class="material-symbols-outlined text-3xl font-bold">check</span>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation -->
+<div class="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto z-20">
+<div class="flex gap-2 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 pb-8 pt-3 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 dark:text-slate-500" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined">home</span>
+</div>
+<p class="text-xs font-bold leading-normal">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">task_alt</span>
+</div>
+<p class="text-xs font-bold leading-normal">Tasks</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 dark:text-slate-500" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined">gavel</span>
+</div>
+<p class="text-xs font-bold leading-normal">Bids</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 dark:text-slate-500" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined">person</span>
+</div>
+<p class="text-xs font-bold leading-normal">Profile</p>
+</a>
+</div>
+</div>
+</div>
+</body></html>

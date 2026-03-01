@@ -57,11 +57,11 @@ function VerifyOTPForm() {
     <div className="w-full max-w-sm">
       
       <div className="text-center mb-8 animate-fadeInUp">
-        <div className="w-16 h-16 mx-auto bg-white/10 rounded-2xl flex items-center justify-center mb-4 border border-white/20">
+        <div className="w-16 h-16 mx-auto bg-white/60 rounded-2xl flex items-center justify-center mb-4 border border-slate-200 shadow-sm">
           <span className="text-3xl">🛡️</span>
         </div>
-        <h1 className="text-2xl font-bold">Verify Account</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+        <h1 className="text-2xl font-bold text-slate-800">Verify Account</h1>
+        <p className="text-sm mt-1 text-slate-500 font-medium">
           Enter the 6-digit code sent to<br/> {phoneNumber || 'your phone'}
         </p>
       </div>
@@ -72,23 +72,23 @@ function VerifyOTPForm() {
           {/* Hidden Phone Field for context mapping if they landed here manually */}
           {!searchParams.get('phone') && (
             <div className="space-y-1">
-              <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                MOBILE NUMBER
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Mobile Number
               </label>
               <input
                 type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+919876543210"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)] transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors placeholder:text-slate-400"
                 disabled={isLoading}
               />
             </div>
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-              6-DIGIT CODE
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              6-Digit Code
             </label>
             <input
               type="text"
@@ -98,13 +98,13 @@ function VerifyOTPForm() {
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
               placeholder="123456"
-              className="w-full bg-white/5 border border-white/10 text-center text-2xl tracking-widest rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--primary)] transition-colors"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-center text-2xl tracking-widest rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors placeholder:text-slate-300"
               disabled={isLoading}
             />
           </div>
 
           {error && (
-            <p className="text-xs text-red-400 font-medium bg-red-500/10 p-2 rounded-lg border border-red-500/20 text-center">
+            <p className="text-xs text-red-600 font-medium bg-red-50 p-3 rounded-lg border border-red-100 text-center">
               {error}
             </p>
           )}
@@ -112,11 +112,11 @@ function VerifyOTPForm() {
           <button
             type="submit"
             disabled={isLoading || otp.length !== 6}
-            className="btn btn-primary w-full py-3 mt-4 disabled:opacity-50"
+            className="btn btn-primary w-full py-3 mt-4 disabled:opacity-50 text-black font-bold shadow-lg shadow-brand-green/30"
           >
             {isLoading ? (
               <span className="flex items-center justify-center">
-                <span className="animate-spin mr-2 h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                <span className="animate-spin mr-2 h-4 w-4 border-2 border-slate-800/30 border-t-slate-800 rounded-full"></span>
                 Verifying...
               </span>
             ) : (
@@ -126,18 +126,18 @@ function VerifyOTPForm() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xs font-medium text-slate-500">
             Didn&apos;t receive it?{' '}
             <button 
-              className="font-bold text-white hover:underline"
+              className="font-bold text-[var(--primary-dark)] hover:underline"
               onClick={() => alert('OTP resent! (Mocked via Cognito/SNS)')}
               type="button"
             >
               Resend Code
             </button>
           </p>
-          <div className="mt-4 pt-4 border-t border-white/10">
-            <Link href="/signin" className="text-xs font-bold text-[var(--accent-blue)]">
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <Link href="/signin" className="text-xs font-bold text-slate-600 hover:text-slate-800 transition-colors">
               &larr; Back to Sign In
             </Link>
           </div>
@@ -151,7 +151,7 @@ function VerifyOTPForm() {
 export default function VerifyPage() {
   return (
     <div className="page-container gradient-mesh flex flex-col items-center justify-center p-4 min-h-screen">
-      <Suspense fallback={<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>}>
+      <Suspense fallback={<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400"></div>}>
         <VerifyOTPForm />
       </Suspense>
     </div>

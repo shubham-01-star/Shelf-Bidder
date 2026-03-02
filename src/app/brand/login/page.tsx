@@ -15,6 +15,11 @@ export default function BrandLoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // OTP Verification state
+  const [showVerification, setShowVerification] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +42,13 @@ export default function BrandLoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Something went wrong');
+        setError(data.error || data.message || 'Something went wrong');
+        return;
+      }
+
+      if (isSignup && data.requiresVerification) {
+        setSuccessMessage(data.message);
+        setShowVerification(true);
         return;
       }
 
@@ -47,6 +58,39 @@ export default function BrandLoginPage() {
       localStorage.setItem('brandName', data.brand.brandName);
 
       window.location.href = '/brand';
+    } catch {
+      setError('Connection failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/brand/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: otpCode }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || data.message || 'Verification failed');
+        return;
+      }
+
+      // Verification success, now let's login
+      setSuccessMessage('Verified successfully! Logging you in...');
+      setTimeout(() => {
+        setIsSignup(false);
+        setShowVerification(false);
+        handleSubmit(new Event('submit') as unknown as React.FormEvent);
+      }, 1500);
     } catch {
       setError('Connection failed. Please try again.');
     } finally {
@@ -91,21 +135,42 @@ export default function BrandLoginPage() {
 
           <div className="mb-10">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
-              {isSignup ? 'Create Account' : 'Welcome Back'}
+              {showVerification ? 'Check your Email' : isSignup ? 'Create Account' : 'Welcome Back'}
             </h2>
             <p className="text-slate-400 text-base sm:text-lg">
-              {isSignup ? 'Set up your brand profile to start bidding.' : 'Access your brand dashboard and manage bids.'}
+              {showVerification 
+                ? `We sent a 6-digit verification code to ${email}.` 
+                : isSignup 
+                  ? 'Set up your brand profile to start bidding.' 
+                  : 'Access your brand dashboard and manage bids.'}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={showVerification ? handleVerify : handleSubmit} className="space-y-6">
             {error && (
               <div className="p-4 rounded-xl text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20">
                 {error}
               </div>
             )}
+            {successMessage && !error && (
+              <div className="p-4 rounded-xl text-sm font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                {successMessage}
+              </div>
+            )}
 
-            {isSignup && (
+            {showVerification ? (
+              <div className="flex flex-col gap-2">
+                <label className="text-slate-300 text-sm font-medium">Verification Code (6-Digits)</label>
+                <input
+                  type="text"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="------"
+                  className="w-full px-5 py-4 bg-[#120a1d] text-center tracking-[1em] font-bold text-2xl border border-slate-800 rounded-[8px] focus:ring-2 focus:ring-[#8c25f4]/40 focus:border-[#8c25f4] transition-all text-white placeholder:text-slate-600 outline-none"
+                  required
+                />
+              </div>
+            ) : isSignup ? (
               <>
                 <div className="flex flex-col gap-2">
                   <label className="text-slate-300 text-sm font-medium">Brand Name</label>
@@ -130,7 +195,7 @@ export default function BrandLoginPage() {
                   />
                 </div>
               </>
-            )}
+            ) : null}
 
             <div className="flex flex-col gap-2">
               <label className="text-slate-300 text-sm font-medium">Corporate Email</label>
@@ -174,11 +239,19 @@ export default function BrandLoginPage() {
               disabled={loading}
               className="w-full bg-[#8c25f4] hover:bg-[#8c25f4]/90 text-white font-bold py-4 rounded-[8px] shadow-xl shadow-[#8c25f4]/20 transform active:scale-[0.99] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
             >
-              <span>{loading ? 'Please wait...' : isSignup ? 'Create Account' : 'Login to Dashboard'}</span>
+              <span>
+                {loading 
+                  ? 'Please wait...' 
+                  : showVerification 
+                    ? 'Verify Code'
+                    : isSignup 
+                      ? 'Create Account' 
+                      : 'Login to Dashboard'}
+              </span>
               {!loading && <span className="text-xl leading-none">→</span>}
             </button>
             
-            {!isSignup && (
+            {!isSignup && !showVerification && (
               <>
                 <div className="relative flex items-center py-6">
                   <div className="flex-grow border-t border-slate-800"></div>
@@ -202,16 +275,29 @@ export default function BrandLoginPage() {
             )}
           </form>
 
-          <p className="mt-12 text-center text-slate-500 text-sm flex items-center justify-center gap-1">
-            {isSignup ? 'Already have an account?' : 'New to the portal?'}
-            <button
-              type="button"
-              onClick={() => { setIsSignup(!isSignup); setError(''); }}
-              className="text-[#8c25f4] font-bold hover:underline"
-            >
-              {isSignup ? 'Sign In' : 'Contact Account Manager'}
-            </button>
-          </p>
+          {showVerification ? (
+            <p className="mt-12 text-center text-slate-500 text-sm">
+              Didn't receive the email?{' '}
+              <button
+                type="button"
+                className="text-[#8c25f4] font-bold hover:underline"
+                onClick={() => { setShowVerification(false); setError(''); setSuccessMessage(''); }}
+              >
+                Go back and edit email
+              </button>
+            </p>
+          ) : (
+            <p className="mt-12 text-center text-slate-500 text-sm flex items-center justify-center gap-1">
+              {isSignup ? 'Already have an account?' : 'New to the portal?'}
+              <button
+                type="button"
+                onClick={() => { setIsSignup(!isSignup); setError(''); setSuccessMessage(''); }}
+                className="text-[#8c25f4] font-bold hover:underline"
+              >
+                {isSignup ? 'Sign In' : 'Contact Account Manager'}
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

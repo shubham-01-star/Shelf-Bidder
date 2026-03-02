@@ -7,43 +7,96 @@
 
 import { useState } from 'react';
 
-interface MockAuction {
-  id: string;
-  shelfLocation: string;
-  shopkeeperArea: string;
-  spaceSize: string;
-  shelfLevel: number;
-  visibility: string;
-  currentBids: number;
-  highestBid: number;
-  endsIn: string;
-  status: 'active' | 'closed';
-}
-
-const MOCK_AUCTIONS: MockAuction[] = [
-  { id: 'auc-201', shelfLocation: 'Front Counter - Left', shopkeeperArea: 'Connaught Place, Delhi', spaceSize: '30×40 cm', shelfLevel: 2, visibility: 'High', currentBids: 4, highestBid: 120, endsIn: '8 min', status: 'active' },
-  { id: 'auc-202', shelfLocation: 'Main Aisle - Right', shopkeeperArea: 'Koramangala, Bangalore', spaceSize: '25×35 cm', shelfLevel: 3, visibility: 'Medium', currentBids: 2, highestBid: 85, endsIn: '12 min', status: 'active' },
-  { id: 'auc-203', shelfLocation: 'Checkout Counter', shopkeeperArea: 'Bandra, Mumbai', spaceSize: '20×30 cm', shelfLevel: 1, visibility: 'High', currentBids: 6, highestBid: 150, endsIn: '3 min', status: 'active' },
-  { id: 'auc-204', shelfLocation: 'Back Shelf - Top', shopkeeperArea: 'Jubilee Hills, Hyderabad', spaceSize: '35×45 cm', shelfLevel: 4, visibility: 'Low', currentBids: 1, highestBid: 45, endsIn: '14 min', status: 'active' },
-];
+// MOCK_AUCTIONS removed for real API
 
 export default function BrandAuctionsPage() {
-  const [auctions] = useState<MockAuction[]>(MOCK_AUCTIONS);
+  const [auctions, setAuctions] = useState<any[]>([]);
   const [bidding, setBidding] = useState<string | null>(null);
   const [bidAmount, setBidAmount] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState('Pepsi 500ml');
+  const [selectedProduct, setSelectedProduct] = useState('');
   const [bidSuccess, setBidSuccess] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
 
-  const handleBid = (auctionId: string) => {
-    if (!bidAmount || Number(bidAmount) <= 0) return;
-
-    // Simulate bid submission
-    setBidSuccess(auctionId);
-    setBidding(null);
-    setBidAmount('');
-
-    setTimeout(() => setBidSuccess(null), 3000);
+  // Fetch active auctions
+  const fetchAuctions = () => {
+    fetch('/api/brand/auctions')
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success) {
+          setAuctions(resData.data);
+        }
+      })
+      .finally(() => setLoading(false));
   };
+
+  import('react').then(React => {
+    React.useEffect(() => {
+      // Load custom products
+      const savedProducts = localStorage.getItem('brand_products');
+      if (savedProducts) {
+        const parsed = JSON.parse(savedProducts);
+        setAvailableProducts(parsed);
+        if (parsed.length > 0) setSelectedProduct(parsed[0].name);
+      } else {
+        // Fallback defaults
+        const defaults = [{ name: 'Pepsi 500ml' }, { name: 'Lays Classic 50g' }];
+        setAvailableProducts(defaults);
+        setSelectedProduct(defaults[0].name);
+      }
+
+      fetchAuctions();
+      const interval = setInterval(fetchAuctions, 15000); // Live poll
+      return () => clearInterval(interval);
+    }, []);
+  });
+
+  const handleBid = async (auctionId: string) => {
+    if (!bidAmount || Number(bidAmount) <= 0) return;
+    
+    const brandName = localStorage.getItem('brandName') || 'Brand';
+    const brandId = localStorage.getItem('brandId') || 'default-brand';
+
+    try {
+      const resp = await fetch('/api/brand/auctions', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-brand-id': brandId 
+        },
+        body: JSON.stringify({
+          auctionId,
+          amount: Number(bidAmount),
+          productName: selectedProduct,
+          brandName
+        })
+      });
+      
+      const result = await resp.json();
+      
+      if (result.success) {
+        setBidSuccess(auctionId);
+        setBidding(null);
+        setBidAmount('');
+        fetchAuctions(); // Refresh to show new bid
+
+        setTimeout(() => setBidSuccess(null), 3000);
+      } else {
+        alert('Bid failed: ' + result.error);
+      }
+    } catch (e) {
+      alert('Network error while placing bid');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center bg-[#0a0510] text-white">
+        <div className="animate-spin text-4xl mb-4">🌀</div>
+        <p className="font-bold tracking-widest uppercase text-sm text-[var(--brand-violet)] animate-pulse">Scanning Auctions</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">
@@ -132,9 +185,9 @@ export default function BrandAuctionsPage() {
                       onChange={(e) => setSelectedProduct(e.target.value)}
                       className="flex-1 p-3 rounded-xl text-sm font-medium bg-slate-950/80 border border-slate-800 text-white focus:outline-none focus:border-[var(--brand-violet)] focus:ring-1 focus:ring-[var(--brand-violet)] transition-all"
                     >
-                      <option>Pepsi 500ml</option>
-                      <option>Lays Classic 50g</option>
-                      <option>Pepsi Diet 330ml</option>
+                      {availableProducts.map((p, idx) => (
+                        <option key={idx} value={p.name}>{p.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="flex gap-3">

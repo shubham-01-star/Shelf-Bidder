@@ -8,20 +8,7 @@
 import { useState, useEffect } from 'react';
 import type { BrandDashboardData, BrandBid } from '@/types/brand-models';
 
-// Mock data for prototype
-const MOCK_DASHBOARD: BrandDashboardData = {
-  totalSpent: 12450,
-  activeBids: 3,
-  auctionsWon: 28,
-  auctionsLost: 15,
-  monthlySpend: 4200,
-  recentBids: [
-    { id: 'bid-1', auctionId: 'auc-101', productId: 'p1', productName: 'Pepsi 500ml', amount: 95, status: 'won', timestamp: new Date(Date.now() - 3600000).toISOString() },
-    { id: 'bid-2', auctionId: 'auc-102', productId: 'p2', productName: 'Lays Classic', amount: 75, status: 'pending', timestamp: new Date(Date.now() - 1800000).toISOString() },
-    { id: 'bid-3', auctionId: 'auc-103', productId: 'p1', productName: 'Pepsi 500ml', amount: 120, status: 'lost', timestamp: new Date(Date.now() - 7200000).toISOString() },
-    { id: 'bid-4', auctionId: 'auc-104', productId: 'p3', productName: 'Pepsi Diet 330ml', amount: 60, status: 'won', timestamp: new Date(Date.now() - 86400000).toISOString() },
-  ],
-};
+// Removed static mock data
 
 const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
   won: { color: 'var(--accent-green)', bg: 'rgba(0, 214, 143, 0.15)', label: '🏆 Won' },
@@ -31,12 +18,31 @@ const statusConfig: Record<string, { color: string; bg: string; label: string }>
 };
 
 export default function BrandDashboardPage() {
-  const [data] = useState<BrandDashboardData>(MOCK_DASHBOARD);
+  const [data, setData] = useState<BrandDashboardData | null>(null);
   const [brandName, setBrandName] = useState('Brand');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const name = localStorage.getItem('brandName');
+    const brandId = localStorage.getItem('brandId');
     if (name) setBrandName(name);
+
+    if (brandId) {
+      fetch('/api/brand/dashboard', {
+        headers: { 'x-brand-id': brandId }
+      })
+        .then(res => res.json())
+        .then(resData => {
+          if (resData.success && resData.data) {
+            setData(resData.data);
+          }
+        })
+        .catch(err => console.error('Failed to fetch brand dashboard', err))
+        .finally(() => setLoading(false));
+    } else {
+      // Redirect if not logged in
+      window.location.href = '/brand/login';
+    }
   }, []);
 
   const greeting = (() => {
@@ -45,6 +51,15 @@ export default function BrandDashboardPage() {
     if (hour < 17) return 'Good Afternoon';
     return 'Good Evening';
   })();
+
+  if (loading || !data) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center bg-[#0a0510] text-white">
+        <div className="animate-spin text-4xl mb-4">🌀</div>
+        <p className="font-bold tracking-widest uppercase text-sm text-[var(--brand-violet)] animate-pulse">Loading Workspace</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">

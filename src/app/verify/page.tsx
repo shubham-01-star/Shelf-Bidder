@@ -10,6 +10,7 @@ function VerifyOTPForm() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   const { verifyPhoneNumber } = useAuth();
   const router = useRouter();
@@ -22,6 +23,45 @@ function VerifyOTPForm() {
       setPhoneNumber(decodeURIComponent(phone));
     }
   }, [searchParams]);
+
+  const handleResendCode = async () => {
+    if (!phoneNumber) {
+      setError('Phone number is missing.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError('');
+      setSuccessMessage('');
+
+      const response = await fetch('/api/auth/resend-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to resend code');
+      }
+
+      setSuccessMessage(data.message || 'Verification code resent successfully!');
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (err: unknown) {
+      console.error('Resend error:', err);
+      if (err instanceof Error) {
+        setError(err.message || 'Failed to resend code. Please try again.');
+      } else {
+        setError('An unexpected error occurred.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +149,12 @@ function VerifyOTPForm() {
             </p>
           )}
 
+          {successMessage && (
+            <p className="text-xs text-green-600 font-medium bg-green-50 p-3 rounded-lg border border-green-100 text-center">
+              {successMessage}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={isLoading || otp.length !== 6}
@@ -129,9 +175,10 @@ function VerifyOTPForm() {
           <p className="text-xs font-medium text-slate-500">
             Didn&apos;t receive it?{' '}
             <button 
-              className="font-bold text-[var(--primary-dark)] hover:underline"
-              onClick={() => alert('OTP resent! (Mocked via Cognito/SNS)')}
+              className="font-bold text-[var(--primary-dark)] hover:underline disabled:opacity-50"
+              onClick={handleResendCode}
               type="button"
+              disabled={isLoading}
             >
               Resend Code
             </button>

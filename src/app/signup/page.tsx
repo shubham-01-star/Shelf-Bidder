@@ -7,6 +7,7 @@ import Link from 'next/link';
 
 export default function SignUpPage() {
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [phoneDigits, setPhoneDigits] = useState('');
   const phoneNumber = `+91${phoneDigits}`;
   const [password, setPassword] = useState('');
@@ -24,6 +25,14 @@ export default function SignUpPage() {
       setError('Name is required.');
       return;
     }
+    
+    // Simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    
     if (phoneDigits.length !== 10) {
       setError('Please enter a valid 10-digit mobile number.');
       return;
@@ -35,7 +44,7 @@ export default function SignUpPage() {
 
     try {
       setIsLoading(true);
-      await signUp(phoneNumber, password, name);
+      await signUp(phoneNumber, password, name, email);
       // Redirect to verification page
       router.push(`/verify?phone=${encodeURIComponent(phoneNumber)}`);
     } catch (err: unknown) {
@@ -80,6 +89,20 @@ export default function SignUpPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ramesh Kumar"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors placeholder:text-slate-400"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="ramesh@example.com"
                 className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors placeholder:text-slate-400"
                 disabled={isLoading}
               />

@@ -20,7 +20,7 @@ import {
 
 describe('ShopkeeperMapper', () => {
   const mockShopkeeper: Shopkeeper = {
-    id: '123e4567-e89b-12d3-a456-426614174000',
+    id: '123e4567-e89b-41d4-a456-426614174000',
     name: 'Ramesh Kumar',
     phoneNumber: '+919876543210',
     storeAddress: '123 Main Street, Mumbai',
@@ -34,7 +34,7 @@ describe('ShopkeeperMapper', () => {
   it('should convert Shopkeeper to DynamoDB item', () => {
     const item = ShopkeeperMapper.toItem(mockShopkeeper);
 
-    expect(item.PK).toBe('SHOPKEEPER#123e4567-e89b-12d3-a456-426614174000');
+    expect(item.PK).toBe('SHOPKEEPER#123e4567-e89b-41d4-a456-426614174000');
     expect(item.SK).toBe('METADATA');
     expect(item.EntityType).toBe('SHOPKEEPER');
     expect(item.ShopkeeperId).toBe(mockShopkeeper.id);
@@ -52,13 +52,13 @@ describe('ShopkeeperMapper', () => {
 
 describe('ShelfSpaceMapper', () => {
   const mockShelfSpace: ShelfSpace = {
-    id: '456e7890-e89b-12d3-a456-426614174001',
-    shopkeeperId: '123e4567-e89b-12d3-a456-426614174000',
+    id: '456e7890-e89b-41d4-a456-426614174001',
+    shopkeeperId: '123e4567-e89b-41d4-a456-426614174000',
     photoUrl: 'https://example.com/photo.jpg',
-    analysisDate: '2024-01-15T10:00:00.000Z',
+    analysisDate: '2024-01-15',
     emptySpaces: [
       {
-        id: '789e0123-e89b-12d3-a456-426614174002',
+        id: '789e0123-e89b-41d4-a456-426614174002',
         coordinates: { x: 100, y: 200, width: 300, height: 150 },
         shelfLevel: 2,
         visibility: 'high',
@@ -78,9 +78,9 @@ describe('ShelfSpaceMapper', () => {
   it('should convert ShelfSpace to DynamoDB item', () => {
     const item = ShelfSpaceMapper.toItem(mockShelfSpace);
 
-    expect(item.PK).toBe('SHOPKEEPER#123e4567-e89b-12d3-a456-426614174000');
-    expect(item.SK).toContain('SHELFSPACE#2024-01-15T10:00:00.000Z#');
-    expect(item.GSI1PK).toBe('SHELFSPACE#456e7890-e89b-12d3-a456-426614174001');
+    expect(item.PK).toBe('SHOPKEEPER#123e4567-e89b-41d4-a456-426614174000');
+    expect(item.SK).toContain('SHELFSPACE#2024-01-15#');
+    expect(item.GSI1PK).toBe('SHELFSPACE#456e7890-e89b-41d4-a456-426614174001');
     expect(item.EntityType).toBe('SHELFSPACE');
     expect(item.AnalysisConfidence).toBe(95.5);
     expect(typeof item.EmptySpaces).toBe('string');
@@ -99,15 +99,15 @@ describe('ShelfSpaceMapper', () => {
 
 describe('AuctionMapper', () => {
   const mockAuction: Auction = {
-    id: '111e2222-e89b-12d3-a456-426614174003',
-    shelfSpaceId: '456e7890-e89b-12d3-a456-426614174001',
+    id: '111e2222-e89b-41d4-a456-426614174003',
+    shelfSpaceId: '456e7890-e89b-41d4-a456-426614174001',
     startTime: '2024-01-15T10:00:00.000Z',
     endTime: '2024-01-15T10:15:00.000Z',
     status: 'active',
     bids: [
       {
-        id: '333e4444-e89b-12d3-a456-426614174004',
-        agentId: '555e6666-e89b-12d3-a456-426614174005',
+        id: '333e4444-e89b-41d4-a456-426614174004',
+        agentId: '555e6666-e89b-41d4-a456-426614174005',
         amount: 50.0,
         productDetails: {
           name: 'Pepsi 500ml',
@@ -119,16 +119,16 @@ describe('AuctionMapper', () => {
         status: 'valid',
       },
     ],
-    winnerId: '555e6666-e89b-12d3-a456-426614174005',
+    winnerId: '555e6666-e89b-41d4-a456-426614174005',
     winningBid: 50.0,
   };
 
   it('should convert Auction to DynamoDB item', () => {
     const item = AuctionMapper.toItem(mockAuction);
 
-    expect(item.PK).toBe('AUCTION#111e2222-e89b-12d3-a456-426614174003');
+    expect(item.PK).toBe('AUCTION#111e2222-e89b-41d4-a456-426614174003');
     expect(item.SK).toBe('METADATA');
-    expect(item.GSI1PK).toBe('SHELFSPACE#456e7890-e89b-12d3-a456-426614174001');
+    expect(item.GSI1PK).toBe('SHELFSPACE#456e7890-e89b-41d4-a456-426614174001');
     expect(item.GSI2PK).toBe('STATUS#active');
     expect(item.EntityType).toBe('AUCTION');
     expect(item.Status).toBe('active');
@@ -141,20 +141,20 @@ describe('AuctionMapper', () => {
 
     expect(auction).toEqual(mockAuction);
     expect(auction.bids).toHaveLength(1);
-    expect(auction.winnerId).toBe('555e6666-e89b-12d3-a456-426614174005');
+    expect(auction.winnerId).toBe('555e6666-e89b-41d4-a456-426614174005');
   });
 });
 
 describe('TaskMapper', () => {
   const mockTask: Task = {
-    id: '777e8888-e89b-12d3-a456-426614174006',
-    auctionId: '111e2222-e89b-12d3-a456-426614174003',
-    shopkeeperId: '123e4567-e89b-12d3-a456-426614174000',
+    id: '777e8888-e89b-41d4-a456-426614174006',
+    auctionId: '111e2222-e89b-41d4-a456-426614174003',
+    shopkeeperId: '123e4567-e89b-41d4-a456-426614174000',
     instructions: {
       productName: 'Pepsi 500ml',
       brandName: 'PepsiCo',
       targetLocation: {
-        id: '789e0123-e89b-12d3-a456-426614174002',
+        id: '789e0123-e89b-41d4-a456-426614174002',
         coordinates: { x: 100, y: 200, width: 300, height: 150 },
         shelfLevel: 2,
         visibility: 'high',
@@ -165,16 +165,16 @@ describe('TaskMapper', () => {
       timeLimit: 24,
     },
     status: 'assigned',
-    assignedDate: '2024-01-15T10:00:00.000Z',
+    assignedDate: '2024-01-15',
     earnings: 50.0,
   };
 
   it('should convert Task to DynamoDB item', () => {
     const item = TaskMapper.toItem(mockTask);
 
-    expect(item.PK).toBe('SHOPKEEPER#123e4567-e89b-12d3-a456-426614174000');
-    expect(item.SK).toContain('TASK#2024-01-15T10:00:00.000Z#');
-    expect(item.GSI1PK).toBe('TASK#777e8888-e89b-12d3-a456-426614174006');
+    expect(item.PK).toBe('SHOPKEEPER#123e4567-e89b-41d4-a456-426614174000');
+    expect(item.SK).toContain('TASK#2024-01-15#');
+    expect(item.GSI1PK).toBe('TASK#777e8888-e89b-41d4-a456-426614174006');
     expect(item.GSI2PK).toBe('STATUS#assigned');
     expect(item.EntityType).toBe('TASK');
     expect(typeof item.Instructions).toBe('string');
@@ -191,12 +191,12 @@ describe('TaskMapper', () => {
 
 describe('WalletTransactionMapper', () => {
   const mockTransaction: WalletTransaction = {
-    id: '999e0000-e89b-12d3-a456-426614174007',
-    shopkeeperId: '123e4567-e89b-12d3-a456-426614174000',
+    id: '999e0000-e89b-41d4-a456-426614174007',
+    shopkeeperId: '123e4567-e89b-41d4-a456-426614174000',
     type: 'earning',
     amount: 50.0,
     description: 'Task completion payment',
-    taskId: '777e8888-e89b-12d3-a456-426614174006',
+    taskId: '777e8888-e89b-41d4-a456-426614174006',
     timestamp: '2024-01-15T10:30:00.000Z',
     status: 'completed',
   };
@@ -204,9 +204,9 @@ describe('WalletTransactionMapper', () => {
   it('should convert WalletTransaction to DynamoDB item', () => {
     const item = WalletTransactionMapper.toItem(mockTransaction);
 
-    expect(item.PK).toBe('SHOPKEEPER#123e4567-e89b-12d3-a456-426614174000');
+    expect(item.PK).toBe('SHOPKEEPER#123e4567-e89b-41d4-a456-426614174000');
     expect(item.SK).toContain('TRANSACTION#2024-01-15T10:30:00.000Z#');
-    expect(item.GSI1PK).toBe('TRANSACTION#999e0000-e89b-12d3-a456-426614174007');
+    expect(item.GSI1PK).toBe('TRANSACTION#999e0000-e89b-41d4-a456-426614174007');
     expect(item.EntityType).toBe('TRANSACTION');
     expect(item.Amount).toBe(50.0);
   });

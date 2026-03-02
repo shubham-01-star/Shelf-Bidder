@@ -74,15 +74,61 @@ export async function POST(request: NextRequest) {
     }
     // ── End local dev mock ───────────────────────────────────────────
 
-    // TODO (Production): Use AWS Cognito SDK here
-    // const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
-    // const command = new InitiateAuthCommand({ ... });
+    // Real AWS Cognito Authentication
+    const { getAWSConfig } = await import('@/types/aws-config');
+    const { CognitoIdentityProviderClient, InitiateAuthCommand } = await import('@aws-sdk/client-cognito-identity-provider');
+    
+    const config = getAWSConfig();
+    const client = new CognitoIdentityProviderClient({ region: config.region });
+
+    const command = new InitiateAuthCommand({
+      AuthFlow: 'USER_PASSWORD_AUTH',
+      ClientId: config.userPoolClientId,
+      AuthParameters: {
+        USERNAME: phoneNumber,
+        PASSWORD: password,
+      },
+    });
+
+    const authResponse = await client.send(command);
+
+    if (authResponse.AuthenticationResult) {
+      return NextResponse.json({
+        accessToken: authResponse.AuthenticationResult.AccessToken,
+        idToken: authResponse.AuthenticationResult.IdToken,
+        refreshToken: authResponse.AuthenticationResult.RefreshToken,
+        expiresIn: authResponse.AuthenticationResult.ExpiresIn,
+      });
+    }
+
     return NextResponse.json(
-      { error: 'Not implemented', message: 'AWS Cognito integration pending.' },
-      { status: 501 }
+      { error: 'NotAuthorizedException', message: 'Authentication failed. Please check your credentials.' },
+      { status: 401 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Sign in error:', error);
+
+    if (error.name === 'NotAuthorizedException') {
+      return NextResponse.json(
+        { error: 'NotAuthorizedException', message: 'Incorrect phone number or password.' },
+        { status: 401 }
+      );
+    }
+    
+    if (error.name === 'UserNotFoundException') {
+      return NextResponse.json(
+        { error: 'UserNotFoundException', message: 'Account not found. Please sign up first.' },
+        { status: 404 }
+      );
+    }
+    
+    if (error.name === 'UserNotConfirmedException') {
+      return NextResponse.json(
+        { error: 'UserNotConfirmedException', message: 'Please verify your phone number first.' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Internal server error', message: 'An error occurred during sign in' },
       { status: 500 }

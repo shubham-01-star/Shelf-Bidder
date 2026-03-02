@@ -35,7 +35,7 @@ describe('ShopkeeperOperations', () => {
   });
 
   const mockShopkeeper: Shopkeeper = {
-    id: 'shop-123',
+    id: '550e8400-e29b-41d4-a716-446655440000',
     name: 'Ramesh Kumar',
     phoneNumber: '+919876543210',
     storeAddress: '123 Main Street, Mumbai',
@@ -67,10 +67,10 @@ describe('ShopkeeperOperations', () => {
     it('should retrieve a shopkeeper by ID', async () => {
       mockSend.mockResolvedValueOnce({
         Item: {
-          PK: 'SHOPKEEPER#shop-123',
+          PK: 'SHOPKEEPER#550e8400-e29b-41d4-a716-446655440000',
           SK: 'METADATA',
           EntityType: 'SHOPKEEPER',
-          ShopkeeperId: 'shop-123',
+          ShopkeeperId: '550e8400-e29b-41d4-a716-446655440000',
           Name: 'Ramesh Kumar',
           PhoneNumber: '+919876543210',
           StoreAddress: '123 Main Street, Mumbai',
@@ -84,9 +84,9 @@ describe('ShopkeeperOperations', () => {
         },
       });
 
-      const result = await ShopkeeperOperations.get('shop-123');
+      const result = await ShopkeeperOperations.get('550e8400-e29b-41d4-a716-446655440000');
 
-      expect(result.id).toBe('shop-123');
+      expect(result.id).toBe('550e8400-e29b-41d4-a716-446655440000');
       expect(result.name).toBe('Ramesh Kumar');
       expect(mockSend).toHaveBeenCalledTimes(1);
     });
@@ -104,10 +104,10 @@ describe('ShopkeeperOperations', () => {
     it('should update shopkeeper fields', async () => {
       mockSend.mockResolvedValueOnce({
         Attributes: {
-          PK: 'SHOPKEEPER#shop-123',
+          PK: 'SHOPKEEPER#550e8400-e29b-41d4-a716-446655440000',
           SK: 'METADATA',
           EntityType: 'SHOPKEEPER',
-          ShopkeeperId: 'shop-123',
+          ShopkeeperId: '550e8400-e29b-41d4-a716-446655440000',
           Name: 'Ramesh Kumar Updated',
           PhoneNumber: '+919876543210',
           StoreAddress: '123 Main Street, Mumbai',
@@ -121,7 +121,7 @@ describe('ShopkeeperOperations', () => {
         },
       });
 
-      const result = await ShopkeeperOperations.update('shop-123', {
+      const result = await ShopkeeperOperations.update('550e8400-e29b-41d4-a716-446655440000', {
         name: 'Ramesh Kumar Updated',
         walletBalance: 200.0,
       });
@@ -136,7 +136,7 @@ describe('ShopkeeperOperations', () => {
     it('should delete a shopkeeper', async () => {
       mockSend.mockResolvedValueOnce({});
 
-      await ShopkeeperOperations.delete('shop-123');
+      await ShopkeeperOperations.delete('550e8400-e29b-41d4-a716-446655440000');
 
       expect(mockSend).toHaveBeenCalledTimes(1);
     });
@@ -150,9 +150,9 @@ describe('ShelfSpaceOperations', () => {
 
   const mockShelfSpace: ShelfSpace = {
     id: 'shelf-456',
-    shopkeeperId: 'shop-123',
+    shopkeeperId: '550e8400-e29b-41d4-a716-446655440000',
     photoUrl: 'https://example.com/photo.jpg',
-    analysisDate: '2024-01-15T10:00:00.000Z',
+    analysisDate: '2024-01-15',
     emptySpaces: [
       {
         id: 'empty-789',
@@ -188,15 +188,15 @@ describe('ShelfSpaceOperations', () => {
       mockSend.mockResolvedValueOnce({
         Items: [
           {
-            PK: 'SHOPKEEPER#shop-123',
-            SK: 'SHELFSPACE#2024-01-15T10:00:00.000Z#shelf-456',
+            PK: 'SHOPKEEPER#550e8400-e29b-41d4-a716-446655440000',
+            SK: 'SHELFSPACE#2024-01-15#shelf-456',
             GSI1PK: 'SHELFSPACE#shelf-456',
             GSI1SK: 'METADATA',
             EntityType: 'SHELFSPACE',
             ShelfSpaceId: 'shelf-456',
-            ShopkeeperId: 'shop-123',
+            ShopkeeperId: '550e8400-e29b-41d4-a716-446655440000',
             PhotoUrl: 'https://example.com/photo.jpg',
-            AnalysisDate: '2024-01-15T10:00:00.000Z',
+            AnalysisDate: '2024-01-15',
             EmptySpaces: JSON.stringify(mockShelfSpace.emptySpaces),
             CurrentInventory: JSON.stringify(mockShelfSpace.currentInventory),
             AnalysisConfidence: 95.5,
@@ -207,7 +207,7 @@ describe('ShelfSpaceOperations', () => {
         Count: 1,
       });
 
-      const result = await ShelfSpaceOperations.queryByShopkeeper('shop-123');
+      const result = await ShelfSpaceOperations.queryByShopkeeper('550e8400-e29b-41d4-a716-446655440000');
 
       expect(result.items).toHaveLength(1);
       expect(result.items[0].id).toBe('shelf-456');
@@ -221,7 +221,7 @@ describe('ShelfSpaceOperations', () => {
       });
 
       const result = await ShelfSpaceOperations.queryByShopkeeper(
-        'shop-123',
+        '550e8400-e29b-41d4-a716-446655440000',
         '2024-01-01T00:00:00.000Z',
         '2024-01-31T23:59:59.999Z'
       );
@@ -333,7 +333,7 @@ describe('TaskOperations', () => {
   const mockTask: Task = {
     id: 'task-777',
     auctionId: 'auction-111',
-    shopkeeperId: 'shop-123',
+    shopkeeperId: '550e8400-e29b-41d4-a716-446655440000',
     instructions: {
       productName: 'Pepsi 500ml',
       brandName: 'PepsiCo',
@@ -349,7 +349,7 @@ describe('TaskOperations', () => {
       timeLimit: 24,
     },
     status: 'assigned',
-    assignedDate: '2024-01-15T10:00:00.000Z',
+    assignedDate: '2024-01-15',
     earnings: 50.0,
   };
 
@@ -369,19 +369,19 @@ describe('TaskOperations', () => {
       mockSend.mockResolvedValueOnce({
         Items: [
           {
-            PK: 'SHOPKEEPER#shop-123',
-            SK: 'TASK#2024-01-15T10:00:00.000Z#task-777',
+            PK: 'SHOPKEEPER#550e8400-e29b-41d4-a716-446655440000',
+            SK: 'TASK#2024-01-15#task-777',
             GSI1PK: 'TASK#task-777',
             GSI1SK: 'METADATA',
             GSI2PK: 'STATUS#assigned',
-            GSI2SK: 'TASK#2024-01-15T10:00:00.000Z',
+            GSI2SK: 'TASK#2024-01-15',
             EntityType: 'TASK',
             TaskId: 'task-777',
             AuctionId: 'auction-111',
-            ShopkeeperId: 'shop-123',
+            ShopkeeperId: '550e8400-e29b-41d4-a716-446655440000',
             Instructions: JSON.stringify(mockTask.instructions),
             Status: 'assigned',
-            AssignedDate: '2024-01-15T10:00:00.000Z',
+            AssignedDate: '2024-01-15',
             Earnings: 50.0,
             CreatedAt: '2024-01-15T10:00:00.000Z',
             UpdatedAt: '2024-01-15T10:00:00.000Z',
@@ -390,7 +390,7 @@ describe('TaskOperations', () => {
         Count: 1,
       });
 
-      const result = await TaskOperations.queryByShopkeeper('shop-123');
+      const result = await TaskOperations.queryByShopkeeper('550e8400-e29b-41d4-a716-446655440000');
 
       expect(result.items).toHaveLength(1);
       expect(result.items[0].id).toBe('task-777');
@@ -405,7 +405,7 @@ describe('WalletTransactionOperations', () => {
 
   const mockTransaction: WalletTransaction = {
     id: 'txn-999',
-    shopkeeperId: 'shop-123',
+    shopkeeperId: '550e8400-e29b-41d4-a716-446655440000',
     type: 'earning',
     amount: 50.0,
     description: 'Task completion payment',
@@ -430,13 +430,13 @@ describe('WalletTransactionOperations', () => {
       mockSend.mockResolvedValueOnce({
         Items: [
           {
-            PK: 'SHOPKEEPER#shop-123',
+            PK: 'SHOPKEEPER#550e8400-e29b-41d4-a716-446655440000',
             SK: 'TRANSACTION#2024-01-15T10:30:00.000Z#txn-999',
             GSI1PK: 'TRANSACTION#txn-999',
             GSI1SK: 'METADATA',
             EntityType: 'TRANSACTION',
             TransactionId: 'txn-999',
-            ShopkeeperId: 'shop-123',
+            ShopkeeperId: '550e8400-e29b-41d4-a716-446655440000',
             Type: 'earning',
             Amount: 50.0,
             Description: 'Task completion payment',
@@ -450,7 +450,7 @@ describe('WalletTransactionOperations', () => {
         Count: 1,
       });
 
-      const result = await WalletTransactionOperations.queryByShopkeeper('shop-123');
+      const result = await WalletTransactionOperations.queryByShopkeeper('550e8400-e29b-41d4-a716-446655440000');
 
       expect(result.items).toHaveLength(1);
       expect(result.items[0].amount).toBe(50.0);
@@ -461,13 +461,13 @@ describe('WalletTransactionOperations', () => {
     it('should update transaction status', async () => {
       mockSend.mockResolvedValueOnce({
         Attributes: {
-          PK: 'SHOPKEEPER#shop-123',
+          PK: 'SHOPKEEPER#550e8400-e29b-41d4-a716-446655440000',
           SK: 'TRANSACTION#2024-01-15T10:30:00.000Z#txn-999',
           GSI1PK: 'TRANSACTION#txn-999',
           GSI1SK: 'METADATA',
           EntityType: 'TRANSACTION',
           TransactionId: 'txn-999',
-          ShopkeeperId: 'shop-123',
+          ShopkeeperId: '550e8400-e29b-41d4-a716-446655440000',
           Type: 'earning',
           Amount: 50.0,
           Description: 'Task completion payment',
@@ -481,7 +481,7 @@ describe('WalletTransactionOperations', () => {
 
       const result = await WalletTransactionOperations.updateStatus(
         'txn-999',
-        'shop-123',
+        '550e8400-e29b-41d4-a716-446655440000',
         '2024-01-15T10:30:00.000Z',
         'failed'
       );

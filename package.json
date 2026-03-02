@@ -10,10 +10,16 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:smoke": "jest --testPathPatterns=smoke --runInBand",
+    "type-check": "tsc --noEmit",
+    "validate": "npm run lint && npm run type-check && npm run test",
+    "deploy:staging": "vercel",
+    "deploy:prod": "vercel --prod"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.999.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1000.0",
     "@aws-sdk/client-connect": "^3.1000.0",
     "@aws-sdk/client-dynamodb": "^3.998.0",
     "@aws-sdk/client-s3": "^3.998.0",
@@ -26,6 +32,7 @@
     "next-pwa": "^5.6.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "resend": "^6.9.3",
     "sharp": "^0.34.5",
     "swr": "^2.4.1",
     "uuid": "^13.0.0",

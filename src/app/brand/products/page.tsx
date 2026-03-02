@@ -16,13 +16,27 @@ const INITIAL_PRODUCTS: BrandProduct[] = [
 ];
 
 export default function BrandProductsPage() {
-  const [products, setProducts] = useState<BrandProduct[]>(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<BrandProduct[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');
   const [depth, setDepth] = useState('');
+
+  // Load products on mount
+  import('react').then(React => {
+    React.useEffect(() => {
+      const saved = localStorage.getItem('brand_products');
+      if (saved) {
+        setProducts(JSON.parse(saved));
+      } else {
+        setProducts(INITIAL_PRODUCTS);
+      }
+      setLoading(false);
+    }, []);
+  });
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +49,11 @@ export default function BrandProductsPage() {
       dimensions: { width: Number(width), height: Number(height), depth: Number(depth) || undefined },
       createdAt: new Date().toISOString(),
     };
-    setProducts([newProduct, ...products]);
+    
+    const updated = [newProduct, ...products];
+    setProducts(updated);
+    localStorage.setItem('brand_products', JSON.stringify(updated));
+    
     setShowForm(false);
     setName('');
     setCategory('');
@@ -43,6 +61,8 @@ export default function BrandProductsPage() {
     setHeight('');
     setDepth('');
   };
+
+  if (loading) return null;
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">

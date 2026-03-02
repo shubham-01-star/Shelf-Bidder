@@ -23,8 +23,14 @@ describe('Property 13: Data Persistence and Integrity', () => {
   );
 
   it('Shopkeeper round-trip through mapper should preserve all fields', () => {
+    // Generate UUID v4 format specifically
+    const uuidV4Arb = fc.uuid().filter(uuid => {
+      // UUID v4 has '4' in the 15th position (version field)
+      return uuid.charAt(14) === '4';
+    });
+
     const shopkeeperArb: fc.Arbitrary<Shopkeeper> = fc.record({
-      id: fc.uuid(),
+      id: uuidV4Arb,
       name: fc.string({ minLength: 1, maxLength: 50 }),
       phoneNumber: fc.constant('+919876543210'),
       storeAddress: fc.string({ minLength: 5, maxLength: 100 }),
@@ -55,8 +61,14 @@ describe('Property 13: Data Persistence and Integrity', () => {
   });
 
   it('mapped DynamoDB item should always have partition key', () => {
+    // Generate UUID v4 format specifically
+    const uuidV4Arb = fc.uuid().filter(uuid => {
+      // UUID v4 has '4' in the 15th position (version field)
+      return uuid.charAt(14) === '4';
+    });
+
     const shopkeeperArb: fc.Arbitrary<Shopkeeper> = fc.record({
-      id: fc.uuid(),
+      id: uuidV4Arb,
       name: fc.string({ minLength: 1, maxLength: 50 }),
       phoneNumber: fc.constant('+919876543210'),
       storeAddress: fc.constant('123 Main St'),

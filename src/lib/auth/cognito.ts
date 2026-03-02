@@ -30,7 +30,8 @@ export async function signIn(
   
   // In a real implementation, this would use AWS Cognito SDK
   // For now, we'll call our API endpoint that handles Cognito authentication
-  const response = await fetch(`${config.apiUrl}/auth/signin`, {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+  const response = await fetch(`${baseUrl}/api/auth/signin`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -62,11 +63,12 @@ export async function signIn(
 export async function signUp(
   phoneNumber: string,
   password: string,
-  name: string
+  name: string,
+  email: string
 ): Promise<void> {
-  const config = getAWSConfig();
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
   
-  const response = await fetch(`${config.apiUrl}/auth/signup`, {
+  const response = await fetch(`${baseUrl}/api/auth/signup`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -75,6 +77,7 @@ export async function signUp(
       phoneNumber,
       password,
       name,
+      email,
     }),
   });
 
@@ -91,9 +94,9 @@ export async function verifyPhoneNumber(
   phoneNumber: string,
   code: string
 ): Promise<void> {
-  const config = getAWSConfig();
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
   
-  const response = await fetch(`${config.apiUrl}/auth/verify`, {
+  const response = await fetch(`${baseUrl}/api/auth/verify`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -127,9 +130,9 @@ export async function signOut(): Promise<void> {
 export async function refreshAccessToken(
   refreshToken: string
 ): Promise<AuthTokens> {
-  const config = getAWSConfig();
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
   
-  const response = await fetch(`${config.apiUrl}/auth/refresh`, {
+  const response = await fetch(`${baseUrl}/api/auth/refresh`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

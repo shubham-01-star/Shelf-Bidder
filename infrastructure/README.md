@@ -2,6 +2,31 @@
 
 This directory contains the AWS CDK infrastructure code for the Shelf-Bidder Autonomous Retail Ad-Network.
 
+## Quick Links
+
+- 🚀 **[Staging Quick Start](./STAGING_QUICK_START.md)** - Deploy staging in 5 minutes
+- 📖 **[Staging Deployment Guide](./STAGING_DEPLOYMENT.md)** - Complete staging setup
+- 📋 **[Deployment Guide](./DEPLOYMENT.md)** - Production deployment
+- 🧪 **[Smoke Tests](../src/__tests__/smoke/README.md)** - Post-deployment verification
+
+## Environments
+
+This infrastructure supports two environments:
+
+### Production (`ShelfBidderStack`)
+- Full-featured production environment
+- Multi-region replication
+- Point-in-time recovery enabled
+- RETAIN removal policy
+- Higher rate limits
+
+### Staging (`ShelfBidderStagingStack`)
+- Testing and validation environment
+- Single-region deployment
+- Auto-deletion on stack removal
+- Lower rate limits and costs
+- Shorter data retention
+
 ## Architecture Overview
 
 The infrastructure includes:

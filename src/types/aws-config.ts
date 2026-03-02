@@ -23,6 +23,9 @@ export interface AWSConfig {
     tasks: string;
     transactions: string;
   };
+  
+  // Resend
+  resendApiKey?: string;
 }
 
 /**
@@ -54,6 +57,7 @@ export function getAWSConfig(): AWSConfig {
         tasks: process.env.DYNAMODB_TASKS_TABLE || 'ShelfBidder-Tasks',
         transactions: process.env.DYNAMODB_TRANSACTIONS_TABLE || 'ShelfBidder-Transactions',
       },
+      resendApiKey: process.env.RESEND_API_KEY,
     };
   }
 
@@ -67,11 +71,34 @@ export function getAWSConfig(): AWSConfig {
 
   const missing = requiredVars.filter((varName) => !process.env[varName]);
 
+  // Don't throw if we are in local dev with missing vars, just log a warning.
+  // This allows the app to start and use mock API routes if no real AWS config is provided.
   if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missing.join(', ')}\n` +
-      'Run: cd infrastructure && ./scripts/export-config.sh'
-    );
+    if (isLocalDev) {
+      console.warn(
+        `[Dev Warning] Missing AWS environment variables: ${missing.join(', ')}. ` +
+        'Using fallback values for local development.'
+      );
+      return {
+        apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+        userPoolId: 'us-east-1_localDevPool',
+        userPoolClientId: 'localDevClientId',
+        region: 'us-east-1',
+        photoBucket: 'shelf-bidder-photos-local-dev',
+        tables: {
+          shopkeepers: 'ShelfBidder-Shopkeepers',
+          shelfSpaces: 'ShelfBidder-ShelfSpaces',
+          auctions: 'ShelfBidder-Auctions',
+          tasks: 'ShelfBidder-Tasks',
+          transactions: 'ShelfBidder-Transactions',
+        },
+      };
+    } else {
+      throw new Error(
+        `Missing required environment variables: ${missing.join(', ')}\n` +
+        'Run: cd infrastructure && ./scripts/export-config.sh'
+      );
+    }
   }
 
   return {
@@ -87,6 +114,7 @@ export function getAWSConfig(): AWSConfig {
       tasks: process.env.DYNAMODB_TASKS_TABLE || '',
       transactions: process.env.DYNAMODB_TRANSACTIONS_TABLE || '',
     },
+    resendApiKey: process.env.RESEND_API_KEY,
   };
 }
 

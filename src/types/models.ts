@@ -73,6 +73,8 @@ export interface ProductDetails {
   brand: string;
   category: string;
   dimensions: Dimensions;
+  weight?: number;
+  imageUrl?: string;
 }
 
 export interface Bid {

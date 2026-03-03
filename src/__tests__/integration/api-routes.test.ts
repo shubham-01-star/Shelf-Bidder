@@ -19,7 +19,6 @@ const mockShelfSpaceGet = jest.fn<(...args: any[]) => any>();
 const mockTaskCreate = jest.fn<(...args: any[]) => any>();
 const mockTaskUpdate = jest.fn<(...args: any[]) => any>();
 const mockTaskQueryByStatus = jest.fn<(...args: any[]) => any>().mockReturnValue({ items: [] });
-// @ts-expect-error - Mock return typing mismatch
 const mockShopkeeperGet = jest.fn<(...args: any[]) => any>().mockImplementation((id: string) => Promise.resolve({ id, shopkeeperId: id, walletBalance: 1000 }));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockShopkeeperUpdate = jest.fn<(...args: any[]) => any>().mockImplementation((id: any, updates: any) => Promise.resolve({ id, ...updates }));
@@ -74,15 +73,12 @@ import { creditEarnings, getBalance } from '../../lib/wallet/wallet-service';
 describe('Integration: Cross-Service Data Flow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // @ts-expect-error - Mock return typing mismatch
     mockAuctionCreate.mockImplementation((auction: Record<string, unknown>) =>
       Promise.resolve({ ...auction, auctionId: auction.id })
     );
-    // @ts-expect-error - Mock return typing mismatch
     mockAuctionUpdate.mockImplementation((_id: string, updates: Record<string, unknown>) =>
       Promise.resolve({ auctionId: _id, ...updates })
     );
-    // @ts-expect-error - Mock return typing mismatch
     mockShelfSpaceGet.mockResolvedValue(null);
   });
 
@@ -94,7 +90,6 @@ describe('Integration: Cross-Service Data Flow', () => {
     const auction = auctions[0];
 
     // 2. Bid accepted
-    // @ts-expect-error - Mock return typing mismatch
     mockAuctionGet.mockResolvedValue({
       ...auction, status: 'active',
       startTime: new Date().toISOString(),
@@ -102,13 +97,12 @@ describe('Integration: Cross-Service Data Flow', () => {
       bids: [],
     });
 
-    await submitBid(auction.auctionId, 'agent-flow', 95, {
-      name: 'FlowProduct', brand: 'FlowBrand',
+    await submitBid(auction.id, 'agent-flow', 95, {
+      name: 'FlowProduct', brand: 'FlowBrand', category: 'beverages',
       dimensions: { width: 20, height: 30, depth: 8 }, weight: 500, imageUrl: '',
     });
 
     // 3. Winner selected
-    // @ts-expect-error - Mock return typing mismatch
     mockAuctionGet.mockResolvedValue({
       ...auction, status: 'completed', winnerId: 'agent-flow', winningBid: 95,
       bids: [{
@@ -118,24 +112,20 @@ describe('Integration: Cross-Service Data Flow', () => {
       }],
     });
 
-    // @ts-expect-error - Mock return typing mismatch
     mockShelfSpaceGet.mockResolvedValue({
       emptySpaces: [{ id: 'space-1', coordinates: { x: 100, y: 200, width: 30, height: 40 }, shelfLevel: 1, visibility: 'high', accessibility: 'easy' }],
     });
 
-    // @ts-expect-error - Mock return typing mismatch
     mockTaskCreate.mockImplementation((task: Record<string, unknown>) => Promise.resolve(task));
 
     // 4. Task created from auction
-    const task = await createTaskFromAuction(auction.auctionId, 'sk-flow');
+    const task = await createTaskFromAuction(auction.id, 'sk-flow');
 
     // 5. Credit earnings
-    // @ts-expect-error - Mock return typing mismatch
     mockShopkeeperGet.mockResolvedValueOnce({ shopkeeperId: 'sk-flow', walletBalance: 1000 });
     await creditEarnings('sk-flow', task.earnings, task.id, 'FlowProduct placement');
 
     // 6. Verify balance
-    // @ts-expect-error - Mock return typing mismatch
     mockShopkeeperGet.mockResolvedValueOnce({ shopkeeperId: 'sk-flow', walletBalance: 1095 });
     const balance = await getBalance('sk-flow');
 

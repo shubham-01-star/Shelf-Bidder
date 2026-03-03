@@ -14,40 +14,61 @@ Autonomous Retail Ad-Network that transforms physical store shelves into digital
 ### Prerequisites
 
 - Node.js 18+ and npm
-- AWS Account with CLI configured (for infrastructure deployment)
-- AWS CDK CLI: `npm install -g aws-cdk`
+- AWS Account with CLI configured
+- **Choose your deployment method**:
+  - **Option A**: AWS CDK (Infrastructure as Code)
+  - **Option B**: Serverless Framework (Lambda Functions)
 
 ### Installation
 
-1. Install frontend dependencies:
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Install infrastructure dependencies:
+### Deployment Options
+
+#### Option A: AWS CDK (Full Stack)
+
+Deploy complete infrastructure with CDK:
+
 ```bash
 cd infrastructure
 npm install
-cd ..
-```
-
-### Infrastructure Setup
-
-Before running the application, deploy the AWS infrastructure:
-
-1. Deploy CDK stack:
-```bash
-cd infrastructure
 npm run deploy
-```
-
-2. Export configuration:
-```bash
-./scripts/export-config.sh
 cd ..
 ```
 
-This creates a `.env.local` file with all necessary AWS resource identifiers.
+See [infrastructure/DEPLOYMENT.md](infrastructure/DEPLOYMENT.md) for details.
+
+#### Option B: Serverless Framework (Lambda APIs)
+
+Deploy backend APIs to AWS Lambda:
+
+```bash
+# Install Serverless CLI
+npm install -g serverless
+
+# Deploy to dev
+npm run sls:deploy:dev
+
+# Deploy to production
+npm run sls:deploy:prod
+```
+
+See [SERVERLESS_QUICK_START.md](SERVERLESS_QUICK_START.md) for details.
+
+### Frontend Deployment
+
+Deploy Next.js frontend to Vercel:
+
+```bash
+# Staging
+npm run deploy:staging
+
+# Production
+npm run deploy:prod
+```
 
 See [infrastructure/DEPLOYMENT.md](infrastructure/DEPLOYMENT.md) for detailed deployment instructions.
 

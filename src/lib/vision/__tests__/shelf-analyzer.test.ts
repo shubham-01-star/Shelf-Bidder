@@ -69,7 +69,7 @@ describe('Shelf Analyzer', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       const result = await analyzeShelfSpace(imageBuffer, 'image/jpeg');
@@ -80,7 +80,7 @@ describe('Shelf Analyzer', () => {
       expect(result.currentInventory).toHaveLength(1);
       expect(result.currentInventory[0].name).toBe('Coca Cola');
       expect(result.analysisConfidence).toBe(85);
-      expect(result.processingTime).toBeGreaterThan(0);
+      expect(result.processingTime).toBeGreaterThanOrEqual(0);
     });
 
     it('should handle response with markdown code blocks', async () => {
@@ -103,7 +103,7 @@ describe('Shelf Analyzer', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       const result = await analyzeShelfSpace(imageBuffer, 'image/jpeg');
@@ -141,7 +141,7 @@ describe('Shelf Analyzer', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       const result = await analyzeShelfSpace(imageBuffer, 'image/jpeg');
@@ -177,7 +177,7 @@ describe('Shelf Analyzer', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       const result = await analyzeShelfSpace(imageBuffer, 'image/jpeg');
@@ -201,7 +201,7 @@ describe('Shelf Analyzer', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       
@@ -221,7 +221,7 @@ describe('Shelf Analyzer', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       

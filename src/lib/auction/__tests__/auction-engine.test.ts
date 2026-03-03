@@ -203,7 +203,6 @@ describe('selectWinner', () => {
       },
     ]);
 
-    // @ts-expect-error - Mock return typing mismatch
     mockGet.mockResolvedValueOnce(auction);
     mockUpdate.mockImplementation(
       (id: unknown, updates: unknown) =>
@@ -220,7 +219,6 @@ describe('selectWinner', () => {
   it('should cancel auction when no bids exist', async () => {
     const auction = createActiveAuction([]);
 
-    // @ts-expect-error - Mock return typing mismatch
     mockGet.mockResolvedValueOnce(auction);
     mockUpdate.mockImplementation(
       (id: unknown, updates: unknown) =>
@@ -262,7 +260,6 @@ describe('selectWinner', () => {
       },
     ]);
 
-    // @ts-expect-error - Mock return typing mismatch
     mockGet.mockResolvedValueOnce(auction);
     mockUpdate.mockImplementation(
       (id: unknown, updates: unknown) =>
@@ -279,7 +276,6 @@ describe('selectWinner', () => {
     const auction = createActiveAuction();
     auction.status = 'completed' as AuctionStatus;
 
-    // @ts-expect-error - Mock return typing mismatch
     mockGet.mockResolvedValueOnce(auction);
 
     await expect(selectWinner('auction-1')).rejects.toThrow(
@@ -316,7 +312,6 @@ describe('getActiveAuctions', () => {
 
   it('should return active auctions', async () => {
     const activeAuctions = [createActiveAuction()];
-    // @ts-expect-error - Mock return typing mismatch
     mockQueryByStatus.mockResolvedValueOnce({
       items: activeAuctions,
       count: 1,
@@ -329,7 +324,6 @@ describe('getActiveAuctions', () => {
   });
 
   it('should return empty array when no active auctions', async () => {
-    // @ts-expect-error - Mock return typing mismatch
     mockQueryByStatus.mockResolvedValueOnce({
       items: [],
       count: 0,

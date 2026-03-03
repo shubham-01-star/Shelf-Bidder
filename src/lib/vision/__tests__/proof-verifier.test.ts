@@ -105,7 +105,7 @@ describe('Proof Verifier', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const beforeBuffer = Buffer.from('before image');
       const afterBuffer = Buffer.from('after image');
@@ -148,7 +148,7 @@ describe('Proof Verifier', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const beforeBuffer = Buffer.from('before image');
       const afterBuffer = Buffer.from('after image');
@@ -188,7 +188,7 @@ describe('Proof Verifier', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const beforeBuffer = Buffer.from('before image');
       const afterBuffer = Buffer.from('after image');
@@ -225,7 +225,7 @@ describe('Proof Verifier', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const beforeBuffer = Buffer.from('before image');
       const afterBuffer = Buffer.from('after image');
@@ -257,7 +257,7 @@ describe('Proof Verifier', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const beforeBuffer = Buffer.from('before image');
       const afterBuffer = Buffer.from('after image');
@@ -310,7 +310,7 @@ describe('Proof Verifier', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const proofBuffer = Buffer.from('proof image');
 
@@ -346,7 +346,7 @@ describe('Proof Verifier', () => {
         usage: { input_tokens: 100, output_tokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as jest.Mock).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
 
       const proofBuffer = Buffer.from('proof image');
 

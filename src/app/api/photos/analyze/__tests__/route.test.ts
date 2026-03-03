@@ -69,7 +69,7 @@ describe('POST /api/photos/analyze', () => {
       processingTime: 5000,
     };
 
-    (vision.analyzeShelfSpace as jest.Mock).mockResolvedValue(mockAnalysisResult);
+    (vision.analyzeShelfSpace as any).mockResolvedValue(mockAnalysisResult);
 
     const imageData = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
     const request = new NextRequest('http://localhost/api/photos/analyze', {
@@ -126,7 +126,7 @@ describe('POST /api/photos/analyze', () => {
     // Make it an instance of AnalysisError
     Object.setPrototypeOf(analysisError, vision.AnalysisError.prototype);
 
-    (vision.analyzeShelfSpace as jest.Mock).mockRejectedValue(analysisError);
+    (vision.analyzeShelfSpace as any).mockRejectedValue(analysisError);
 
     const imageData = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
     const request = new NextRequest('http://localhost/api/photos/analyze', {
@@ -147,7 +147,7 @@ describe('POST /api/photos/analyze', () => {
   });
 
   it('should handle general errors', async () => {
-    (vision.analyzeShelfSpace as jest.Mock).mockRejectedValue(
+    (vision.analyzeShelfSpace as any).mockRejectedValue(
       new Error('Network error')
     );
 

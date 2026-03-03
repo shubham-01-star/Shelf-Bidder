@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import type { EmptySpace } from '../../types/models';
 
 // ============================================================================
 // Mock database layer
@@ -20,7 +21,6 @@ const mockShelfSpaceGet = jest.fn<(...args: any[]) => any>();
 const mockTaskCreate = jest.fn<(...args: any[]) => any>();
 const mockTaskUpdate = jest.fn<(...args: any[]) => any>();
 const mockTaskQueryByStatus = jest.fn<(...args: any[]) => any>().mockReturnValue({ items: [] });
-// @ts-expect-error - Mock return typing mismatch
 const mockShopkeeperGet = jest.fn<(...args: any[]) => any>().mockImplementation((id: string) => Promise.resolve({ id, shopkeeperId: id, walletBalance: 1000 }));
 const mockShopkeeperUpdate = jest.fn<(...args: any[]) => any>().mockImplementation((id: unknown, updates: unknown) => Promise.resolve({ id, ...(updates as Record<string, unknown>) }));
 const mockWalletGet = jest.fn<(...args: any[]) => any>();
@@ -81,23 +81,20 @@ import { creditEarnings, getBalance, requestPayout } from '../../lib/wallet/wall
 describe('Integration: Complete Daily Workflow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // @ts-expect-error - Mock return typing mismatch
     mockAuctionCreate.mockImplementation((auction: Record<string, unknown>) =>
       Promise.resolve({ ...auction, auctionId: auction.id || 'test-auction-id' })
     );
-    // @ts-expect-error - Mock return typing mismatch
     mockAuctionUpdate.mockImplementation((_id: string, updates: Record<string, unknown>) =>
       Promise.resolve({ auctionId: _id, ...updates })
     );
-    // @ts-expect-error - Mock return typing mismatch
     mockShelfSpaceGet.mockResolvedValue(null);
   });
 
   describe('Auction Initialization Flow', () => {
     it('should create auctions for each empty space', async () => {
-      const emptySpaces = [
-        { id: 'space-1', coordinates: { x: 100, y: 200, width: 30, height: 40 }, shelfLevel: 2, visibility: 'high', accessibility: 'easy' },
-        { id: 'space-2', coordinates: { x: 300, y: 200, width: 25, height: 40 }, shelfLevel: 2, visibility: 'medium', accessibility: 'moderate' },
+      const emptySpaces: EmptySpace[] = [
+        { id: 'space-1', coordinates: { x: 100, y: 200, width: 30, height: 40 }, shelfLevel: 2, visibility: 'high' as const, accessibility: 'easy' as const },
+        { id: 'space-2', coordinates: { x: 300, y: 200, width: 25, height: 40 }, shelfLevel: 2, visibility: 'medium' as const, accessibility: 'moderate' as const },
       ];
 
       const auctions = await initializeAuctions('shelf-001', emptySpaces, 15);
@@ -119,7 +116,6 @@ describe('Integration: Complete Daily Workflow', () => {
       // Setup - simulate active auction
       const auctionId = 'test-auction-1';
 
-      // @ts-expect-error - Mock return typing mismatch
       mockAuctionGet.mockResolvedValue({
         id: auctionId, auctionId, shelfSpaceId: 'shelf-1', status: 'active',
         startTime: new Date().toISOString(),
@@ -129,13 +125,12 @@ describe('Integration: Complete Daily Workflow', () => {
 
       // Submit a bid
       const updatedAuction = await submitBid(auctionId, 'agent-1', 75, {
-        name: 'Pepsi 500ml', brand: 'PepsiCo',
+        name: 'Pepsi 500ml', brand: 'PepsiCo', category: 'beverages',
         dimensions: { width: 25, height: 35, depth: 8 }, weight: 500, imageUrl: '',
       });
       expect(updatedAuction).toBeDefined();
 
       // Now select winner with bids loaded
-      // @ts-expect-error - Mock return typing mismatch
       mockAuctionGet.mockResolvedValue({
         id: auctionId, auctionId, shelfSpaceId: 'shelf-1', status: 'active',
         bids: [
@@ -152,7 +147,6 @@ describe('Integration: Complete Daily Workflow', () => {
     });
 
     it('should cancel auction with no bids', async () => {
-      // @ts-expect-error - Mock return typing mismatch
       mockAuctionGet.mockResolvedValue({
         id: 'empty-auction', auctionId: 'empty-auction', status: 'active',
         bids: [],
@@ -167,7 +161,6 @@ describe('Integration: Complete Daily Workflow', () => {
     it('should create task from completed auction', async () => {
       const auctionId = 'completed-auction';
 
-      // @ts-expect-error - Mock return typing mismatch
       mockAuctionGet.mockResolvedValue({
         id: auctionId, auctionId, shelfSpaceId: 'shelf-1', status: 'completed',
         winnerId: 'agent-brand', winningBid: 75,
@@ -180,12 +173,10 @@ describe('Integration: Complete Daily Workflow', () => {
         ],
       });
 
-      // @ts-expect-error - Mock return typing mismatch
       mockShelfSpaceGet.mockResolvedValue({
         emptySpaces: [{ id: 'space-1', coordinates: { x: 100, y: 200, width: 30, height: 40 }, shelfLevel: 2, visibility: 'high', accessibility: 'easy' }],
       });
 
-      // @ts-expect-error - Mock return typing mismatch
       mockTaskCreate.mockImplementation((task: Record<string, unknown>) => Promise.resolve(task));
 
       const task = await createTaskFromAuction(auctionId, 'shopkeeper-1');
@@ -196,7 +187,6 @@ describe('Integration: Complete Daily Workflow', () => {
     });
 
     it('should reject task for non-completed auction', async () => {
-      // @ts-expect-error - Mock return typing mismatch
       mockAuctionGet.mockResolvedValue({ status: 'active', bids: [] });
       await expect(createTaskFromAuction('active-auction', 'sk-1')).rejects.toThrow();
     });
@@ -207,13 +197,11 @@ describe('Integration: Complete Daily Workflow', () => {
       const assignedDate = new Date().toISOString();
 
       // Start task
-      // @ts-expect-error - Mock return typing mismatch
       mockTaskUpdate.mockResolvedValue({ id: 'task-1', status: 'in_progress' });
       const started = await startTask('task-1', 'sk-1', assignedDate);
       expect(started.status).toBe('in_progress');
 
       // Complete task with proof
-      // @ts-expect-error - Mock return typing mismatch
       mockTaskUpdate.mockResolvedValue({ id: 'task-1', status: 'completed', proofPhotoUrl: 'https://proof.jpg' });
       const completed = await completeTask('task-1', 'sk-1', assignedDate, 'https://proof.jpg');
       expect(completed.status).toBe('completed');
@@ -222,9 +210,7 @@ describe('Integration: Complete Daily Workflow', () => {
 
   describe('Wallet Earnings', () => {
     it('should credit earnings and return balance', async () => {
-      // @ts-expect-error - Mock return typing mismatch
       mockShopkeeperGet.mockResolvedValueOnce({ shopkeeperId: 'sk-1', walletBalance: 1000 });
-      // @ts-expect-error - Mock return typing mismatch
       mockShopkeeperUpdate.mockResolvedValue(undefined);
 
       const tx = await creditEarnings('sk-1', 75, 'task-1', 'Pepsi placement');
@@ -233,14 +219,12 @@ describe('Integration: Complete Daily Workflow', () => {
       expect(tx.amount).toBe(75);
 
       // Check balance
-      // @ts-expect-error - Mock return typing mismatch
       mockShopkeeperGet.mockResolvedValueOnce({ shopkeeperId: 'sk-1', walletBalance: 1075 });
       const balance = await getBalance('sk-1');
       expect(balance).toBe(1075);
     });
 
     it('should reject payout below threshold', async () => {
-      // @ts-expect-error - Mock return typing mismatch
       mockShopkeeperGet.mockResolvedValue({ shopkeeperId: 'sk-low', walletBalance: 50 });
       await expect(requestPayout('sk-low', 50)).rejects.toThrow();
     });

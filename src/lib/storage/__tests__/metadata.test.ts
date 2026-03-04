@@ -104,8 +104,8 @@ describe('Photo Metadata Utilities', () => {
 
     it('should generate unique IDs for same shopkeeper', async () => {
       const id1 = generatePhotoId('shop123');
-      // Wait 1ms to ensure different timestamp
-      await new Promise(resolve => setTimeout(resolve, 1));
+      // Wait 50ms to ensure different timestamp (Windows timer resolution is ~15ms)
+      await new Promise(resolve => setTimeout(resolve, 50));
       const id2 = generatePhotoId('shop123');
       expect(id1).not.toBe(id2);
     });

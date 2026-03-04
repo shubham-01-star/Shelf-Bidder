@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Lexend, Space_Grotesk } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth/AuthContext';
 import OfflineIndicator from '@/components/offline/OfflineIndicator';
@@ -7,14 +7,9 @@ import { validateEnv } from '@/lib/config/env-validator';
 
 validateEnv();
 
-const lexend = Lexend({ 
+const inter = Inter({ 
   subsets: ['latin'], 
-  variable: '--font-lexend',
-  display: 'swap',
-});
-const spaceGrotesk = Space_Grotesk({ 
-  subsets: ['latin'], 
-  variable: '--font-space',
+  variable: '--font-inter',
   display: 'swap',
 });
 
@@ -51,7 +46,7 @@ export default function RootLayout({
         />
       </head>
       <body 
-        className={`${lexend.variable} ${spaceGrotesk.variable} antialiased`}
+        className={`${inter.variable} font-sans antialiased`}
         suppressHydrationWarning={true}
       >
         <AuthProvider>

@@ -1,58 +1,12 @@
-/* Shopkeeper Font (Friendly, Accessible) */
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap');
-/* Brand Portal Font (Technical, Enterprise) */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
-/* Material Symbols Outlined for icons */
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* ============================================
-   Shelf-Bidder Design System
-   Premium mobile-first PWA for shopkeepers
-   Stitch Design: kirana-green #11d452, Lexend, light bg
-   ============================================ */
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
 
 :root {
-  /* Brand Colors (Stitch Design) */
-  --primary: #11d452;
-  --primary-dark: #0eb847;
-  --primary-light: #5efb94;
-
-  /* Brand Portal Colors */
-  --brand-violet: #8c25f4;
-  --brand-violet-dark: #6a1bb9;
-
-  /* Light UI (matches Stitch HTML) */
-  --bg-app: #f8faf9;
-  --bg-card: #ffffff;
-  --bg-surface: #f6f8f6;
-  --text-primary: #1a1c1e;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --border: rgba(0, 0, 0, 0.06);
-  --border-active: rgba(17, 212, 82, 0.4);
-
-  /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-green: 0 8px 24px rgba(17, 212, 82, 0.25);
-
-  /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
+  --font-inter: 'Inter', sans-serif;
 }
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 html {
@@ -60,22 +14,23 @@ html {
 }
 
 body {
-  font-family:
-    'Lexend',
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-  background: var(--bg-app);
-  color: var(--text-primary);
+  font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  min-height: max(884px, 100dvh);
 }
 
-/* font-sans utility should resolve to Lexend */
-.font-sans {
-  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, sans-serif !important;
+/* Hide scrollbar for chrome/safari/opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 
 /* ============================================
    Material Symbols Helper

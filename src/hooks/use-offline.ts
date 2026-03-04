@@ -5,14 +5,16 @@ import { useState, useEffect } from 'react';
  * Uses navigator.onLine and listens to 'online' and 'offline' window events.
  */
 export function useIsOffline() {
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !navigator.onLine;
+    }
+    return false;
+  });
 
   useEffect(() => {
     // Only run on client side
     if (typeof window === 'undefined') return;
-
-    // Check initial state
-    setIsOffline(!navigator.onLine);
 
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);

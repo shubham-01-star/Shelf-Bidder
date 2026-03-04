@@ -5,7 +5,7 @@
  * View active auctions and place bids
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // MOCK_AUCTIONS removed for real API
 
@@ -13,10 +13,25 @@ export default function BrandAuctionsPage() {
   const [auctions, setAuctions] = useState<any[]>([]);
   const [bidding, setBidding] = useState<string | null>(null);
   const [bidAmount, setBidAmount] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState('');
   const [bidSuccess, setBidSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedProducts = localStorage.getItem('brand_products');
+      if (savedProducts) return JSON.parse(savedProducts);
+    }
+    return [{ name: 'Pepsi 500ml' }, { name: 'Lays Classic 50g' }];
+  });
+  const [selectedProduct, setSelectedProduct] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedProducts = localStorage.getItem('brand_products');
+      if (savedProducts) {
+        const parsed = JSON.parse(savedProducts);
+        if (parsed.length > 0) return parsed[0].name;
+      }
+    }
+    return 'Pepsi 500ml';
+  });
 
   // Fetch active auctions
   const fetchAuctions = () => {
@@ -30,26 +45,11 @@ export default function BrandAuctionsPage() {
       .finally(() => setLoading(false));
   };
 
-  import('react').then(React => {
-    React.useEffect(() => {
-      // Load custom products
-      const savedProducts = localStorage.getItem('brand_products');
-      if (savedProducts) {
-        const parsed = JSON.parse(savedProducts);
-        setAvailableProducts(parsed);
-        if (parsed.length > 0) setSelectedProduct(parsed[0].name);
-      } else {
-        // Fallback defaults
-        const defaults = [{ name: 'Pepsi 500ml' }, { name: 'Lays Classic 50g' }];
-        setAvailableProducts(defaults);
-        setSelectedProduct(defaults[0].name);
-      }
-
-      fetchAuctions();
-      const interval = setInterval(fetchAuctions, 15000); // Live poll
-      return () => clearInterval(interval);
-    }, []);
-  });
+  useEffect(() => {
+    fetchAuctions();
+    const interval = setInterval(fetchAuctions, 15000); // Live poll
+    return () => clearInterval(interval);
+  }, []);
 
   const handleBid = async (auctionId: string) => {
     if (!bidAmount || Number(bidAmount) <= 0) return;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import BottomNav from '@/components/navigation/BottomNav';
 import { useDashboard } from '@/hooks/use-dashboard';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -10,15 +10,13 @@ import { Camera, ClipboardList, CheckCircle2, Gavel, Clock, RefreshCw } from 'lu
 export default function DashboardPage() {
   const { data, isLoading, isError, mutate } = useDashboard();
   const { shopkeeper } = useAuth();
-  const [greeting, setGreeting] = useState('');
-  const router = useRouter();
-
-  useEffect(() => {
+  const [greeting] = useState(() => {
     const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good Morning');
-    else if (hour < 17) setGreeting('Good Afternoon');
-    else setGreeting('Good Evening');
-  }, []);
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  });
+  const router = useRouter();
 
   if (isLoading || !data) {
     return (

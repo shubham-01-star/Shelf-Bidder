@@ -313,7 +313,7 @@ function CameraContent() {
             <>
               <div className="text-center mb-6 shrink-0">
                 <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-widest rounded-full mb-2">Live Verification</span>
-                <h2 className="text-[#1a1c1e] text-xl font-bold">What's in stock right now?</h2>
+                <h2 className="text-[#1a1c1e] text-xl font-bold">What&apos;s in stock right now?</h2>
               </div>
               
               <div className="space-y-3 mb-8">

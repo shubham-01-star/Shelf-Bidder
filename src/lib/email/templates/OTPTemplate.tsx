@@ -19,7 +19,7 @@ export const OTPTemplate: React.FC<Readonly<OTPTemplateProps>> = ({
         <span style={styles.otp}>{otpCode}</span>
       </div>
       
-      <p style={styles.text}>This code will expire in 10 minutes. If you didn't request this, you can safely ignore this email.</p>
+      <p style={styles.text}>This code will expire in 10 minutes. If you didn&apos;t request this, you can safely ignore this email.</p>
       <hr style={styles.divider} />
       <p style={styles.footer}>© {new Date().getFullYear()} Shelf-Bidder. All rights reserved.</p>
     </div>

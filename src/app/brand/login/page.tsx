@@ -116,7 +116,7 @@ export default function BrandLoginPage() {
             Empowering Brands to Win Retail Real Estate
           </h1>
           <p className="text-white/80 text-lg xl:text-xl font-light leading-relaxed">
-            Optimize your presence in Kirana stores with the world's first digital shelf-bidding engine.
+            Optimize your presence in Kirana stores with the world&apos;s first digital shelf-bidding engine.
           </p>
         </div>
         <div className="absolute bottom-12 left-16 xl:left-24 text-white/50 text-sm">
@@ -277,7 +277,7 @@ export default function BrandLoginPage() {
 
           {showVerification ? (
             <p className="mt-12 text-center text-slate-500 text-sm">
-              Didn't receive the email?{' '}
+              Didn&apos;t receive the email?{' '}
               <button
                 type="button"
                 className="text-[#8c25f4] font-bold hover:underline"

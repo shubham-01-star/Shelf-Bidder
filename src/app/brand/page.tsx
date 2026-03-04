@@ -19,13 +19,16 @@ const statusConfig: Record<string, { color: string; bg: string; label: string }>
 
 export default function BrandDashboardPage() {
   const [data, setData] = useState<BrandDashboardData | null>(null);
-  const [brandName, setBrandName] = useState('Brand');
+  const [brandName, setBrandName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('brandName') || 'Brand';
+    }
+    return 'Brand';
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const name = localStorage.getItem('brandName');
     const brandId = localStorage.getItem('brandId');
-    if (name) setBrandName(name);
 
     if (brandId) {
       fetch('/api/brand/dashboard', {

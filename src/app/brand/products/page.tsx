@@ -16,27 +16,20 @@ const INITIAL_PRODUCTS: BrandProduct[] = [
 ];
 
 export default function BrandProductsPage() {
-  const [products, setProducts] = useState<BrandProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<BrandProduct[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('brand_products');
+      if (saved) return JSON.parse(saved);
+    }
+    return INITIAL_PRODUCTS;
+  });
+
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');
   const [depth, setDepth] = useState('');
-
-  // Load products on mount
-  import('react').then(React => {
-    React.useEffect(() => {
-      const saved = localStorage.getItem('brand_products');
-      if (saved) {
-        setProducts(JSON.parse(saved));
-      } else {
-        setProducts(INITIAL_PRODUCTS);
-      }
-      setLoading(false);
-    }, []);
-  });
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +55,7 @@ export default function BrandProductsPage() {
     setDepth('');
   };
 
-  if (loading) return null;
+
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">

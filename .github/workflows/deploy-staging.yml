@@ -20,26 +20,26 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     if: github.event.inputs.skip_tests != 'true'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run linter
         run: npm run lint
-      
+
       - name: Run tests
         run: npm run test:coverage
-      
+
       - name: Upload test results
         uses: actions/upload-artifact@v3
         if: always()
@@ -52,48 +52,48 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
-    
+
     permissions:
       id-token: write
       contents: read
-    
+
     outputs:
       api-url: ${{ steps.stack-outputs.outputs.api-url }}
       user-pool-id: ${{ steps.stack-outputs.outputs.user-pool-id }}
       user-pool-client-id: ${{ steps.stack-outputs.outputs.user-pool-client-id }}
       photo-bucket: ${{ steps.stack-outputs.outputs.photo-bucket }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_STAGING }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Install CDK dependencies
         working-directory: infrastructure
         run: npm ci
-      
+
       - name: CDK Synth
         working-directory: infrastructure
         run: npx cdk synth ShelfBidderStagingStack
-      
+
       - name: CDK Deploy
         working-directory: infrastructure
         run: |
           npx cdk deploy ShelfBidderStagingStack \
             --require-approval never \
             --outputs-file outputs.json
-      
+
       - name: Extract stack outputs
         id: stack-outputs
         working-directory: infrastructure
@@ -102,12 +102,12 @@ jobs:
           USER_POOL_ID=$(jq -r '.ShelfBidderStagingStack.UserPoolId' outputs.json)
           USER_POOL_CLIENT_ID=$(jq -r '.ShelfBidderStagingStack.UserPoolClientId' outputs.json)
           PHOTO_BUCKET=$(jq -r '.ShelfBidderStagingStack.PhotoBucketName' outputs.json)
-          
+
           echo "api-url=$API_URL" >> $GITHUB_OUTPUT
           echo "user-pool-id=$USER_POOL_ID" >> $GITHUB_OUTPUT
           echo "user-pool-client-id=$USER_POOL_CLIENT_ID" >> $GITHUB_OUTPUT
           echo "photo-bucket=$PHOTO_BUCKET" >> $GITHUB_OUTPUT
-      
+
       - name: Upload CDK outputs
         uses: actions/upload-artifact@v3
         with:
@@ -118,20 +118,20 @@ jobs:
     name: Deploy Application to Staging
     runs-on: ubuntu-latest
     needs: deploy-infrastructure
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build application
         env:
           NEXT_PUBLIC_API_URL: ${{ needs.deploy-infrastructure.outputs.api-url }}
@@ -141,9 +141,8 @@ jobs:
           NEXT_PUBLIC_PHOTO_BUCKET_NAME: ${{ needs.deploy-infrastructure.outputs.photo-bucket }}
           NEXT_PUBLIC_ENVIRONMENT: staging
         run: npm run build
-      
+
       - name: Deploy to Vercel (Staging)
-        if: secrets.VERCEL_TOKEN != ''
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -163,20 +162,20 @@ jobs:
     name: Run Smoke Tests
     runs-on: ubuntu-latest
     needs: [deploy-infrastructure, deploy-application]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run smoke tests
         env:
           STAGING_API_URL: ${{ needs.deploy-infrastructure.outputs.api-url }}
@@ -185,7 +184,7 @@ jobs:
           STAGING_PHOTO_BUCKET: ${{ needs.deploy-infrastructure.outputs.photo-bucket }}
           AWS_REGION: ${{ env.AWS_REGION }}
         run: npm run test:smoke
-      
+
       - name: Upload smoke test results
         uses: actions/upload-artifact@v3
         if: always()
@@ -198,14 +197,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [deploy-infrastructure, deploy-application, smoke-tests]
     if: always()
-    
+
     steps:
       - name: Deployment Success
         if: needs.smoke-tests.result == 'success'
         run: |
           echo "✅ Staging deployment successful!"
           echo "API URL: ${{ needs.deploy-infrastructure.outputs.api-url }}"
-      
+
       - name: Deployment Failed
         if: needs.smoke-tests.result != 'success'
         run: |

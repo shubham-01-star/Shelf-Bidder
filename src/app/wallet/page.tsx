@@ -42,7 +42,7 @@ export default function WalletPage() {
 
   if (isLoading) {
     return (
-      <div className="relative flex h-screen max-w-md mx-auto flex-col bg-[#f6f8f6] font-sans">
+      <div className="relative flex h-screen max-w-md mx-auto flex-col bg-background-light dark:bg-background-dark font-sans">
         <div className="flex items-center p-6 pb-4 justify-between">
           <div className="size-10 rounded-full bg-slate-200 animate-pulse"></div>
           <div className="h-6 w-32 bg-slate-200 rounded animate-pulse mr-10"></div>
@@ -61,7 +61,7 @@ export default function WalletPage() {
 
   if (isError) {
     return (
-      <div className="relative flex h-screen max-w-md mx-auto flex-col bg-[#f6f8f6] font-sans">
+      <div className="relative flex h-screen max-w-md mx-auto flex-col bg-background-light dark:bg-background-dark font-sans">
         <div className="flex items-center p-6 pb-4 justify-between">
            <button onClick={() => router.back()} className="flex size-10 items-center justify-center rounded-full bg-[#11d452]/10 text-[#1a1c1e] active:scale-95 transition-transform">
             <ArrowLeft className="w-6 h-6" />
@@ -80,9 +80,9 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="relative flex h-screen max-w-md mx-auto flex-col bg-[#f6f8f6] text-[#1a1c1e] font-sans antialiased overflow-hidden shadow-2xl">
+    <div className="relative flex h-screen max-w-md mx-auto flex-col bg-background-light dark:bg-background-dark text-[#1a1c1e] font-sans antialiased overflow-hidden shadow-2xl">
       {/* Header */}
-      <div className="flex items-center bg-[#f6f8f6] p-6 pb-4 justify-between z-10">
+      <div className="flex items-center bg-background-light dark:bg-background-dark p-6 pb-4 justify-between z-10">
         <button onClick={() => router.back()} className="flex size-10 items-center justify-center rounded-full bg-[#11d452]/10 text-[#1a1c1e] active:scale-95 transition-transform">
           <ArrowLeft className="w-6 h-6" />
         </button>
@@ -188,7 +188,7 @@ export default function WalletPage() {
               Available: <span className="text-[#1a1c1e] font-bold">₹{balance.toLocaleString('en-IN')}</span>
             </p>
 
-            <div className="mt-8 p-4 rounded-2xl bg-[#f6f8f6] border border-slate-200 focus-within:border-[#11d452] focus-within:ring-2 focus-within:ring-[#11d452]/20 transition-all flex flex-col items-center">
+            <div className="mt-8 p-4 rounded-2xl bg-background-light dark:bg-background-dark border border-slate-200 focus-within:border-[#11d452] focus-within:ring-2 focus-within:ring-[#11d452]/20 transition-all flex flex-col items-center">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-widest self-start">
                 Amount to withdraw
               </label>
@@ -218,7 +218,7 @@ export default function WalletPage() {
                 Cancel
               </button>
               <button
-                className="flex-[2] bg-[#1a1c1e] text-white font-bold py-4 rounded-2xl shadow-xl shadow-black/20 active:scale-95 transition-transform"
+                className="flex-[2] bg-text-main dark:bg-[#1a1c1e] text-white font-bold py-4 rounded-2xl shadow-xl shadow-black/20 active:scale-95 transition-transform"
                 onClick={handleRequestPayout}
               >
                 Confirm Transfer

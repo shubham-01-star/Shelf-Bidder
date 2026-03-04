@@ -46,7 +46,7 @@ export default function RootLayout({
         />
       </head>
       <body 
-        className={`${inter.variable} font-sans antialiased`}
+        className={`${inter.variable} font-sans antialiased bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen`}
         suppressHydrationWarning={true}
       >
         <AuthProvider>

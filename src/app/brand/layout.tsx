@@ -51,10 +51,13 @@ export default function BrandLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isLoginPage = pathname === '/brand/login';
+
   return (
-    <div className="dark bg-slate-950 text-slate-100 min-h-screen font-brand selection:bg-[var(--brand-violet)] selection:text-white pb-24">
+    <div className="min-h-screen font-brand pb-24">
       {children}
-      <BrandNav />
+      {!isLoginPage && <BrandNav />}
     </div>
   );
 }

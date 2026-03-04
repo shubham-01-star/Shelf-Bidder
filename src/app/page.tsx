@@ -79,9 +79,9 @@ export default function Home() {
     router.push(`/dashboard?location=${encodeURIComponent(query)}`);
   };
 
-  const scrollToAuctions = () => {
-    auctionsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // const scrollToAuctions = () => {
+  //   auctionsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // };
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen flex flex-col overflow-x-hidden">
@@ -415,8 +415,79 @@ export default function Home() {
         </section>
       </main>
 
+      {/* Footer Section */}
+      <footer className="bg-surface-light dark:bg-surface-dark border-t border-gray-100 dark:border-gray-800 pt-16 pb-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+            <div className="col-span-2 lg:col-span-2">
+              <Link href="/" className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white">
+                  <span className="material-symbols-outlined text-xl">storefront</span>
+                </div>
+                <span className="text-xl font-bold tracking-tight text-primary">Shelf-Bidder</span>
+              </Link>
+              <p className="text-text-sub dark:text-gray-400 text-sm mb-6 max-w-sm">
+                India&apos;s first digital platform connecting Kirana stores with top brands to monetize retail shelf space through real-time bidding.
+              </p>
+              <div className="flex items-center gap-4">
+                <a href="#" className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-text-sub dark:text-gray-400 hover:bg-primary hover:text-white transition-colors">
+                  <span className="text-lg font-bold">In</span>
+                </a>
+                <a href="#" className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-text-sub dark:text-gray-400 hover:bg-primary hover:text-white transition-colors">
+                  <span className="text-lg font-bold">X</span>
+                </a>
+                <a href="#" className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-text-sub dark:text-gray-400 hover:bg-primary hover:text-white transition-colors">
+                  <span className="text-lg font-bold">Fb</span>
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-text-main dark:text-white mb-4">Company</h4>
+              <ul className="space-y-3 text-sm">
+                <li><Link href="#" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">About Us</Link></li>
+                <li><Link href="#" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">Careers</Link></li>
+                <li><Link href="#" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">Press</Link></li>
+                <li><Link href="#" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">Contact</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-text-main dark:text-white mb-4">For Shopkeepers</h4>
+              <ul className="space-y-3 text-sm">
+                <li><Link href="/signup" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">Register Shop</Link></li>
+                <li><Link href="#" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">How it Works</Link></li>
+                <li><Link href="#" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">Earnings Guide</Link></li>
+                <li><Link href="#" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">Help Center</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-text-main dark:text-white mb-4">For Brands</h4>
+              <ul className="space-y-3 text-sm">
+                <li><Link href="/brand/login" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">Brand Login</Link></li>
+                <li><Link href="#" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">Bidding Engine</Link></li>
+                <li><Link href="#" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">Case Studies</Link></li>
+                <li><Link href="#" className="text-text-sub dark:text-gray-400 hover:text-primary transition-colors">API Docs</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="pt-8 border-t border-gray-200 dark:border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-text-sub dark:text-gray-500">
+              © {new Date().getFullYear()} Shelf-Bidder by IAS. All rights reserved.
+            </p>
+            <div className="flex gap-6 text-sm">
+              <Link href="#" className="text-text-sub dark:text-gray-500 hover:text-primary transition-colors">Privacy Policy</Link>
+              <Link href="#" className="text-text-sub dark:text-gray-500 hover:text-primary transition-colors">Terms of Service</Link>
+              <Link href="#" className="text-text-sub dark:text-gray-500 hover:text-primary transition-colors">Cookie Policy</Link>
+            </div>
+          </div>
+        </div>
+      </footer>
+
       {/* Bottom Nav Bar */}
-      <nav className="fixed bottom-0 left-0 w-full z-50 bg-surface-light dark:bg-surface-dark border-t border-gray-100 dark:border-gray-800 pb-safe">
+      {/* <nav className="fixed bottom-0 left-0 w-full z-50 bg-surface-light dark:bg-surface-dark border-t border-gray-100 dark:border-gray-800 pb-safe">
         <div className="flex justify-around items-center px-2 py-3">
           <Link href="/" className="flex flex-1 flex-col items-center justify-center gap-1 group">
             <div className="text-primary group-hover:scale-110 transition-transform flex h-6 items-center justify-center">
@@ -449,10 +520,10 @@ export default function Home() {
             <p className="text-text-sub group-hover:text-primary transition-colors text-[10px] font-medium leading-normal tracking-[0.015em]">Profile</p>
           </Link>
         </div>
-      </nav>
+      </nav> */}
 
       {/* Show Map Button */}
-      <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-40">
+      {/* <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-40">
         <button
           onClick={scrollToAuctions}
           className="bg-text-main hover:bg-black text-white px-5 py-3 rounded-full shadow-xl flex items-center gap-2 text-sm font-semibold transition-transform hover:scale-105"
@@ -460,7 +531,7 @@ export default function Home() {
           <span className="material-symbols-outlined text-sm">map</span>
           Show Map
         </button>
-      </div>
+      </div> */}
     </div>
   );
 }

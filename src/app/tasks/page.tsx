@@ -57,7 +57,7 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-[#f6f8f6] font-sans text-[#1a1c1e] antialiased">
+    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-background-light dark:bg-background-dark font-sans text-[#1a1c1e] antialiased">
       {/* Header */}
       <div className="flex items-center p-6 pb-4 justify-between bg-white sticky top-0 z-30 shadow-sm border-b border-slate-100">
         <div className="flex items-center gap-3">
@@ -198,7 +198,7 @@ export default function TasksPage() {
                       {task.status === 'assigned' ? (
                         <button 
                           onClick={() => handleStartTask(task.id)}
-                          className="flex w-full mt-2 cursor-pointer items-center justify-center gap-2 rounded-xl h-14 bg-[#1a1c1e] text-white text-lg font-black shadow-lg shadow-black/20 active:scale-95 transition-transform"
+                          className="flex w-full mt-2 cursor-pointer items-center justify-center gap-2 rounded-xl h-14 bg-text-main dark:bg-[#1a1c1e] text-white text-lg font-black shadow-lg shadow-black/20 active:scale-95 transition-transform"
                         >
                           <Play className="w-5 h-5 fill-current" />
                           <span>Start This Task</span>

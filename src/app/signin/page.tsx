@@ -51,8 +51,8 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start overflow-x-hidden bg-white font-sans text-[#0a2e16] antialiased">
-      <div className="relative flex min-h-screen w-full max-w-[430px] flex-col bg-white overflow-hidden mx-auto shadow-sm">
+    <div className="min-h-screen flex flex-col items-center justify-start overflow-x-hidden bg-background-light dark:bg-background-dark font-sans text-text-main dark:text-gray-100 antialiased">
+      <div className="relative flex min-h-screen w-full max-w-[430px] flex-col bg-background-light dark:bg-background-dark overflow-hidden mx-auto shadow-sm">
         <div className="h-11 w-full"></div> {/* iOS status bar spacer */}
         
         <div className="flex flex-col items-center pt-12 pb-10">
@@ -64,20 +64,20 @@ export default function SignInPage() {
         
         <div className="flex-1 px-8">
           <div className="mb-12">
-            <h1 className="text-[#0a2e16] text-3xl font-bold leading-tight mb-3">Welcome!</h1>
-            <p className="text-slate-500 text-lg font-light leading-snug">Enter your credentials to get started</p>
+            <h1 className="text-text-main dark:text-white text-3xl font-bold leading-tight mb-3">Welcome!</h1>
+            <p className="text-text-sub dark:text-gray-400 text-lg font-light leading-snug">Enter your credentials to get started</p>
           </div>
           
           <form onSubmit={handleSubmit} className="flex flex-col h-full">
             <div className="space-y-6">
               {/* Phone Input */}
-              <div className="group relative flex items-center bg-[#f9fafb] border-2 border-slate-100 rounded-2xl p-1.5 focus-within:border-[#11d452] focus-within:bg-white transition-all duration-200">
-                <div className="flex items-center justify-center px-4 border-r-2 border-slate-200 py-4">
-                  <span className="text-xl font-bold text-[#0a2e16]">+91</span>
+              <div className="group relative flex items-center bg-surface-light dark:bg-surface-dark border-2 border-gray-100 dark:border-gray-800 rounded-2xl p-1.5 focus-within:border-primary focus-within:bg-surface-light dark:focus-within:bg-surface-dark transition-all duration-200">
+                <div className="flex items-center justify-center px-4 border-r-2 border-gray-200 dark:border-gray-800 py-4">
+                  <span className="text-xl font-bold text-text-main dark:text-white">+91</span>
                 </div>
                 <div className="flex-1">
                   <input 
-                    className="w-full bg-transparent border-none focus:ring-0 text-xl font-semibold tracking-widest p-4 text-[#0a2e16] placeholder:text-slate-300 focus:outline-none" 
+                    className="w-full bg-transparent border-none focus:ring-0 text-xl font-semibold tracking-widest p-4 text-text-main dark:text-white placeholder:text-gray-400 focus:outline-none" 
                     maxLength={10} 
                     placeholder="98765 43210" 
                     type="tel"
@@ -89,10 +89,10 @@ export default function SignInPage() {
               </div>
 
               {/* Password Input */}
-              <div className="group relative flex items-center bg-[#f9fafb] border-2 border-slate-100 rounded-2xl p-1.5 focus-within:border-[#11d452] focus-within:bg-white transition-all duration-200">
+              <div className="group relative flex items-center bg-surface-light dark:bg-surface-dark border-2 border-gray-100 dark:border-gray-800 rounded-2xl p-1.5 focus-within:border-primary focus-within:bg-surface-light dark:focus-within:bg-surface-dark transition-all duration-200">
                 <div className="flex-1">
                   <input 
-                    className="w-full bg-transparent border-none focus:ring-0 text-xl font-semibold p-4 text-[#0a2e16] placeholder:text-slate-300 focus:outline-none" 
+                    className="w-full bg-transparent border-none focus:ring-0 text-xl font-semibold p-4 text-text-main dark:text-white placeholder:text-gray-400 focus:outline-none" 
                     placeholder="Password" 
                     type="password"
                     value={password}
@@ -109,15 +109,15 @@ export default function SignInPage() {
               </p>
             )}
 
-            <p className="mt-6 text-center text-xs text-slate-400 px-6 leading-relaxed">
-              Don&apos;t have an account? <Link href="/signup" className="text-[#0a2e16] font-bold underline">Register here</Link>
+            <p className="mt-6 text-center text-xs text-text-sub dark:text-gray-400 px-6 leading-relaxed">
+              Don&apos;t have an account? <Link href="/signup" className="text-text-main dark:text-white font-bold underline">Register here</Link>
             </p>
 
             <div className="mt-auto pt-12 pb-12 w-full">
               <button 
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#11d452] hover:bg-[#0fbf49] text-white text-xl font-bold py-5 rounded-2xl transition-all active:scale-[0.97] shadow-lg shadow-[#11d452]/30 flex items-center justify-center gap-3 disabled:opacity-70 disabled:active:scale-100"
+                className="w-full bg-primary hover:bg-primary-dark text-white text-xl font-bold py-5 rounded-2xl transition-all active:scale-[0.97] shadow-lg shadow-primary/30 flex items-center justify-center gap-3 disabled:opacity-70 disabled:active:scale-100"
               >
                 {isLoading ? 'Signing In...' : 'Sign In'}
                 {!isLoading && <ArrowRight className="w-6 h-6" strokeWidth={3} />}

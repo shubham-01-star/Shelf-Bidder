@@ -100,40 +100,40 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto bg-[#f6f8f6] text-[#1a1c1e] shadow-2xl overflow-x-hidden font-sans antialiased">
+    <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 shadow-2xl overflow-x-hidden font-sans antialiased">
       {/* Header */}
-      <div className="flex items-center p-6 pb-4 justify-between bg-white sticky top-0 z-10 shadow-sm border-b border-slate-100">
+      <div className="flex items-center p-6 pb-4 justify-between bg-surface-light dark:bg-surface-dark sticky top-0 z-10 shadow-sm border-b border-gray-100 dark:border-gray-800">
         <button 
           onClick={() => router.back()}
-          className="flex size-10 items-center justify-center rounded-full bg-[#11d452]/10 text-[#1a1c1e] hover:bg-[#11d452]/20 transition-colors"
+          className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-text-main dark:text-white hover:bg-primary/20 transition-colors"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h2 className="text-xl font-extrabold flex-1 text-center pr-10 tracking-tight">Store Profile</h2>
+        <h2 className="text-xl font-extrabold flex-1 text-center pr-10 tracking-tight text-text-main dark:text-white">Store Profile</h2>
       </div>
 
       <div className="flex flex-col gap-6 p-4 pb-32 overflow-y-auto">
         {/* Success/Error Messages */}
         {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm font-semibold animate-fadeInUp">
+          <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-xl text-sm font-semibold animate-fadeInUp">
             {successMessage}
           </div>
         )}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-semibold animate-fadeInUp">
+          <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-semibold animate-fadeInUp">
             {error}
           </div>
         )}
 
         {/* Profile Card */}
-        <div className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm flex flex-col items-center gap-4 animate-fadeInUp">
+        <div className="bg-surface-light dark:bg-surface-dark p-6 rounded-[1.5rem] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center gap-4 animate-fadeInUp">
           <div className="relative">
-            <div className="bg-[#11d452]/10 aspect-square rounded-full flex items-center justify-center size-28 border border-[#11d452]/20 overflow-hidden shadow-inner">
-              <Store className="w-12 h-12 text-[#11d452] opacity-80" />
+            <div className="bg-primary/10 aspect-square rounded-full flex items-center justify-center size-28 border border-primary/20 overflow-hidden shadow-inner">
+              <Store className="w-12 h-12 text-primary opacity-80" />
             </div>
             <button 
               onClick={() => setIsEditingProfile(true)}
-              className="absolute bottom-0 right-0 bg-[#11d452] text-[#1a1c1e] p-2 rounded-full border-2 border-white shadow-md active:scale-95 transition-transform"
+              className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full border-2 border-surface-light dark:border-surface-dark shadow-md active:scale-95 transition-transform"
             >
               <Pencil className="w-4 h-4" />
             </button>
@@ -146,14 +146,14 @@ export default function ProfilePage() {
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#11d452] focus:ring-1 focus:ring-[#11d452] transition-colors"
+                className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 text-text-main dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                 disabled={isLoading}
               />
               <div className="flex gap-2">
                 <button
                   onClick={handleSaveProfile}
                   disabled={isLoading}
-                  className="flex-1 bg-[#11d452] text-[#1a1c1e] px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   {isLoading ? 'Saving...' : 'Save'}
@@ -165,7 +165,7 @@ export default function ProfilePage() {
                     setError('');
                   }}
                   disabled={isLoading}
-                  className="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50"
+                  className="bg-gray-100 dark:bg-gray-800 text-text-sub dark:text-gray-400 px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -173,30 +173,30 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="text-center">
-              <h1 className="text-2xl font-black text-[#1a1c1e]">{storeName}</h1>
-              <p className="text-[#11d452] font-bold mt-1">Owner: {ownerName}</p>
+              <h1 className="text-2xl font-black text-text-main dark:text-white">{storeName}</h1>
+              <p className="text-primary font-bold mt-1">Owner: {ownerName}</p>
             </div>
           )}
         </div>
 
         {/* Payment Details */}
         <div className="flex flex-col gap-3 animate-fadeInUp animate-fadeInUp-delay-1">
-          <h3 className="text-[#1a1c1e] text-base font-bold px-1">Payment Details</h3>
-          <div className="flex flex-col gap-3 bg-white p-4 rounded-[1.25rem] border border-slate-100 shadow-sm">
+          <h3 className="text-text-main dark:text-white text-base font-bold px-1">Payment Details</h3>
+          <div className="flex flex-col gap-3 bg-surface-light dark:bg-surface-dark p-4 rounded-[1.25rem] border border-gray-100 dark:border-gray-800 shadow-sm">
             <div className="flex items-center gap-4 justify-between">
               <div className="flex items-center gap-4">
-                <div className="text-[#11d452] bg-[#11d452]/10 flex items-center justify-center rounded-xl shrink-0 size-12 shadow-sm border border-[#11d452]/5">
+                <div className="text-primary bg-primary/10 flex items-center justify-center rounded-xl shrink-0 size-12 shadow-sm border border-primary/5">
                   <Wallet className="w-6 h-6" />
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-[#1a1c1e] text-sm font-bold">{upiId}</p>
-                  <p className="text-slate-500 text-xs font-semibold mt-0.5">Primary UPI ID</p>
+                  <p className="text-text-main dark:text-white text-sm font-bold">{upiId}</p>
+                  <p className="text-text-sub dark:text-gray-400 text-xs font-semibold mt-0.5">Primary UPI ID</p>
                 </div>
               </div>
               {!isEditingUPI && (
                 <button 
                   onClick={() => setIsEditingUPI(true)}
-                  className="flex items-center justify-center rounded-lg h-9 px-4 bg-[#11d452] text-[#1a1c1e] text-sm font-black active:scale-95 transition-transform shadow-sm"
+                  className="flex items-center justify-center rounded-lg h-9 px-4 bg-primary text-white text-sm font-black active:scale-95 transition-transform shadow-sm"
                 >
                   Edit
                 </button>
@@ -204,20 +204,20 @@ export default function ProfilePage() {
             </div>
             
             {isEditingUPI && (
-              <div className="space-y-3 pt-2 border-t border-slate-100">
+              <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-800">
                 <input
                   type="text"
                   value={editUPI}
                   onChange={(e) => setEditUPI(e.target.value)}
                   placeholder="yourname@upi"
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#11d452] focus:ring-1 focus:ring-[#11d452] transition-colors"
+                  className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 text-text-main dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                   disabled={isLoading}
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveUPI}
                     disabled={isLoading}
-                    className="flex-1 bg-[#11d452] text-[#1a1c1e] px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <Save className="w-4 h-4" />
                     {isLoading ? 'Saving...' : 'Save'}
@@ -229,7 +229,7 @@ export default function ProfilePage() {
                       setError('');
                     }}
                     disabled={isLoading}
-                    className="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50"
+                    className="bg-gray-100 dark:bg-gray-800 text-text-sub dark:text-gray-400 px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -241,54 +241,54 @@ export default function ProfilePage() {
 
         {/* Settings List */}
         <div className="flex flex-col gap-3 animate-fadeInUp animate-fadeInUp-delay-2 mt-2">
-          <h3 className="text-[#1a1c1e] text-base font-bold px-1 mb-1">Settings</h3>
+          <h3 className="text-text-main dark:text-white text-base font-bold px-1 mb-1">Settings</h3>
           
           {/* Language */}
-          <button className="flex items-center justify-between p-4 bg-white rounded-[1.25rem] border border-slate-100 active:bg-slate-50 transition-colors shadow-sm w-full">
+          <button className="flex items-center justify-between p-4 bg-surface-light dark:bg-surface-dark rounded-[1.25rem] border border-gray-100 dark:border-gray-800 active:bg-background-light dark:active:bg-background-dark transition-colors shadow-sm w-full">
             <div className="flex items-center gap-4 text-left">
-              <div className="size-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
-                <Languages className="w-5 h-5 text-slate-700" />
+              <div className="size-10 rounded-lg bg-background-light dark:bg-background-dark flex items-center justify-center border border-gray-100 dark:border-gray-800">
+                <Languages className="w-5 h-5 text-text-sub dark:text-gray-400" />
               </div>
               <div>
-                <p className="text-[#1a1c1e] text-[15px] font-bold">Language</p>
-                <p className="text-slate-500 text-xs font-semibold mt-0.5">English / Hindi</p>
+                <p className="text-text-main dark:text-white text-[15px] font-bold">Language</p>
+                <p className="text-text-sub dark:text-gray-400 text-xs font-semibold mt-0.5">English / Hindi</p>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-slate-400" />
+            <ChevronRight className="w-5 h-5 text-text-sub dark:text-gray-400" />
           </button>
           
           {/* Help & Support */}
-          <button className="flex items-center justify-between p-4 bg-white rounded-[1.25rem] border border-slate-100 active:bg-slate-50 transition-colors shadow-sm w-full">
+          <button className="flex items-center justify-between p-4 bg-surface-light dark:bg-surface-dark rounded-[1.25rem] border border-gray-100 dark:border-gray-800 active:bg-background-light dark:active:bg-background-dark transition-colors shadow-sm w-full">
             <div className="flex items-center gap-4 text-left">
-              <div className="size-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
-                 <HeadphonesIcon className="w-5 h-5 text-slate-700" />
+              <div className="size-10 rounded-lg bg-background-light dark:bg-background-dark flex items-center justify-center border border-gray-100 dark:border-gray-800">
+                 <HeadphonesIcon className="w-5 h-5 text-text-sub dark:text-gray-400" />
               </div>
-              <p className="text-[#1a1c1e] text-[15px] font-bold">Help & Support</p>
+              <p className="text-text-main dark:text-white text-[15px] font-bold">Help & Support</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-slate-400" />
+            <ChevronRight className="w-5 h-5 text-text-sub dark:text-gray-400" />
           </button>
           
           {/* Terms & Conditions */}
-          <button className="flex items-center justify-between p-4 bg-white rounded-[1.25rem] border border-slate-100 active:bg-slate-50 transition-colors shadow-sm w-full">
+          <button className="flex items-center justify-between p-4 bg-surface-light dark:bg-surface-dark rounded-[1.25rem] border border-gray-100 dark:border-gray-800 active:bg-background-light dark:active:bg-background-dark transition-colors shadow-sm w-full">
             <div className="flex items-center gap-4 text-left">
-              <div className="size-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
-                 <FileText className="w-5 h-5 text-slate-700" />
+              <div className="size-10 rounded-lg bg-background-light dark:bg-background-dark flex items-center justify-center border border-gray-100 dark:border-gray-800">
+                 <FileText className="w-5 h-5 text-text-sub dark:text-gray-400" />
               </div>
-              <p className="text-[#1a1c1e] text-[15px] font-bold">Terms & Conditions</p>
+              <p className="text-text-main dark:text-white text-[15px] font-bold">Terms & Conditions</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-slate-400" />
+            <ChevronRight className="w-5 h-5 text-text-sub dark:text-gray-400" />
           </button>
           
           {/* Logout */}
           <button 
             onClick={handleLogout}
-            className="flex items-center justify-between p-4 bg-white rounded-[1.25rem] border border-red-100 active:bg-red-50 transition-colors shadow-sm w-full mt-4"
+            className="flex items-center justify-between p-4 bg-surface-light dark:bg-surface-dark rounded-[1.25rem] border border-red-100 dark:border-red-900/50 active:bg-red-50 dark:active:bg-red-900/20 transition-colors shadow-sm w-full mt-4"
           >
             <div className="flex items-center gap-4 text-left">
-              <div className="size-10 rounded-lg bg-red-50 flex items-center justify-center border border-red-100">
-                <LogOut className="w-5 h-5 text-red-500" />
+              <div className="size-10 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center border border-red-100 dark:border-red-900/50">
+                <LogOut className="w-5 h-5 text-red-500 dark:text-red-400" />
               </div>
-              <p className="text-red-500 text-[15px] font-bold">Logout</p>
+              <p className="text-red-500 dark:text-red-400 text-[15px] font-bold">Logout</p>
             </div>
           </button>
         </div>

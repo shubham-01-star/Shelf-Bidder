@@ -160,7 +160,7 @@ function CameraContent() {
   };
 
   return (
-    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-white text-[#1a1c1e] font-sans antialiased">
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 font-sans antialiased">
       <input
         ref={fileInputRef}
         type="file"
@@ -231,8 +231,8 @@ function CameraContent() {
       </div>
 
       {/* Bottom Half: Controls & Context */}
-      <div className="relative flex-1 flex flex-col bg-white -mt-6 rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] z-20 px-6 pt-6 overflow-y-auto">
-        <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6 shrink-0"></div>
+      <div className="relative flex-1 flex flex-col bg-surface-light dark:bg-surface-dark -mt-6 rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] z-20 px-6 pt-6 overflow-y-auto">
+        <div className="w-12 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-6 shrink-0"></div>
         
         <div className="flex flex-col flex-1 pb-8 animate-fadeInUp">
           

@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function SolutionsPage() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#0a0510] font-sans text-slate-100 selection:bg-[#8c25f4]/30">
+    <div className="relative min-h-screen overflow-x-hidden bg-background-light dark:bg-background-dark font-sans text-slate-100 selection:bg-[#8c25f4]/30">
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -21,11 +21,11 @@ export default function SolutionsPage() {
       />
 
       <header className="relative z-50 flex items-center justify-between px-6 py-6 mx-auto max-w-7xl lg:px-12">
-        <Link href="/" className="flex items-center gap-3 decoration-transparent">
-          <div className="flex items-center justify-center p-2 rounded-lg bg-[#8c25f4]/20 text-[#8c25f4]">
-            <span className="text-2xl font-bold">🏢</span>
+        <Link href="/" className="flex items-center gap-2 decoration-transparent">
+          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white">
+            <span className="material-symbols-outlined text-xl">storefront</span>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-white m-0">Shelf<span className="text-[#8c25f4]">-Bidder</span></h2>
+          <span className="text-xl font-bold tracking-tight text-primary">Shelf-Bidder</span>
         </Link>
         <Link href="/" className="text-sm font-medium hover:text-[#8c25f4] transition-colors text-slate-300">← Back to Home</Link>
       </header>
@@ -39,11 +39,11 @@ export default function SolutionsPage() {
         </p>
 
         <div className="grid gap-8 text-left">
-          <div className="p-8 rounded-3xl bg-[#160d21]/80 backdrop-blur-xl border border-[#8c25f4]/20 hover:border-[#8c25f4]/50 transition-colors">
+          <div className="p-8 rounded-3xl bg-surface-light dark:bg-surface-dark/80 backdrop-blur-xl border border-[#8c25f4]/20 hover:border-[#8c25f4]/50 transition-colors">
             <h3 className="text-2xl font-black text-white mb-4">Hyper-Local Targeting</h3>
             <p className="text-slate-400">Target your products down to the exact neighborhood and store tier using our vast network of verified Kirana partners mapped seamlessly via GPS and historical sales data.</p>
           </div>
-          <div className="p-8 rounded-3xl bg-[#160d21]/80 backdrop-blur-xl border border-[#0df259]/20 hover:border-[#0df259]/50 transition-colors">
+          <div className="p-8 rounded-3xl bg-surface-light dark:bg-surface-dark/80 backdrop-blur-xl border border-[#0df259]/20 hover:border-[#0df259]/50 transition-colors">
             <h3 className="text-2xl font-black text-white mb-4">Proof of Execution (PoE)</h3>
             <p className="text-slate-400">Our advanced AI computer vision analyzes shopkeeper uploads in real-time, confirming shelf placement, share of shelf, and competitor proximity with 98.4% accuracy before automating instant micropayments.</p>
           </div>

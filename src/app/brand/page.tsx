@@ -57,7 +57,7 @@ export default function BrandDashboardPage() {
 
   if (loading || !data) {
     return (
-      <div className="flex flex-col min-h-screen items-center justify-center bg-[#0a0510] text-white">
+      <div className="flex flex-col min-h-screen items-center justify-center bg-background-light dark:bg-background-dark text-white">
         <div className="animate-spin text-4xl mb-4">🌀</div>
         <p className="font-bold tracking-widest uppercase text-sm text-[var(--brand-violet)] animate-pulse">Loading Workspace</p>
       </div>

@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function AnalyticsPage() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#0a0510] font-sans text-slate-100 selection:bg-[#8c25f4]/30">
+    <div className="relative min-h-screen overflow-x-hidden bg-background-light dark:bg-background-dark font-sans text-slate-100 selection:bg-[#8c25f4]/30">
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -13,11 +13,11 @@ export default function AnalyticsPage() {
       />
       
       <header className="relative z-50 flex items-center justify-between px-6 py-6 mx-auto max-w-7xl lg:px-12">
-        <Link href="/" className="flex items-center gap-3 decoration-transparent">
-          <div className="flex items-center justify-center p-2 rounded-lg bg-[#8c25f4]/20 text-[#8c25f4]">
-            <span className="text-2xl font-bold">🏢</span>
+        <Link href="/" className="flex items-center gap-2 decoration-transparent">
+          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white">
+            <span className="material-symbols-outlined text-xl">storefront</span>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-white m-0">Shelf<span className="text-[#8c25f4]">-Bidder</span></h2>
+          <span className="text-xl font-bold tracking-tight text-primary">Shelf-Bidder</span>
         </Link>
         <Link href="/" className="text-sm font-medium hover:text-[#8c25f4] transition-colors text-slate-300">← Back to Home</Link>
       </header>
@@ -30,7 +30,7 @@ export default function AnalyticsPage() {
           Make data-driven bidding decisions with our real-time visibility dashboard. We process millions of data points hourly across thousands of Kirana stores.
         </p>
 
-        <div className="bg-[#160d21]/90 backdrop-blur-xl border border-[#8c25f4]/30 rounded-3xl p-10 mt-12 overflow-hidden relative text-left">
+        <div className="bg-surface-light dark:bg-surface-dark/90 backdrop-blur-xl border border-[#8c25f4]/30 rounded-3xl p-10 mt-12 overflow-hidden relative text-left">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#8c25f4]/20 rounded-full blur-[80px]"></div>
           <h3 className="text-3xl font-black text-white mb-6 relative z-10">AI Computer Vision</h3>
           <p className="text-lg text-slate-400 relative z-10 max-w-2xl mb-10">Our proprietary models detect over 15,000 SKUs under challenging lighting conditions, accurately measuring Share of Shelf (SoS) and out-of-stock events instantly.</p>

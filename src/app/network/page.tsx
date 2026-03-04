@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function NetworkPage() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#0a0510] font-sans text-slate-100 selection:bg-[#0df259]/30">
+    <div className="relative min-h-screen overflow-x-hidden bg-background-light dark:bg-background-dark font-sans text-slate-100 selection:bg-[#0df259]/30">
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{

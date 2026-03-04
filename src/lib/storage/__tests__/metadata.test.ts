@@ -71,7 +71,8 @@ describe('Photo Metadata Utilities', () => {
     });
 
     it('should reject invalid photo type', () => {
-      const metadata = { ...validMetadata, photoType: 'invalid' as any };
+      const metadata = { ...validMetadata, photoType: 'invalid' };
+      // @ts-expect-error - deliberate invalid type for testing
       const result = validatePhotoMetadata(metadata);
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Invalid photo type');

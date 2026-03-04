@@ -20,10 +20,11 @@ export interface ValidationResult {
 // ============================================================================
 
 /**
- * UUID v4 format pattern
+ * UUID format pattern (accepts all UUID versions)
  * Example: 550e8400-e29b-41d4-a716-446655440000
+ * Note: Relaxed to accept Cognito UUIDs which may not strictly follow v4 format
  */
-const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
 /**
  * ISO 8601 date format (YYYY-MM-DD)

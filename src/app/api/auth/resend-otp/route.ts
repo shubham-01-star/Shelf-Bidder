@@ -1,16 +1,96 @@
 /**
  * Resend OTP API Route
- * Resends verification code to user's email
+ * Resends verification code to user's email.
+ * Uses Resend's `react:` param (official pattern).
+ * OTP is always logged to console.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
 import { TEMP_OTP_STORE } from '../signup/route';
 
-// Support both POST and GET for flexibility
+/**
+ * Generate OTP HTML email body (inline — no extra dependencies)
+ */
+function getOTPEmailHtml(otpCode: string): string {
+  return `
+    <div style="background-color:#f6f9fc;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+      <div style="background-color:#fff;border:1px solid #e6ebf1;border-radius:8px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);max-width:500px;margin:0 auto;padding:32px;text-align:center">
+        <h1 style="color:#0f172a;font-size:24px;font-weight:700;margin:0 0 24px 0">Shelf-Bidder Verification</h1>
+        <p style="color:#334155;font-size:16px;line-height:24px;margin:0 0 16px 0;text-align:left">Here is your new verification code:</p>
+        <div style="background-color:#f8fafc;border:2px dashed #94a3b8;border-radius:12px;margin:32px 0;padding:24px">
+          <span style="color:#0f172a;font-size:36px;font-weight:800;letter-spacing:8px">${otpCode}</span>
+        </div>
+        <p style="color:#334155;font-size:16px;line-height:24px;margin:0 0 16px 0;text-align:left">This code will expire in 10 minutes.</p>
+        <hr style="border-top:1px solid #e6ebf1;border-left:none;border-right:none;border-bottom:none;margin:32px 0"/>
+        <p style="color:#64748b;font-size:14px;margin:0">© ${new Date().getFullYear()} Shelf-Bidder. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Generate new OTP, store it, and always log to console.
+ */
+function generateAndStoreOTP(phoneNumber: string, email: string): string {
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+  TEMP_OTP_STORE[phoneNumber] = {
+    code: otpCode,
+    email,
+    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+  };
+
+  console.log('');
+  console.log('============================================================');
+  console.log('🔐 RESEND OTP CODE');
+  console.log('============================================================');
+  console.log(`  Phone:   ${phoneNumber}`);
+  console.log(`  Email:   ${email}`);
+  console.log(`  OTP:     ${otpCode}`);
+  console.log(`  Expires: ${new Date(TEMP_OTP_STORE[phoneNumber].expiresAt).toLocaleString()}`);
+  console.log('============================================================');
+  console.log('');
+
+  return otpCode;
+}
+
+/**
+ * Send OTP email via Resend using html: param.
+ */
+async function sendOTPEmail(
+  resendApiKey: string,
+  toEmail: string,
+  otpCode: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const resend = new Resend(resendApiKey);
+
+    const { data, error } = await resend.emails.send({
+      from: 'Shelf-Bidder <onboarding@resend.dev>',
+      to: [toEmail],
+      subject: 'Your New Verification Code',
+      html: getOTPEmailHtml(otpCode),
+    });
+
+    if (error) {
+      console.error('[Resend Error]', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Resend] ✅ OTP resent to ${toEmail} (id: ${data?.id})`);
+    return { success: true };
+  } catch (err: unknown) {
+    console.error('[Resend Exception]', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
+// Support GET for convenience
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const phoneNumber = url.searchParams.get('phone');
-  
+
   if (!phoneNumber) {
     return NextResponse.json(
       { error: 'Missing phone number', message: 'Phone number is required in query params' },
@@ -29,7 +109,6 @@ export async function POST(request: NextRequest) {
       if (text) {
         body = JSON.parse(text);
       } else {
-        // If no body, try query params
         const url = new URL(request.url);
         const phoneFromQuery = url.searchParams.get('phone');
         if (phoneFromQuery) {
@@ -41,7 +120,7 @@ export async function POST(request: NextRequest) {
           );
         }
       }
-    } catch (e) {
+    } catch {
       return NextResponse.json(
         { error: 'Invalid JSON', message: 'Request body must be valid JSON' },
         { status: 400 }
@@ -58,11 +137,11 @@ export async function POST(request: NextRequest) {
     }
 
     return handleResendOTP(phoneNumber, email);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Resend OTP error:', error);
-    
+    const errMsg = error instanceof Error ? error.message : 'Failed to resend verification code';
     return NextResponse.json(
-      { error: error.name || 'Internal server error', message: error.message || 'Failed to resend verification code' },
+      { error: 'Internal server error', message: errMsg },
       { status: 500 }
     );
   }
@@ -70,136 +149,44 @@ export async function POST(request: NextRequest) {
 
 async function handleResendOTP(phoneNumber: string, email: string | null) {
   try {
-
-    // Check if there's an existing OTP for this phone number
     const existingOTP = TEMP_OTP_STORE[phoneNumber];
-    
-    // Generate new OTP
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Update OTP store
-    TEMP_OTP_STORE[phoneNumber] = {
-      code: otpCode,
-      email: email || existingOTP?.email || '',
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
-    };
+    const targetEmail = email || existingOTP?.email || '';
 
-    // Send OTP via email (if Resend is configured)
+    if (!targetEmail) {
+      return NextResponse.json(
+        { error: 'No email found', message: 'No email address available for this phone number. Please sign up again.' },
+        { status: 400 }
+      );
+    }
+
+    // Generate new OTP & log to console
+    const otpCode = generateAndStoreOTP(phoneNumber, targetEmail);
+
+    // Send via Resend email
     const { getAWSConfig } = await import('@/types/aws-config');
     const config = getAWSConfig();
 
+    let emailSent = false;
     if (config.resendApiKey) {
-      try {
-        const React = await import('react');
-        const { Resend } = await import('resend');
-        const { OTPTemplate } = await import('@/lib/email/templates/OTPTemplate');
-        const ReactDOMServer = (await import('react-dom/server')).default;
-
-        const resend = new Resend(config.resendApiKey);
-        const emailHtml = ReactDOMServer.renderToStaticMarkup(
-          React.createElement(OTPTemplate, { otpCode, firstName: 'User' })
-        );
-
-        const targetEmail = email || existingOTP?.email;
-        if (!targetEmail) {
-          throw new Error('No email address available');
-        }
-
-        const { data, error } = await resend.emails.send({
-          from: 'Shelf-Bidder Verification <onboarding@resend.dev>',
-          to: targetEmail,
-          subject: 'Your New Verification Code',
-          html: emailHtml,
-        });
-
-        if (error) {
-          console.error('[Resend Error]', error);
-          
-          // In development, log OTP to console
-          if (process.env.NODE_ENV !== 'production') {
-            console.log('='.repeat(60));
-            console.log('🔐 RESEND OTP - DEVELOPMENT MODE');
-            console.log('='.repeat(60));
-            console.log(`Phone: ${phoneNumber}`);
-            console.log(`Email: ${targetEmail}`);
-            console.log(`OTP: ${otpCode}`);
-            console.log(`Expires: ${new Date(TEMP_OTP_STORE[phoneNumber].expiresAt).toLocaleString()}`);
-            console.log('='.repeat(60));
-          }
-
-          // Don't fail in development
-          if (process.env.NODE_ENV !== 'production') {
-            return NextResponse.json(
-              { 
-                message: 'OTP resent successfully. Check server console for code.',
-                devMode: true,
-                otpInConsole: true
-              },
-              { status: 200 }
-            );
-          }
-
-          return NextResponse.json(
-            { error: 'EmailServiceError', message: 'Failed to send verification code' },
-            { status: 500 }
-          );
-        }
-
-        console.log(`[Resend] Successfully resent OTP to ${targetEmail}, id: ${data?.id}`);
-        
-        return NextResponse.json(
-          { message: 'Verification code resent successfully. Please check your email.' },
-          { status: 200 }
-        );
-      } catch (emailError) {
-        console.error('[Email Error]', emailError);
-        
-        // In development, log OTP as fallback
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('='.repeat(60));
-          console.log('🔐 RESEND OTP - DEVELOPMENT MODE (Email Failed)');
-          console.log('='.repeat(60));
-          console.log(`Phone: ${phoneNumber}`);
-          console.log(`Email: ${email || existingOTP?.email}`);
-          console.log(`OTP: ${otpCode}`);
-          console.log('='.repeat(60));
-          
-          return NextResponse.json(
-            { 
-              message: 'OTP resent successfully. Check server console for code.',
-              devMode: true,
-              otpInConsole: true
-            },
-            { status: 200 }
-          );
-        }
-
-        throw emailError;
-      }
-    } else {
-      // No Resend API key - log OTP to console
-      console.log('='.repeat(60));
-      console.log('🔐 RESEND OTP - NO API KEY');
-      console.log('='.repeat(60));
-      console.log(`Phone: ${phoneNumber}`);
-      console.log(`Email: ${email || existingOTP?.email}`);
-      console.log(`OTP: ${otpCode}`);
-      console.log('='.repeat(60));
-      
-      return NextResponse.json(
-        { 
-          message: 'OTP resent successfully. Check server console for code.',
-          devMode: true,
-          otpInConsole: true
-        },
-        { status: 200 }
-      );
+      const result = await sendOTPEmail(config.resendApiKey, targetEmail, otpCode);
+      emailSent = result.success;
     }
-  } catch (error: any) {
-    console.error('Handle Resend OTP error:', error);
-    
+
     return NextResponse.json(
-      { error: error.name || 'Internal server error', message: error.message || 'Failed to resend verification code' },
+      {
+        message: emailSent
+          ? 'Verification code resent successfully. Please check your email.'
+          : 'OTP resent successfully. Check server console for code.',
+        emailSent,
+        otpInConsole: true,
+      },
+      { status: 200 }
+    );
+  } catch (error: unknown) {
+    console.error('Handle Resend OTP error:', error);
+    const errMsg = error instanceof Error ? error.message : 'Failed to resend verification code';
+    return NextResponse.json(
+      { error: 'Internal server error', message: errMsg },
       { status: 500 }
     );
   }

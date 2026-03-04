@@ -27,8 +27,17 @@ export const s3Client = new S3Client({
  * S3 bucket name for photo storage
  */
 export const PHOTO_BUCKET_NAME =
-  process.env.NEXT_PUBLIC_PHOTO_BUCKET_NAME ||
+  process.env.NEXT_PUBLIC_PHOTO_BUCKET ||
+  process.env.PHOTO_BUCKET_NAME ||
+  process.env.S3_BUCKET_PHOTOS ||
   `shelf-bidder-photos-${process.env.AWS_ACCOUNT_ID || 'dev'}`;
+
+console.log('[S3 Client] 📦 Bucket name:', PHOTO_BUCKET_NAME);
+console.log('[S3 Client] 🔍 Environment check:', {
+  NEXT_PUBLIC_PHOTO_BUCKET: process.env.NEXT_PUBLIC_PHOTO_BUCKET,
+  PHOTO_BUCKET_NAME: process.env.PHOTO_BUCKET_NAME,
+  S3_BUCKET_PHOTOS: process.env.S3_BUCKET_PHOTOS,
+});
 
 /**
  * Maximum photo file size (20MB as per design)

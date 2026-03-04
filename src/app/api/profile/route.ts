@@ -11,23 +11,36 @@ import { ShopkeeperOperations } from '@/lib/db/operations';
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Profile GET] 🔍 Starting profile GET...');
+    
     const shopkeeperId = getShopkeeperIdFromRequest(request);
+    console.log('[Profile GET] 📝 Shopkeeper ID from token:', shopkeeperId);
 
     if (!shopkeeperId) {
+      console.log('[Profile GET] ❌ No shopkeeper ID found');
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    console.log('[Profile GET] 📞 Calling ShopkeeperOperations.get...');
     const shopkeeper = await ShopkeeperOperations.get(shopkeeperId);
+    console.log('[Profile GET] ✅ Got shopkeeper:', shopkeeper);
 
     return NextResponse.json({
       success: true,
       data: shopkeeper,
     });
   } catch (error) {
-    console.error('Get profile error:', error);
+    console.error('[Profile GET] ❌ Error:', error);
+    console.error('[Profile GET] ❌ Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[Profile GET] ❌ Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
     return NextResponse.json(
       {
         success: false,

@@ -53,6 +53,9 @@ export const ShopkeeperOperations = {
       try {
         const item = ShopkeeperMapper.toItem(shopkeeper);
         
+        // Debug: Log the item being created
+        console.log('[DynamoDB Create] Item to be created:', JSON.stringify(item, null, 2));
+        
         await dynamoDBClient.send(
           new PutCommand({
             TableName: TABLE_NAMES.SHOPKEEPERS,
@@ -63,6 +66,7 @@ export const ShopkeeperOperations = {
         
         return shopkeeper;
       } catch (error) {
+        console.error('[DynamoDB Create] Error:', error);
         throw handleDynamoDBError(error, 'creating shopkeeper');
       }
     });
@@ -74,6 +78,13 @@ export const ShopkeeperOperations = {
   async get(shopkeeperId: string): Promise<Shopkeeper> {
     return withRetry(async () => {
       try {
+        console.log('[ShopkeeperOperations.get] 🔍 Getting shopkeeper:', shopkeeperId);
+        console.log('[ShopkeeperOperations.get] 📍 Table:', TABLE_NAMES.SHOPKEEPERS);
+        console.log('[ShopkeeperOperations.get] 🔑 Key:', {
+          PK: `SHOPKEEPER#${shopkeeperId}`,
+          SK: 'METADATA',
+        });
+        
         const result = await dynamoDBClient.send(
           new GetCommand({
             TableName: TABLE_NAMES.SHOPKEEPERS,
@@ -84,12 +95,25 @@ export const ShopkeeperOperations = {
           })
         );
 
+        console.log('[ShopkeeperOperations.get] 📦 Result:', result);
+        console.log('[ShopkeeperOperations.get] 📦 Item:', result.Item);
+
         if (!result.Item) {
+          console.log('[ShopkeeperOperations.get] ❌ Item not found');
           throw new ItemNotFoundError('Shopkeeper', shopkeeperId);
         }
 
-        return ShopkeeperMapper.fromItem(result.Item as ShopkeeperItem);
+        console.log('[ShopkeeperOperations.get] ✅ Item found, mapping...');
+        const mapped = ShopkeeperMapper.fromItem(result.Item as ShopkeeperItem);
+        console.log('[ShopkeeperOperations.get] ✅ Mapped shopkeeper:', mapped);
+        
+        return mapped;
       } catch (error) {
+        console.error('[ShopkeeperOperations.get] ❌ Error:', error);
+        console.error('[ShopkeeperOperations.get] ❌ Error details:', {
+          name: error instanceof Error ? error.name : 'Unknown',
+          message: error instanceof Error ? error.message : String(error),
+        });
         throw handleDynamoDBError(error, 'getting shopkeeper');
       }
     });

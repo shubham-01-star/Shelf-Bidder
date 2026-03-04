@@ -47,9 +47,12 @@ export class ShelfBidderStack extends cdk.Stack {
 
   private createShopkeepersTable(): dynamodb.Table {
     const table = new dynamodb.Table(this, 'ShopkeepersTable', {
-      tableName: 'ShelfBidder-Shopkeepers',
       partitionKey: {
-        name: 'shopkeeperId',
+        name: 'PK',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'SK',
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -66,13 +69,12 @@ export class ShelfBidderStack extends cdk.Stack {
 
   private createShelfSpacesTable(): dynamodb.Table {
     const table = new dynamodb.Table(this, 'ShelfSpacesTable', {
-      tableName: 'ShelfBidder-ShelfSpaces',
       partitionKey: {
-        name: 'shopkeeperId',
+        name: 'PK',
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: 'analysisDate',
+        name: 'SK',
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -80,11 +82,15 @@ export class ShelfBidderStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
-    // GSI for querying by shelf space ID
+    // GSI1 for querying by shelf space ID
     table.addGlobalSecondaryIndex({
-      indexName: 'ShelfSpaceIdIndex',
+      indexName: 'GSI1',
       partitionKey: {
-        name: 'shelfSpaceId',
+        name: 'GSI1PK',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'GSI1SK',
         type: dynamodb.AttributeType.STRING,
       },
       projectionType: dynamodb.ProjectionType.ALL,
@@ -98,9 +104,12 @@ export class ShelfBidderStack extends cdk.Stack {
 
   private createAuctionsTable(): dynamodb.Table {
     const table = new dynamodb.Table(this, 'AuctionsTable', {
-      tableName: 'ShelfBidder-Auctions',
       partitionKey: {
-        name: 'auctionId',
+        name: 'PK',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'SK',
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -108,29 +117,29 @@ export class ShelfBidderStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
-    // GSI for querying auctions by shelf space and start time
+    // GSI1 for querying auctions by shelf space and start time
     table.addGlobalSecondaryIndex({
-      indexName: 'ShelfSpaceStartTimeIndex',
+      indexName: 'GSI1',
       partitionKey: {
-        name: 'shelfSpaceId',
+        name: 'GSI1PK',
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: 'startTime',
+        name: 'GSI1SK',
         type: dynamodb.AttributeType.STRING,
       },
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
-    // GSI for querying active auctions
+    // GSI2 for querying active auctions
     table.addGlobalSecondaryIndex({
-      indexName: 'StatusIndex',
+      indexName: 'GSI2',
       partitionKey: {
-        name: 'status',
+        name: 'GSI2PK',
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: 'startTime',
+        name: 'GSI2SK',
         type: dynamodb.AttributeType.STRING,
       },
       projectionType: dynamodb.ProjectionType.ALL,
@@ -144,13 +153,12 @@ export class ShelfBidderStack extends cdk.Stack {
 
   private createTasksTable(): dynamodb.Table {
     const table = new dynamodb.Table(this, 'TasksTable', {
-      tableName: 'ShelfBidder-Tasks',
       partitionKey: {
-        name: 'shopkeeperId',
+        name: 'PK',
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: 'assignedDate',
+        name: 'SK',
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -158,25 +166,29 @@ export class ShelfBidderStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
-    // GSI for querying tasks by ID
+    // GSI1 for querying tasks by ID
     table.addGlobalSecondaryIndex({
-      indexName: 'TaskIdIndex',
+      indexName: 'GSI1',
       partitionKey: {
-        name: 'taskId',
+        name: 'GSI1PK',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'GSI1SK',
         type: dynamodb.AttributeType.STRING,
       },
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
-    // GSI for querying tasks by status
+    // GSI2 for querying tasks by status
     table.addGlobalSecondaryIndex({
-      indexName: 'StatusIndex',
+      indexName: 'GSI2',
       partitionKey: {
-        name: 'status',
+        name: 'GSI2PK',
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: 'assignedDate',
+        name: 'GSI2SK',
         type: dynamodb.AttributeType.STRING,
       },
       projectionType: dynamodb.ProjectionType.ALL,
@@ -190,13 +202,12 @@ export class ShelfBidderStack extends cdk.Stack {
 
   private createTransactionsTable(): dynamodb.Table {
     const table = new dynamodb.Table(this, 'TransactionsTable', {
-      tableName: 'ShelfBidder-Transactions',
       partitionKey: {
-        name: 'shopkeeperId',
+        name: 'PK',
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: 'timestamp',
+        name: 'SK',
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -204,11 +215,15 @@ export class ShelfBidderStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
-    // GSI for querying transactions by ID
+    // GSI1 for querying transactions by ID
     table.addGlobalSecondaryIndex({
-      indexName: 'TransactionIdIndex',
+      indexName: 'GSI1',
       partitionKey: {
-        name: 'transactionId',
+        name: 'GSI1PK',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'GSI1SK',
         type: dynamodb.AttributeType.STRING,
       },
       projectionType: dynamodb.ProjectionType.ALL,

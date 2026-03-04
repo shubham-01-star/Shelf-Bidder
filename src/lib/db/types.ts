@@ -3,16 +3,33 @@
  */
 
 // ============================================================================
-// Table Names
+// Table Names - Load from environment with fallbacks
 // ============================================================================
 
+// Helper function to get table name with detailed logging
+function getTableName(envKey1: string, envKey2: string | null, fallback: string): string {
+  const value1 = process.env[envKey1];
+  const value2 = envKey2 ? process.env[envKey2] : null;
+  const result = value1 || value2 || fallback;
+  
+  console.log(`[TABLE_NAMES] 🔍 ${envKey1}:`, {
+    env1: value1 || 'undefined',
+    env2: value2 || 'undefined',
+    result,
+  });
+  
+  return result;
+}
+
 export const TABLE_NAMES = {
-  SHOPKEEPERS: 'ShelfBidder-Shopkeepers',
-  SHELF_SPACES: 'ShelfBidder-ShelfSpaces',
-  AUCTIONS: 'ShelfBidder-Auctions',
-  TASKS: 'ShelfBidder-Tasks',
-  TRANSACTIONS: 'ShelfBidder-Transactions',
+  SHOPKEEPERS: getTableName('DYNAMODB_TABLE_SHOPKEEPERS', 'DYNAMODB_SHOPKEEPERS_TABLE', 'ShelfBidder-Shopkeepers'),
+  SHELF_SPACES: getTableName('DYNAMODB_SHELF_SPACES_TABLE', null, 'ShelfBidder-ShelfSpaces'),
+  AUCTIONS: getTableName('DYNAMODB_AUCTIONS_TABLE', null, 'ShelfBidder-Auctions'),
+  TASKS: getTableName('DYNAMODB_TASKS_TABLE', null, 'ShelfBidder-Tasks'),
+  TRANSACTIONS: getTableName('DYNAMODB_TRANSACTIONS_TABLE', null, 'ShelfBidder-Transactions'),
 } as const;
+
+console.log('[TABLE_NAMES] ✅ Final table names:', TABLE_NAMES);
 
 // ============================================================================
 // DynamoDB Item Types
@@ -40,7 +57,7 @@ export interface DynamoDBItem {
  */
 export interface ShopkeeperItem extends DynamoDBItem {
   EntityType: 'SHOPKEEPER';
-  ShopkeeperId: string;
+  shopkeeperId: string; // FIXED: lowercase to match DynamoDB table schema
   Name: string;
   PhoneNumber: string;
   StoreAddress: string;

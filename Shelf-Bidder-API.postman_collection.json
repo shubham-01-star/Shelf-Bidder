@@ -1,0 +1,991 @@
+{
+  "info": {
+    "name": "Shelf-Bidder API Collection",
+    "description": "Complete API collection for Shelf-Bidder autonomous retail ad-network platform. Test all endpoints from authentication to wallet payouts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "shelf-bidder"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "api_gateway_url",
+      "value": "https://zmqqsnx3od.execute-api.us-east-1.amazonaws.com/prod",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shopkeeper_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "phone_number",
+      "value": "+919876543210",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Signup - Shopkeeper Registration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    console.log('Signup successful! Check console for OTP code.');",
+                  "    const response = pm.response.json();",
+                  "    if (response.otpInConsole) {",
+                  "        console.log('OTP is logged in server console');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phone_number}}\",\n  \"password\": \"Test@1234\",\n  \"name\": \"Ramesh Kumar\",\n  \"email\": \"ramesh@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "signup"]
+            },
+            "description": "Register a new shopkeeper. OTP will be logged in server console and sent via email."
+          },
+          "response": []
+        },
+        {
+          "name": "Signin - Password Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    ",
+                  "    // Save auth tokens",
+                  "    if (response.accessToken) {",
+                  "        pm.collectionVariables.set('auth_token', response.accessToken);",
+                  "        console.log('✅ Access token saved');",
+                  "    }",
+                  "    if (response.refreshToken) {",
+                  "        pm.collectionVariables.set('refresh_token', response.refreshToken);",
+                  "    }",
+                  "    ",
+                  "    // Extract shopkeeper ID from ID token (has more user info)",
+                  "    const tokenToUse = response.idToken || response.accessToken;",
+                  "    ",
+                  "    if (tokenToUse) {",
+                  "        try {",
+                  "            const parts = tokenToUse.split('.');",
+                  "            if (parts.length >= 2) {",
+                  "                // Decode base64url payload",
+                  "                const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');",
+                  "                const padded = base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4);",
+                  "                const decoded = JSON.parse(atob(padded));",
+                  "                ",
+                  "                console.log('\\n========================================');",
+                  "                console.log('🎉 LOGIN SUCCESSFUL');",
+                  "                console.log('========================================');",
+                  "                ",
+                  "                if (decoded.sub) {",
+                  "                    pm.collectionVariables.set('shopkeeper_id', decoded.sub);",
+                  "                    console.log('🆔 Shopkeeper ID:', decoded.sub);",
+                  "                }",
+                  "                if (decoded.name) {",
+                  "                    console.log('👤 Name:', decoded.name);",
+                  "                }",
+                  "                if (decoded.phone_number) {",
+                  "                    console.log('📱 Phone:', decoded.phone_number);",
+                  "                }",
+                  "                if (decoded.email) {",
+                  "                    console.log('📧 Email:', decoded.email);",
+                  "                }",
+                  "                ",
+                  "                console.log('========================================\\n');",
+                  "            }",
+                  "        } catch (e) {",
+                  "            console.error('❌ Failed to decode token:', e);",
+                  "        }",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phone_number}}\",\n  \"password\": \"Test@1234\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/signin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "signin"]
+            },
+            "description": "Login with phone number and password. Returns JWT token."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP (After Signup)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('Phone number verified! Now you can signin.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phone_number}}\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify"]
+            },
+            "description": "Verify OTP code after signup. Use code from server console or 123456 for testing."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "description": "Refresh expired access token"
+          },
+          "response": []
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phone_number}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/resend-otp",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "resend-otp"]
+            },
+            "description": "Resend OTP if not received"
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints for shopkeeper signup and login"
+    },
+    {
+      "name": "2. Photos & Analysis",
+      "item": [
+        {
+          "name": "Get Upload URL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data) {",
+                  "        pm.collectionVariables.set('upload_url', response.data.uploadUrl);",
+                  "        pm.collectionVariables.set('photo_key', response.data.photoKey);",
+                  "        pm.collectionVariables.set('photo_url', response.data.photoUrl);",
+                  "        console.log('Upload URL saved. Valid for 5 minutes.');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopkeeperId\": \"{{shopkeeper_id}}\",\n  \"photoType\": \"shelf\",\n  \"filename\": \"morning-scan.jpg\",\n  \"mimeType\": \"image/jpeg\",\n  \"fileSize\": 850000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/photos/upload-url",
+              "host": ["{{base_url}}"],
+              "path": ["api", "photos", "upload-url"]
+            },
+            "description": "Get S3 presigned URL for direct photo upload. URL expires in 5 minutes."
+          },
+          "response": []
+        },
+        {
+          "name": "Analyze Shelf Photo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.emptySpaces) {",
+                  "        console.log('Empty spaces found:', response.data.emptySpaces.length);",
+                  "        console.log('Analysis confidence:', response.data.analysisConfidence);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopkeeperId\": \"{{shopkeeper_id}}\",\n  \"photoUrl\": \"{{photo_url}}\",\n  \"s3Key\": \"{{photo_key}}\",\n  \"mimeType\": \"image/jpeg\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/photos/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["api", "photos", "analyze"]
+            },
+            "description": "Analyze shelf photo using Claude AI to detect empty spaces and current inventory"
+          },
+          "response": []
+        },
+        {
+          "name": "Process Photo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"photoUrl\": \"{{photo_url}}\",\n  \"shopkeeperId\": \"{{shopkeeper_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/photos/process",
+              "host": ["{{base_url}}"],
+              "path": ["api", "photos", "process"]
+            },
+            "description": "Process and compress uploaded photo"
+          },
+          "response": []
+        }
+      ],
+      "description": "Photo upload and AI analysis endpoints"
+    },
+    {
+      "name": "3. Auctions & Bidding",
+      "item": [
+        {
+          "name": "Get Active Auctions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auctions?shopkeeperId={{shopkeeper_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auctions"],
+              "query": [
+                {
+                  "key": "shopkeeperId",
+                  "value": "{{shopkeeper_id}}"
+                }
+              ]
+            },
+            "description": "Get list of active auctions for shopkeeper"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Auction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.auctionId) {",
+                  "        pm.collectionVariables.set('auction_id', response.data.auctionId);",
+                  "        console.log('Auction ID saved:', response.data.auctionId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopkeeperId\": \"{{shopkeeper_id}}\",\n  \"shelfSpaceId\": \"space-123\",\n  \"dimensions\": {\n    \"width\": 30,\n    \"height\": 40,\n    \"depth\": 20\n  },\n  \"location\": \"middle-shelf\",\n  \"duration\": 3600\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auctions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auctions"]
+            },
+            "description": "Create new auction for empty shelf space"
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Bid",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brandId\": \"brand-coke\",\n  \"amount\": 200,\n  \"productDetails\": {\n    \"name\": \"Coca-Cola 2L\",\n    \"sku\": \"COKE-2L-001\",\n    \"dimensions\": {\n      \"width\": 25,\n      \"height\": 35,\n      \"depth\": 15\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auctions/{{auction_id}}/bid",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auctions", "{{auction_id}}", "bid"]
+            },
+            "description": "Submit bid for an auction (Brand Agent)"
+          },
+          "response": []
+        },
+        {
+          "name": "Close Auction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auctions/{{auction_id}}/close",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auctions", "{{auction_id}}", "close"]
+            },
+            "description": "Close auction and select winner"
+          },
+          "response": []
+        }
+      ],
+      "description": "Auction management and bidding endpoints"
+    },
+    {
+      "name": "4. Tasks",
+      "item": [
+        {
+          "name": "Get Assigned Tasks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.tasks && response.data.tasks.length > 0) {",
+                  "        pm.collectionVariables.set('task_id', response.data.tasks[0].id);",
+                  "        console.log('Task ID saved:', response.data.tasks[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks?shopkeeperId={{shopkeeper_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks"],
+              "query": [
+                {
+                  "key": "shopkeeperId",
+                  "value": "{{shopkeeper_id}}"
+                }
+              ]
+            },
+            "description": "Get list of assigned tasks for shopkeeper"
+          },
+          "response": []
+        },
+        {
+          "name": "Start Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks/{{task_id}}/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "{{task_id}}", "start"]
+            },
+            "description": "Mark task as started"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Task Proof",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopkeeperId\": \"{{shopkeeper_id}}\",\n  \"taskId\": \"{{task_id}}\",\n  \"photoUrl\": \"{{photo_url}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "verify"]
+            },
+            "description": "Verify task completion using Claude AI"
+          },
+          "response": []
+        }
+      ],
+      "description": "Task management and verification endpoints"
+    },
+    {
+      "name": "5. Wallet & Payments",
+      "item": [
+        {
+          "name": "Get Wallet Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/wallet?shopkeeperId={{shopkeeper_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "wallet"],
+              "query": [
+                {
+                  "key": "shopkeeperId",
+                  "value": "{{shopkeeper_id}}"
+                }
+              ]
+            },
+            "description": "Get wallet balance and transaction history"
+          },
+          "response": []
+        },
+        {
+          "name": "Request Payout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopkeeperId\": \"{{shopkeeper_id}}\",\n  \"amount\": 500,\n  \"method\": \"upi\",\n  \"details\": {\n    \"upiId\": \"ramesh@okicici\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/wallet/payout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "wallet", "payout"]
+            },
+            "description": "Request UPI payout from wallet"
+          },
+          "response": []
+        }
+      ],
+      "description": "Wallet and payment endpoints"
+    },
+    {
+      "name": "6. Dashboard & Profile",
+      "item": [
+        {
+          "name": "Get Dashboard Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/dashboard?shopkeeperId={{shopkeeper_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "dashboard"],
+              "query": [
+                {
+                  "key": "shopkeeperId",
+                  "value": "{{shopkeeper_id}}"
+                }
+              ]
+            },
+            "description": "Get dashboard data with earnings and stats"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/profile?shopkeeperId={{shopkeeper_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "profile"],
+              "query": [
+                {
+                  "key": "shopkeeperId",
+                  "value": "{{shopkeeper_id}}"
+                }
+              ]
+            },
+            "description": "Get shopkeeper profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Sync Profile (Create Shopkeeper Record)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('✅ Profile synced:', response.data.action);",
+                  "    console.log('Shopkeeper ID:', response.data.shopkeeperId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/profile/sync",
+              "host": ["{{base_url}}"],
+              "path": ["api", "profile", "sync"]
+            },
+            "description": "Creates or updates shopkeeper record in DynamoDB from Cognito. Use this if dashboard returns 500 error due to missing shopkeeper record."
+          },
+          "response": []
+        }
+      ],
+      "description": "Dashboard and profile endpoints"
+    },
+    {
+      "name": "7. Workflow & Orchestration",
+      "item": [
+        {
+          "name": "Start Daily Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopkeeperId\": \"{{shopkeeper_id}}\",\n  \"taskId\": \"{{task_id}}\",\n  \"auctionId\": \"{{auction_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/workflow/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "workflow", "start"]
+            },
+            "description": "Start Step Functions workflow for task assignment"
+          },
+          "response": []
+        },
+        {
+          "name": "Complete Workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"executionArn\": \"arn:aws:states:us-east-1:123456789012:execution:ShelfBidder-DailyWorkflow:abc123\",\n  \"taskToken\": \"task-token-xyz\",\n  \"result\": {\n    \"verified\": true,\n    \"earnings\": 200\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/workflow/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "workflow", "complete"]
+            },
+            "description": "Complete workflow execution after task verification"
+          },
+          "response": []
+        }
+      ],
+      "description": "AWS Step Functions workflow endpoints"
+    },
+    {
+      "name": "8. Notifications",
+      "item": [
+        {
+          "name": "Trigger Voice Call",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopkeeperId\": \"{{shopkeeper_id}}\",\n  \"phoneNumber\": \"{{phone_number}}\",\n  \"message\": \"Mubarak ho! Aaj ki boli Coke ne jeeti hai 200 rupaye mein.\",\n  \"language\": \"hi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/voice",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "voice"]
+            },
+            "description": "Trigger voice call notification (Amazon Connect)"
+          },
+          "response": []
+        },
+        {
+          "name": "Morning Trigger (Cron)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-cron-secret",
+                "value": "local-dev-cron-secret-key"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/morning-trigger",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "morning-trigger"]
+            },
+            "description": "Trigger morning notifications (scheduled cron job)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Notification endpoints for voice and push"
+    },
+    {
+      "name": "9. Brand Portal",
+      "item": [
+        {
+          "name": "Brand Authentication",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brandId\": \"brand-coke\",\n  \"apiKey\": \"coke-api-key-123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/brand/auth",
+              "host": ["{{base_url}}"],
+              "path": ["api", "brand", "auth"]
+            },
+            "description": "Authenticate brand agent"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Auctions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/brand/auctions?brandId=brand-coke",
+              "host": ["{{base_url}}"],
+              "path": ["api", "brand", "auctions"],
+              "query": [
+                {
+                  "key": "brandId",
+                  "value": "brand-coke"
+                }
+              ]
+            },
+            "description": "Get available auctions for brand"
+          },
+          "response": []
+        },
+        {
+          "name": "Brand Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/brand/dashboard?brandId=brand-coke",
+              "host": ["{{base_url}}"],
+              "path": ["api", "brand", "dashboard"],
+              "query": [
+                {
+                  "key": "brandId",
+                  "value": "brand-coke"
+                }
+              ]
+            },
+            "description": "Get brand dashboard with analytics"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Brand Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/brand/products?brandId=brand-coke",
+              "host": ["{{base_url}}"],
+              "path": ["api", "brand", "products"],
+              "query": [
+                {
+                  "key": "brandId",
+                  "value": "brand-coke"
+                }
+              ]
+            },
+            "description": "Get brand product catalog"
+          },
+          "response": []
+        }
+      ],
+      "description": "Brand portal endpoints for Kiro agents"
+    },
+    {
+      "name": "10. System Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Basic health check endpoint"
+          },
+          "response": []
+        },
+        {
+          "name": "System Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/system/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "system", "status"]
+            },
+            "description": "Detailed system status with AWS services"
+          },
+          "response": []
+        },
+        {
+          "name": "System Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/system/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "system", "metrics"]
+            },
+            "description": "System performance metrics"
+          },
+          "response": []
+        },
+        {
+          "name": "Error Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/system/errors",
+              "host": ["{{base_url}}"],
+              "path": ["api", "system", "errors"]
+            },
+            "description": "Recent error logs"
+          },
+          "response": []
+        }
+      ],
+      "description": "System health and monitoring endpoints"
+    }
+  ]
+}

@@ -147,7 +147,7 @@ export const ShopkeeperMapper: EnhancedMapper<Shopkeeper, ShopkeeperItem> = {
       'PK',
       'SK',
       'EntityType',
-      'ShopkeeperId',
+      'shopkeeperId', // FIXED: lowercase to match DynamoDB table schema
       'Name',
       'PhoneNumber',
       'StoreAddress',
@@ -189,7 +189,7 @@ export const ShopkeeperMapper: EnhancedMapper<Shopkeeper, ShopkeeperItem> = {
       PK: KeyBuilder.shopkeeper.pk(shopkeeper.id),
       SK: KeyBuilder.shopkeeper.sk(),
       EntityType: 'SHOPKEEPER',
-      ShopkeeperId: shopkeeper.id,
+      shopkeeperId: shopkeeper.id, // FIXED: lowercase to match DynamoDB table schema
       Name: shopkeeper.name,
       PhoneNumber: shopkeeper.phoneNumber,
       StoreAddress: shopkeeper.storeAddress,
@@ -211,7 +211,7 @@ export const ShopkeeperMapper: EnhancedMapper<Shopkeeper, ShopkeeperItem> = {
     }
     
     return {
-      id: item.ShopkeeperId,
+      id: item.shopkeeperId, // FIXED: lowercase to match DynamoDB table schema
       name: item.Name,
       phoneNumber: item.PhoneNumber,
       storeAddress: item.StoreAddress,

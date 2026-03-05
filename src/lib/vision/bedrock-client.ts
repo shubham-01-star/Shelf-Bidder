@@ -9,8 +9,21 @@ import {
   InvokeModelCommandInput,
 } from '@aws-sdk/client-bedrock-runtime';
 
-const CLAUDE_MODEL_ID = 'anthropic.claude-3-5-sonnet-20241022-v2:0';
-const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+// Try multiple model IDs in order of preference
+// 1. Cross-region inference profile (recommended)
+// 2. Regional model ID
+// 3. Legacy model ID (fallback)
+const CLAUDE_MODEL_IDS = [
+  'us.anthropic.claude-3-5-sonnet-20241022-v2:0',  // Cross-region inference profile
+  'anthropic.claude-3-5-sonnet-20241022-v2:0',     // Direct model ID
+  'anthropic.claude-3-5-sonnet-20240620-v1:0',     // Older stable version
+];
+
+const CLAUDE_MODEL_ID = process.env.BEDROCK_MODEL_ID || CLAUDE_MODEL_IDS[0];
+const AWS_REGION = process.env.BEDROCK_REGION || process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+
+console.log('[Bedrock Client] 🤖 Model ID:', CLAUDE_MODEL_ID);
+console.log('[Bedrock Client] 🌍 Region:', AWS_REGION);
 
 /**
  * Get or create Bedrock client instance

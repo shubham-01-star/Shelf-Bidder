@@ -1,11 +1,11 @@
 /**
- * Shelf Space Analysis using Claude 3.5 Vision
+ * Shelf Space Analysis using Amazon Nova Lite Vision
  * Analyzes shelf photos to identify empty spaces and current inventory
  */
 
 import { EmptySpace, Product, Visibility, Accessibility } from '@/types/models';
 import {
-  invokeClaude,
+  invokeNova,
   getMediaType,
   ImageSource,
   MessageContent,
@@ -24,6 +24,7 @@ export interface RawAnalysisResult {
       height: number;
     };
     shelfLevel: number;
+    locationDescription: string;
     visibility: string;
     accessibility: string;
   }>;
@@ -40,7 +41,7 @@ export interface RawAnalysisResult {
  * Result of shelf space analysis
  */
 export interface ShelfAnalysisResult {
-  emptySpaces: EmptySpace[];
+  emptySpaces: Array<EmptySpace & { locationDescription?: string }>;
   currentInventory: Product[];
   analysisConfidence: number;
   processingTime: number;
@@ -67,14 +68,15 @@ const ANALYSIS_PROMPT = `Analyze this retail shelf photo and provide detailed in
 
 Your task:
 1. Identify all empty shelf areas with precise pixel coordinates (x, y, width, height)
-2. List all visible products with brand names and categories
+2. List visible products with brand names and categories (MAXIMUM 30 ITEMS TOTAL limit to avoid overly long responses)
 3. Determine optimal placement zones for new products
 4. Rate your analysis confidence (0-100%)
 
-For empty spaces, provide:
+For empty spaces (LOOK VERY CAREFULLY for gaps between products or empty shelf sections), provide:
 - Unique ID (e.g., "space-1", "space-2")
 - Pixel coordinates: x (left), y (top), width, height
 - Shelf level: 1 (bottom) to 5 (top)
+- locationDescription: A short plain-English description of where this empty space is (e.g., "Between the blue Lays packets and green Maggi packets on the middle shelf")
 - Visibility: "high" (eye level), "medium" (above/below eye level), "low" (very high/low)
 - Accessibility: "easy" (front, unobstructed), "moderate" (partially blocked), "difficult" (back, hard to reach)
 
@@ -90,6 +92,7 @@ Return ONLY valid JSON in this exact format:
       "id": "space-1",
       "coordinates": { "x": 100, "y": 200, "width": 150, "height": 200 },
       "shelfLevel": 2,
+      "locationDescription": "Between the red boxes and blue cans on the second shelf from bottom",
       "visibility": "high",
       "accessibility": "easy"
     }
@@ -148,22 +151,21 @@ export async function analyzeShelfSpace(
       },
     ];
 
-    // Invoke Claude
-    const response = await invokeClaude({
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 4096,
+    // Invoke Amazon Nova Lite
+    const response = await invokeNova({
       messages: [
         {
           role: 'user',
           content: messageContent,
         },
       ],
-      temperature: 0.1, // Low temperature for consistent structured output
+      maxTokens: 4096,
+      temperature: 0.1,
     });
 
-    // Parse response
-    const textContent = response.content.find((c) => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
+    // Parse Nova response (output.message.content[0].text)
+    const textContent = response.output?.message?.content?.[0]?.text;
+    if (!textContent) {
       throw new AnalysisError(
         'No text content in response',
         'INVALID_RESPONSE',
@@ -171,7 +173,7 @@ export async function analyzeShelfSpace(
       );
     }
 
-    const rawResult = parseAnalysisResponse(textContent.text);
+    const rawResult = parseAnalysisResponse(textContent);
     const result = transformAnalysisResult(rawResult);
 
     const processingTime = Date.now() - startTime;
@@ -269,6 +271,7 @@ function transformAnalysisResult(
         height: Math.max(1, Math.round(space.coordinates.height)),
       },
       shelfLevel: Math.max(1, Math.min(5, space.shelfLevel)),
+      locationDescription: space.locationDescription || "Unknown location",
       visibility,
       accessibility,
     };

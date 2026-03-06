@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 
 const BASE_URL = 'http://localhost:3000';
-const IMAGE_PATH = path.join(__dirname, 'public', 'icon-512x512.png');
+const IMAGE_PATH = process.argv[2] || path.join(__dirname, 'public', 'icon-512x512.png');
 
 let TOKEN = '';
 let SHOPKEEPER_ID = '';
@@ -142,14 +142,15 @@ async function main() {
     console.log('Empty Spaces:', data.emptySpaces?.length || 0);
     if (data.emptySpaces && data.emptySpaces.length > 0) {
       data.emptySpaces.forEach((space, i) => {
-        console.log(`  ${i + 1}. ${space.location} - ${space.dimensions} (${space.suitableFor})`);
+        console.log(`  ${i + 1}. Level ${space.shelfLevel} - ${space.locationDescription}`);
+        console.log(`     Details: ${space.visibility} visibility, ${space.accessibility} accessibility (${space.coordinates?.width}x${space.coordinates?.height} at x:${space.coordinates?.x}, y:${space.coordinates?.y})`);
       });
     }
     
     console.log('\nCurrent Inventory:', data.currentInventory?.length || 0);
     if (data.currentInventory && data.currentInventory.length > 0) {
       data.currentInventory.forEach((item, i) => {
-        console.log(`  ${i + 1}. ${item.productName} (${item.brand}) - ${item.quantity} units`);
+        console.log(`  ${i + 1}. ${item.name} (${item.brand}) - ${item.category}`);
       });
     }
     

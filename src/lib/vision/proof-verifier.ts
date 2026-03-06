@@ -1,11 +1,11 @@
 /**
- * Proof Verification System using Claude 3.5 Vision
+ * Proof Verification System using Amazon Nova Lite Vision
  * Verifies task completion by comparing before/after photos
  */
 
 import { PlacementInstructions, VerificationResult } from '@/types/models';
 import {
-  invokeClaude,
+  invokeNova,
   getMediaType,
   ImageSource,
   MessageContent,
@@ -156,22 +156,16 @@ export async function verifyTaskCompletion(
       },
     ];
 
-    // Invoke Claude
-    const response = await invokeClaude({
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: messageContent,
-        },
-      ],
-      temperature: 0.1, // Low temperature for consistent verification
+    // Invoke Amazon Nova Lite
+    const response = await invokeNova({
+      messages: [{ role: 'user', content: messageContent }],
+      maxTokens: 2048,
+      temperature: 0.1,
     });
 
-    // Parse response
-    const textContent = response.content.find((c) => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
+    // Parse Nova response
+    const textContent = response.output?.message?.content?.[0]?.text;
+    if (!textContent) {
       throw new VerificationError(
         'No text content in response',
         'INVALID_RESPONSE',
@@ -179,7 +173,7 @@ export async function verifyTaskCompletion(
       );
     }
 
-    const rawResult = parseVerificationResponse(textContent.text);
+    const rawResult = parseVerificationResponse(textContent);
     return transformVerificationResult(rawResult);
   } catch (error) {
     if (error instanceof VerificationError) {
@@ -345,22 +339,16 @@ Return ONLY valid JSON:
       },
     ];
 
-    // Invoke Claude
-    const response = await invokeClaude({
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: messageContent,
-        },
-      ],
+    // Invoke Amazon Nova Lite
+    const response = await invokeNova({
+      messages: [{ role: 'user', content: messageContent }],
+      maxTokens: 2048,
       temperature: 0.1,
     });
 
-    // Parse response
-    const textContent = response.content.find((c) => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
+    // Parse Nova response
+    const textContent = response.output?.message?.content?.[0]?.text;
+    if (!textContent) {
       throw new VerificationError(
         'No text content in response',
         'INVALID_RESPONSE',
@@ -368,7 +356,7 @@ Return ONLY valid JSON:
       );
     }
 
-    const rawResult = parseVerificationResponse(textContent.text);
+    const rawResult = parseVerificationResponse(textContent);
     return transformVerificationResult(rawResult);
   } catch (error) {
     if (error instanceof VerificationError) {

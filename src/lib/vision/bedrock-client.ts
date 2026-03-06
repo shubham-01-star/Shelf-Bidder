@@ -1,6 +1,6 @@
 /**
- * AWS Bedrock Client for Claude 3.5 Sonnet
- * Handles communication with AWS Bedrock for vision analysis
+ * AWS Bedrock Client for Amazon Nova Lite
+ * Amazon Nova - Amazon's own vision model, NO Marketplace subscription required
  */
 
 import {
@@ -9,97 +9,120 @@ import {
   InvokeModelCommandInput,
 } from '@aws-sdk/client-bedrock-runtime';
 
-// Try multiple model IDs in order of preference
-// 1. Cross-region inference profile (recommended)
-// 2. Regional model ID
-// 3. Legacy model ID (fallback)
-const CLAUDE_MODEL_IDS = [
-  'us.anthropic.claude-3-5-sonnet-20241022-v2:0',  // Cross-region inference profile
-  'anthropic.claude-3-5-sonnet-20241022-v2:0',     // Direct model ID
-  'anthropic.claude-3-5-sonnet-20240620-v1:0',     // Older stable version
-];
+// Amazon Nova Lite - Amazon's own model, no AWS Marketplace needed
+// Supports vision (images), fast & cheap
+const NOVA_MODEL_ID =
+  process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
 
-const CLAUDE_MODEL_ID = process.env.BEDROCK_MODEL_ID || CLAUDE_MODEL_IDS[0];
-const AWS_REGION = process.env.BEDROCK_REGION || process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+const AWS_REGION =
+  process.env.BEDROCK_REGION ||
+  process.env.NEXT_PUBLIC_AWS_REGION ||
+  'us-east-1';
 
-console.log('[Bedrock Client] 🤖 Model ID:', CLAUDE_MODEL_ID);
+console.log('[Bedrock Client] 🤖 Model ID:', NOVA_MODEL_ID);
 console.log('[Bedrock Client] 🌍 Region:', AWS_REGION);
 
-/**
- * Get or create Bedrock client instance
- */
 let bedrockClient: BedrockRuntimeClient | null = null;
 
 export function getBedrockClient(): BedrockRuntimeClient {
   if (!bedrockClient) {
-    bedrockClient = new BedrockRuntimeClient({
-      region: AWS_REGION,
-    });
+    bedrockClient = new BedrockRuntimeClient({ region: AWS_REGION });
   }
   return bedrockClient;
 }
 
-/**
- * Image format for Claude vision API
- */
+// ─── Nova Request / Response Types ───────────────────────────────────────────
+
 export interface ImageSource {
   type: 'base64';
   media_type: 'image/jpeg' | 'image/png' | 'image/webp';
   data: string;
 }
 
-/**
- * Message content for Claude API
- */
+/** Content block for Nova messages */
 export type MessageContent =
   | { type: 'text'; text: string }
   | { type: 'image'; source: ImageSource };
 
-/**
- * Claude API request format
- */
-export interface ClaudeRequest {
-  anthropic_version: string;
-  max_tokens: number;
+/** Nova request body (messages-v1 schema) */
+export interface NovaRequest {
   messages: Array<{
     role: 'user' | 'assistant';
-    content: MessageContent[];
+    content: NovaContentBlock[];
   }>;
-  temperature?: number;
-}
-
-/**
- * Claude API response format
- */
-export interface ClaudeResponse {
-  id: string;
-  type: 'message';
-  role: 'assistant';
-  content: Array<{
-    type: 'text';
-    text: string;
-  }>;
-  model: string;
-  stop_reason: string;
-  usage: {
-    input_tokens: number;
-    output_tokens: number;
+  inferenceConfig?: {
+    maxTokens?: number;
+    temperature?: number;
+    topP?: number;
   };
 }
 
+/** Nova content block — text or image */
+type NovaContentBlock =
+  | { text: string }
+  | { image: { format: string; source: { bytes: string } } };
+
+/** Nova response body */
+export interface NovaResponse {
+  output: {
+    message: {
+      role: string;
+      content: Array<{ text: string }>;
+    };
+  };
+  stopReason: string;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+  };
+}
+
+// ─── Invoke Nova ─────────────────────────────────────────────────────────────
+
 /**
- * Invoke Claude 3.5 Sonnet with vision capabilities
+ * Convert our internal MessageContent[] → Nova content blocks
  */
-export async function invokeClaude(
-  request: ClaudeRequest
-): Promise<ClaudeResponse> {
+function toNovaContent(content: MessageContent[]): NovaContentBlock[] {
+  return content.map((block) => {
+    if (block.type === 'text') {
+      return { text: block.text };
+    }
+    // image block
+    return {
+      image: {
+        format: block.source.media_type.split('/')[1], // "jpeg" | "png" | "webp"
+        source: { bytes: block.source.data },
+      },
+    };
+  });
+}
+
+/**
+ * Invoke Amazon Nova Lite with vision capabilities
+ */
+export async function invokeNova(params: {
+  messages: Array<{ role: 'user' | 'assistant'; content: MessageContent[] }>;
+  maxTokens?: number;
+  temperature?: number;
+}): Promise<NovaResponse> {
   const client = getBedrockClient();
 
+  const novaBody: NovaRequest = {
+    messages: params.messages.map((m) => ({
+      role: m.role,
+      content: toNovaContent(m.content),
+    })),
+    inferenceConfig: {
+      maxTokens: params.maxTokens ?? 4096,
+      temperature: params.temperature ?? 0.1,
+    },
+  };
+
   const input: InvokeModelCommandInput = {
-    modelId: CLAUDE_MODEL_ID,
+    modelId: NOVA_MODEL_ID,
     contentType: 'application/json',
     accept: 'application/json',
-    body: JSON.stringify(request),
+    body: JSON.stringify(novaBody),
   };
 
   try {
@@ -112,9 +135,9 @@ export async function invokeClaude(
 
     const responseBody = JSON.parse(
       new TextDecoder().decode(response.body)
-    );
+    ) as NovaResponse;
 
-    return responseBody as ClaudeResponse;
+    return responseBody;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Bedrock invocation failed: ${error.message}`);
@@ -123,28 +146,17 @@ export async function invokeClaude(
   }
 }
 
-/**
- * Convert image buffer to base64 string
- */
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 export function imageToBase64(buffer: Buffer): string {
   return buffer.toString('base64');
 }
 
-/**
- * Determine media type from file extension or buffer
- */
 export function getMediaType(
   mimeType: string
 ): 'image/jpeg' | 'image/png' | 'image/webp' {
-  if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
-    return 'image/jpeg';
-  }
-  if (mimeType === 'image/png') {
-    return 'image/png';
-  }
-  if (mimeType === 'image/webp') {
-    return 'image/webp';
-  }
-  // Default to JPEG
+  if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') return 'image/jpeg';
+  if (mimeType === 'image/png') return 'image/png';
+  if (mimeType === 'image/webp') return 'image/webp';
   return 'image/jpeg';
 }

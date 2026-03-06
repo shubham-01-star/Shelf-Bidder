@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Unit tests for Shelf Analyzer
  */
@@ -36,40 +37,39 @@ describe('Shelf Analyzer', () => {
 
     it('should successfully analyze shelf space with valid response', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              emptySpaces: [
-                {
-                  id: 'space-1',
-                  coordinates: { x: 100, y: 200, width: 150, height: 200 },
-                  shelfLevel: 2,
-                  visibility: 'high',
-                  accessibility: 'easy',
-                },
-              ],
-              currentInventory: [
-                {
-                  name: 'Coca Cola',
-                  brand: 'Coca Cola',
-                  category: 'beverages',
-                },
-              ],
-              confidence: 85,
-              reasoning: 'Clear image with good lighting',
-            }),
+        output: {
+          message: {
+            content: [
+              {
+                text: JSON.stringify({
+                  emptySpaces: [
+                    {
+                      id: 'space-1',
+                      coordinates: { x: 100, y: 200, width: 150, height: 200 },
+                      shelfLevel: 2,
+                      visibility: 'high',
+                      accessibility: 'easy',
+                    },
+                  ],
+                  currentInventory: [
+                    {
+                      name: 'Coca Cola',
+                      brand: 'Coca Cola',
+                      category: 'beverages',
+                    },
+                  ],
+                  confidence: 85,
+                  reasoning: 'Clear image with good lighting',
+                }),
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       const result = await analyzeShelfSpace(imageBuffer, 'image/jpeg');
@@ -85,25 +85,24 @@ describe('Shelf Analyzer', () => {
 
     it('should handle response with markdown code blocks', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: '```json\n' + JSON.stringify({
-              emptySpaces: [],
-              currentInventory: [],
-              confidence: 50,
-            }) + '\n```',
+        output: {
+          message: {
+            content: [
+              {
+                text: '```json\n' + JSON.stringify({
+                  emptySpaces: [],
+                  currentInventory: [],
+                  confidence: 50,
+                }) + '\n```',
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       const result = await analyzeShelfSpace(imageBuffer, 'image/jpeg');
@@ -115,33 +114,32 @@ describe('Shelf Analyzer', () => {
 
     it('should normalize invalid visibility values', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              emptySpaces: [
-                {
-                  id: 'space-1',
-                  coordinates: { x: 100, y: 200, width: 150, height: 200 },
-                  shelfLevel: 2,
-                  visibility: 'invalid-value',
-                  accessibility: 'easy',
-                },
-              ],
-              currentInventory: [],
-              confidence: 70,
-            }),
+        output: {
+          message: {
+            content: [
+              {
+                text: JSON.stringify({
+                  emptySpaces: [
+                    {
+                      id: 'space-1',
+                      coordinates: { x: 100, y: 200, width: 150, height: 200 },
+                      shelfLevel: 2,
+                      visibility: 'invalid-value',
+                      accessibility: 'easy',
+                    },
+                  ],
+                  currentInventory: [],
+                  confidence: 70,
+                }),
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       const result = await analyzeShelfSpace(imageBuffer, 'image/jpeg');
@@ -151,33 +149,32 @@ describe('Shelf Analyzer', () => {
 
     it('should clamp shelf level to valid range (1-5)', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              emptySpaces: [
-                {
-                  id: 'space-1',
-                  coordinates: { x: 100, y: 200, width: 150, height: 200 },
-                  shelfLevel: 10, // Invalid, should be clamped to 5
-                  visibility: 'high',
-                  accessibility: 'easy',
-                },
-              ],
-              currentInventory: [],
-              confidence: 70,
-            }),
+        output: {
+          message: {
+            content: [
+              {
+                text: JSON.stringify({
+                  emptySpaces: [
+                    {
+                      id: 'space-1',
+                      coordinates: { x: 100, y: 200, width: 150, height: 200 },
+                      shelfLevel: 10, // Invalid, should be clamped to 5
+                      visibility: 'high',
+                      accessibility: 'easy',
+                    },
+                  ],
+                  currentInventory: [],
+                  confidence: 70,
+                }),
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       const result = await analyzeShelfSpace(imageBuffer, 'image/jpeg');
@@ -187,21 +184,20 @@ describe('Shelf Analyzer', () => {
 
     it('should throw AnalysisError for invalid JSON response', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: 'This is not valid JSON',
+        output: {
+          message: {
+            content: [
+              {
+                text: 'This is not valid JSON',
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       
@@ -212,16 +208,16 @@ describe('Shelf Analyzer', () => {
 
     it('should throw AnalysisError when response has no text content', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        output: {
+          message: {
+            content: [],
+          },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const imageBuffer = Buffer.from('fake image data');
       

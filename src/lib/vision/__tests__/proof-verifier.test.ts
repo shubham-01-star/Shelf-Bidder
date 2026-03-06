@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Unit tests for Proof Verifier
  */
@@ -85,27 +86,27 @@ describe('Proof Verifier', () => {
 
     it('should successfully verify correct placement', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              verified: true,
-              feedback: 'Product correctly placed. All requirements met.',
-              confidence: 95,
-              issues: [],
-              reasoning: 'Product is at correct location with proper visibility',
-            }),
+        output: {
+          message: {
+            content: [
+              {
+                text: JSON.stringify({
+                  verified: true,
+                  feedback: 'Product correctly placed. All requirements met.',
+                  confidence: 95,
+                  issues: [],
+                  reasoning: 'Product is at correct location with proper visibility',
+                }),
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+     
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const beforeBuffer = Buffer.from('before image');
       const afterBuffer = Buffer.from('after image');
@@ -125,30 +126,29 @@ describe('Proof Verifier', () => {
 
     it('should handle verification failure with issues', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              verified: false,
-              feedback: 'Placement incorrect.',
-              confidence: 85,
-              issues: [
-                'Product not at eye level',
-                'Label not facing forward',
-              ],
-              reasoning: 'Multiple positioning rules violated',
-            }),
+        output: {
+          message: {
+            content: [
+              {
+                text: JSON.stringify({
+                  verified: false,
+                  feedback: 'Placement incorrect.',
+                  confidence: 85,
+                  issues: [
+                    'Product not at eye level',
+                    'Label not facing forward',
+                  ],
+                  reasoning: 'Multiple positioning rules violated',
+                }),
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const beforeBuffer = Buffer.from('before image');
       const afterBuffer = Buffer.from('after image');
@@ -170,25 +170,24 @@ describe('Proof Verifier', () => {
 
     it('should handle response with markdown code blocks', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: '```json\n' + JSON.stringify({
-              verified: true,
-              feedback: 'Looks good',
-              confidence: 90,
-            }) + '\n```',
+        output: {
+          message: {
+            content: [
+              {
+                text: '```json\n' + JSON.stringify({
+                  verified: true,
+                  feedback: 'Looks good',
+                  confidence: 90,
+                }) + '\n```',
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const beforeBuffer = Buffer.from('before image');
       const afterBuffer = Buffer.from('after image');
@@ -207,25 +206,24 @@ describe('Proof Verifier', () => {
 
     it('should clamp confidence to 0-100 range', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              verified: true,
-              feedback: 'Perfect placement',
-              confidence: 150, // Invalid, should be clamped to 100
-            }),
+        output: {
+          message: {
+            content: [
+              {
+                text: JSON.stringify({
+                  verified: true,
+                  feedback: 'Perfect placement',
+                  confidence: 150, // Invalid, should be clamped to 100
+                }),
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const beforeBuffer = Buffer.from('before image');
       const afterBuffer = Buffer.from('after image');
@@ -243,21 +241,20 @@ describe('Proof Verifier', () => {
 
     it('should throw VerificationError for invalid JSON response', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: 'This is not valid JSON',
+        output: {
+          message: {
+            content: [
+              {
+                text: 'This is not valid JSON',
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const beforeBuffer = Buffer.from('before image');
       const afterBuffer = Buffer.from('after image');
@@ -291,26 +288,25 @@ describe('Proof Verifier', () => {
 
     it('should successfully verify proof photo', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              verified: true,
-              feedback: 'Product placement verified',
-              confidence: 88,
-              issues: [],
-            }),
+        output: {
+          message: {
+            content: [
+              {
+                text: JSON.stringify({
+                  verified: true,
+                  feedback: 'Product placement verified',
+                  confidence: 88,
+                  issues: [],
+                }),
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const proofBuffer = Buffer.from('proof image');
 
@@ -327,26 +323,25 @@ describe('Proof Verifier', () => {
 
     it('should handle verification failure', async () => {
       const mockResponse = {
-        id: 'msg-123',
-        type: 'message' as const,
-        role: 'assistant' as const,
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              verified: false,
-              feedback: 'Wrong product visible',
-              confidence: 92,
-              issues: ['Different product brand detected'],
-            }),
+        output: {
+          message: {
+            content: [
+              {
+                text: JSON.stringify({
+                  verified: false,
+                  feedback: 'Wrong product visible',
+                  confidence: 92,
+                  issues: ['Different product brand detected'],
+                }),
+              },
+            ],
           },
-        ],
-        model: 'claude-3-5-sonnet',
-        stop_reason: 'end_turn',
-        usage: { input_tokens: 100, output_tokens: 200 },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 200 },
       };
 
-      (bedrockClient.invokeClaude as any).mockResolvedValue(mockResponse);
+      (bedrockClient.invokeNova as any).mockResolvedValue(mockResponse);
 
       const proofBuffer = Buffer.from('proof image');
 

@@ -62,6 +62,20 @@ export async function POST(request: NextRequest) {
 
     await client.send(command);
     
+    // Send welcome email to brand
+    try {
+      const { sendWelcomeEmail } = await import('@/lib/email/resend-client');
+      await sendWelcomeEmail({
+        to: email,
+        name: storedOtpData.brandName || 'Brand Partner',
+        userType: 'brand',
+      });
+      console.log(`[Welcome Email] ✅ Sent to brand ${email}`);
+    } catch (emailError) {
+      console.error('[Welcome Email] ❌ Failed to send:', emailError);
+      // Don't fail verification if email fails
+    }
+    
     // Cleanup OTP
     delete BRAND_TEMP_OTP_STORE[email];
 

@@ -39,3 +39,12 @@ export {
   getMetadataSummary,
 } from './metadata';
 export type { PhotoMetadata, DeviceInfo, LocationInfo } from './metadata';
+
+// Lifecycle management utilities
+export {
+  checkStorageUsage,
+  applyGlacierTransition,
+  getLifecycleConfiguration,
+  monitorAndApplyLifecyclePolicies,
+} from './lifecycle';
+export type { StorageUsage, LifecyclePolicyResult } from './lifecycle';

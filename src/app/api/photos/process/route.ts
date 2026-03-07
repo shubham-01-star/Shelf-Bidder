@@ -3,6 +3,7 @@
  * POST /api/photos/process
  * 
  * Processes uploaded photos: compression, optimization, and metadata extraction
+ * Task 4.1: Store photo metadata in PostgreSQL
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -14,6 +15,7 @@ import {
   generateImageVariants,
 } from '@/lib/storage';
 import type { DeviceInfo, LocationInfo } from '@/lib/storage';
+import { query } from '@/lib/db/postgres/client';
 
 /**
  * Request body interface
@@ -94,6 +96,30 @@ export async function POST(request: NextRequest) {
     const optimized = await optimizeForWeb(imageBuffer);
     metadata.compressedSize = optimized.optimizedSize;
     metadata.compressionRatio = optimized.compressionRatio;
+
+    // Store metadata in PostgreSQL
+    try {
+      // Get shopkeeper UUID from shopkeeper_id
+      const shopkeeperResult = await query(
+        'SELECT id FROM shopkeepers WHERE shopkeeper_id = $1',
+        [shopkeeperId]
+      );
+
+      if (shopkeeperResult.rows.length === 0) {
+        console.warn(`[Photo Process] Shopkeeper not found: ${shopkeeperId}`);
+      } else {
+        const shopkeeperUuid = shopkeeperResult.rows[0].id;
+        
+        // Import dynamically to avoid circular dependencies
+        const { createPhotoMetadata } = await import('@/lib/db/postgres/photo-operations');
+        
+        await createPhotoMetadata(metadata, shopkeeperUuid);
+        console.log(`[Photo Process] ✅ Metadata stored in PostgreSQL for photo: ${photoId}`);
+      }
+    } catch (dbError) {
+      // Log error but don't fail the request
+      console.error('[Photo Process] ⚠️  Failed to store metadata in PostgreSQL:', dbError);
+    }
 
     // Generate variants if requested
     let variants;

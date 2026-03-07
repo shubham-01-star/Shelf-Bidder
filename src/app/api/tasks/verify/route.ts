@@ -2,13 +2,20 @@
  * API Route: Verify Task Completion
  * POST /api/tasks/verify
  * 
- * Verifies task completion using Claude 3.5 Vision to compare before/after photos
+ * Task 4.3: Verifies task completion using Bedrock multi-model fallback chain
+ * Implements proof verification with before/after photo comparison
+ * Credits earnings using ACID transactions
+ * 
+ * Requirements: 5.3, 5.6, 13.1, 13.2, 13.3
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyTaskCompletion, verifyProofPhoto, VerificationError } from '@/lib/vision';
+import { verifyTaskCompletion, getMediaType } from '@/lib/vision/bedrock-client';
 import { getObject } from '@/lib/storage';
-import { PlacementInstructions } from '@/types/models';
+import { TaskOperations } from '@/lib/db/postgres/operations/task';
+import { WalletTransactionOperations } from '@/lib/db/postgres/operations/wallet-transaction';
+import { transaction } from '@/lib/db/postgres/client';
+import type { VerificationResult } from '@/lib/db/postgres/types';
 
 /**
  * Request body interface
@@ -20,12 +27,13 @@ interface VerifyTaskRequest {
   beforePhotoData?: string; // Base64 encoded
   afterPhotoUrl?: string;
   afterPhotoData?: string; // Base64 encoded
-  instructions: PlacementInstructions;
   mimeType?: string;
 }
 
 /**
  * POST handler for verifying task completion
+ * Uses Bedrock multi-model fallback chain (Nova Pro → Nova Lite → Claude Haiku)
+ * Implements ACID transaction for task completion and earnings credit
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -40,16 +48,15 @@ export async function POST(request: NextRequest) {
       beforePhotoData,
       afterPhotoUrl,
       afterPhotoData,
-      instructions,
       mimeType = 'image/jpeg',
     } = body;
 
     // Validate required fields
-    if (!taskId || !shopkeeperId || !instructions) {
+    if (!taskId || !shopkeeperId) {
       return NextResponse.json(
         {
           error: 'Missing required fields',
-          details: 'taskId, shopkeeperId, and instructions are required',
+          details: 'taskId and shopkeeperId are required',
         },
         { status: 400 }
       );
@@ -65,44 +72,181 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get after image buffer
+    if (!beforePhotoUrl && !beforePhotoData) {
+      return NextResponse.json(
+        {
+          error: 'Before photo is required',
+          details: 'Either beforePhotoUrl or beforePhotoData must be provided for verification',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Get task details
+    const task = await TaskOperations.getById(taskId);
+
+    // Verify task belongs to shopkeeper
+    if (task.shopkeeper_id !== shopkeeperId) {
+      return NextResponse.json(
+        {
+          error: 'Unauthorized',
+          details: 'Task does not belong to this shopkeeper',
+        },
+        { status: 403 }
+      );
+    }
+
+    // Verify task is in correct state
+    if (task.status === 'completed') {
+      return NextResponse.json(
+        {
+          error: 'Task already completed',
+          details: 'This task has already been verified and completed',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Parse task instructions (JSONB field)
+    const instructions = typeof task.instructions === 'string' 
+      ? JSON.parse(task.instructions) 
+      : task.instructions;
+
+    // Extract task details for verification
+    const taskInstructions = instructions.description || instructions.text || 'Complete the product placement task';
+    
+    // Build product details from task instructions
+    const productDetails = {
+      name: instructions.product_name || instructions.productName || undefined,
+      category: instructions.category || instructions.product_category || undefined,
+      quantity: instructions.quantity || instructions.count || undefined,
+      location: instructions.location || instructions.target_location || undefined,
+    };
+
+    console.log('[Verify] Task instructions:', taskInstructions);
+    console.log('[Verify] Product details:', productDetails);
+
+    // Get before image
+    const beforeBuffer = await getImageBuffer(
+      beforePhotoUrl,
+      beforePhotoData,
+      'before photo'
+    );
+    const beforeBase64 = beforeBuffer.toString('base64');
+
+    // Get after image
     const afterBuffer = await getImageBuffer(
       afterPhotoUrl,
       afterPhotoData,
       'after photo'
     );
+    const afterBase64 = afterBuffer.toString('base64');
 
-    // Determine verification method
-    let result;
+    // Verify task completion using Bedrock fallback chain
+    console.log(`[Verify] Starting verification for task ${taskId} with Bedrock fallback chain`);
+    const verificationStart = Date.now();
 
-    if (beforePhotoUrl || beforePhotoData) {
-      // Full verification with before/after comparison
-      const beforeBuffer = await getImageBuffer(
-        beforePhotoUrl,
-        beforePhotoData,
-        'before photo'
+    const bedrockResult = await verifyTaskCompletion(
+      beforeBase64,
+      afterBase64,
+      getMediaType(mimeType),
+      shopkeeperId,
+      taskInstructions,
+      productDetails
+    );
+
+    const verificationTime = Date.now() - verificationStart;
+    console.log(`[Verify] Bedrock verification completed in ${verificationTime}ms`);
+
+    // Check if verification meets performance requirement (30 seconds)
+    if (verificationTime > 30000) {
+      console.warn(
+        `[Verify] ⚠️ Verification took ${verificationTime}ms, exceeding 30s requirement (Requirement 5.3)`
       );
-
-      result = await verifyTaskCompletion(
-        beforeBuffer,
-        mimeType,
-        afterBuffer,
-        mimeType,
-        instructions
-      );
-    } else {
-      // Simplified verification (proof photo only)
-      result = await verifyProofPhoto(afterBuffer, mimeType, instructions);
     }
+
+    // Prepare verification result for database
+    const verificationResult: VerificationResult = {
+      verified: bedrockResult.verified,
+      confidence: bedrockResult.confidence,
+      feedback: bedrockResult.feedback,
+      issues: bedrockResult.issues || [],
+      verified_at: new Date(),
+    };
+
+    // Store after photo URL (use provided URL or construct from data)
+    const proofPhotoUrl = afterPhotoUrl || 'data:image/jpeg;base64,' + afterBase64.substring(0, 50) + '...';
+
+    // Execute ACID transaction: Update task and credit earnings
+    const result = await transaction(async (client) => {
+      // Update task with verification result
+      const updateTaskSql = `
+        UPDATE tasks
+        SET status = $1,
+            completed_date = CURRENT_TIMESTAMP,
+            proof_photo_url = $2,
+            verification_result = $3,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $4
+        RETURNING *
+      `;
+
+      const taskResult = await client.query(updateTaskSql, [
+        verificationResult.verified ? 'completed' : 'failed',
+        proofPhotoUrl,
+        JSON.stringify(verificationResult),
+        taskId,
+      ]);
+
+      const updatedTask = taskResult.rows[0];
+
+      // If verified, credit earnings to wallet
+      let transaction = null;
+      if (verificationResult.verified) {
+        // Create wallet transaction
+        const insertTransactionSql = `
+          INSERT INTO wallet_transactions (
+            shopkeeper_id, task_id, campaign_id,
+            type, amount, description, status
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          RETURNING *
+        `;
+
+        const transactionResult = await client.query(insertTransactionSql, [
+          shopkeeperId,
+          taskId,
+          task.campaign_id,
+          'earning',
+          task.earnings,
+          `Task completion earnings for task ${taskId}`,
+          'completed',
+        ]);
+
+        transaction = transactionResult.rows[0];
+
+        // Update shopkeeper wallet balance
+        const updateBalanceSql = `
+          UPDATE shopkeepers
+          SET wallet_balance = wallet_balance + $1,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+        `;
+
+        await client.query(updateBalanceSql, [task.earnings, shopkeeperId]);
+
+        console.log(
+          `[Verify] ✅ Earnings credited: ${task.earnings} to shopkeeper ${shopkeeperId}`
+        );
+      }
+
+      return { task: updatedTask, transaction };
+    });
 
     const totalTime = Date.now() - startTime;
 
-    // Check if verification meets performance requirement (30 seconds)
-    if (totalTime > 30000) {
-      console.warn(
-        `Verification took ${totalTime}ms, exceeding 30s requirement (Requirement 5.3)`
-      );
-    }
+    console.log(
+      `[Verify] ✅ Task ${taskId} verification complete: verified=${verificationResult.verified}, time=${totalTime}ms`
+    );
 
     // Return verification results
     return NextResponse.json({
@@ -110,9 +254,13 @@ export async function POST(request: NextRequest) {
       data: {
         taskId,
         shopkeeperId,
-        verified: result.verified,
-        feedback: result.feedback,
-        confidence: result.confidence,
+        verified: verificationResult.verified,
+        confidence: verificationResult.confidence,
+        feedback: verificationResult.feedback,
+        issues: verificationResult.issues,
+        earnings: verificationResult.verified ? task.earnings : 0,
+        transactionId: result.transaction?.id,
+        verificationTime,
         totalTime,
         timestamp: new Date().toISOString(),
       },
@@ -120,23 +268,35 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const totalTime = Date.now() - startTime;
 
-    // Handle specific verification errors
-    if (error instanceof VerificationError) {
-      console.error('Verification error:', error.code, error.details);
-      return NextResponse.json(
-        {
-          error: 'Verification failed',
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          totalTime,
-        },
-        { status: 400 }
-      );
+    console.error('[Verify] ❌ Error verifying task:', error);
+
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message.includes('not found') || error.message.includes('NotFoundError')) {
+        return NextResponse.json(
+          {
+            error: 'Task not found',
+            message: error.message,
+            totalTime,
+          },
+          { status: 404 }
+        );
+      }
+
+      if (error.message.includes('All Bedrock models failed')) {
+        return NextResponse.json(
+          {
+            error: 'Verification service unavailable',
+            message: 'All AI models are currently unavailable. Please try again later.',
+            details: error.message,
+            totalTime,
+          },
+          { status: 503 }
+        );
+      }
     }
 
     // Handle general errors
-    console.error('Error verifying task:', error);
     return NextResponse.json(
       {
         error: 'Failed to verify task',

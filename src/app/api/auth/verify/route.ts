@@ -119,6 +119,20 @@ export async function POST(request: NextRequest) {
     const signupRoute = await import('../signup/route');
     delete signupRoute.TEMP_OTP_STORE[phoneNumber];
 
+    // Send welcome email
+    try {
+      const { sendWelcomeEmail } = await import('@/lib/email/resend-client');
+      await sendWelcomeEmail({
+        to: storedOtpData.email,
+        name: storedOtpData.name || 'Shopkeeper',
+        userType: 'shopkeeper',
+      });
+      console.log(`[Welcome Email] ✅ Sent to ${storedOtpData.email}`);
+    } catch (emailError) {
+      console.error('[Welcome Email] ❌ Failed to send:', emailError);
+      // Don't fail verification if email fails
+    }
+
     return NextResponse.json({ message: 'Account verified successfully.' });
   } catch (error: unknown) {
     console.error('Verification error:', error);

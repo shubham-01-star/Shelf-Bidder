@@ -63,32 +63,23 @@ export async function POST(request: NextRequest) {
 
       // Step 4: Send the OTP via Resend Email
       if (config.resendApiKey) {
-        const React = await import('react');
-        const { Resend } = await import('resend');
-        const { BrandOTPTemplate } = await import('@/lib/email/templates/BrandOTPTemplate');
-        const ReactDOMServer = (await import('react-dom/server')).default;
-
-        const resend = new Resend(config.resendApiKey);
-        const emailHtml = ReactDOMServer.renderToStaticMarkup(
-          React.createElement(BrandOTPTemplate, { otpCode, brandName, contactPerson: contactPerson || 'Brand Partner' })
-        );
+        const { sendOTPEmail } = await import('@/lib/email/resend-client');
         
-        const { data, error } = await resend.emails.send({
-          from: 'Shelf-Bidder Corporate <onboarding@resend.dev>',
-          to: email,
-          subject: 'Verify your Shelf-Bidder Brand Account',
-          html: emailHtml,
-        });
-        
-        if (error) {
-          console.error('[Resend Error]', error);
+        try {
+          await sendOTPEmail({
+            to: email,
+            otp: otpCode,
+            name: contactPerson || brandName,
+          });
+          console.log(`[Resend] ✅ OTP email sent to brand ${email}`);
+        } catch (emailError: any) {
+          console.error('[Resend Error]', emailError);
           let errorMessage = 'Failed to send verification email.';
-          if (error.name === 'validation_error' && error.message.includes('own email address')) {
+          if (emailError.message && emailError.message.includes('own email address')) {
             errorMessage = 'Resend is in Sandbox mode. You can ONLY send emails to your verified Resend account email. Please use that email to test.';
           }
           return NextResponse.json({ error: 'EmailServiceError', message: errorMessage }, { status: 500 });
         }
-        console.log(`[Resend] Successfully sent OTP to Brand ${email}, id: ${data?.id}`);
       } else {
         console.warn(`[Warning] No RESEND_API_KEY found! OTP for ${email} is ${otpCode}`);
       }

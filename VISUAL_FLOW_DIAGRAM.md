@@ -1,0 +1,759 @@
+# Shelf-Bidder - Visual Flow Diagrams
+
+**Complete visual representation of all user flows**
+
+---
+
+## 🎨 System Overview Diagram
+
+```
+                    ┌─────────────────────────────────────┐
+                    │      SHELF-BIDDER PLATFORM          │
+                    └─────────────────────────────────────┘
+                                    │
+                    ┌───────────────┴───────────────┐
+                    │                               │
+            ┌───────▼────────┐            ┌────────▼────────┐
+            │   SHOPKEEPER    │            │     BRAND       │
+            │      APP        │            │    PORTAL       │
+            │   (Mobile PWA)  │            │   (Desktop)     │
+            └───────┬─────────┘            └────────┬────────┘
+                    │                               │
+                    │                               │
+        ┌───────────┼───────────────────────────────┼──────────┐
+        │           │                               │          │
+        │           │      NEXT.JS API LAYER        │          │
+        │           │                               │          │
+        │  ┌────────▼────────┐            ┌─────────▼───────┐ │
+        │  │  Auth Service   │            │  Campaign Svc   │ │
+        │  │   (Cognito)     │            │   (Matching)    │ │
+        │  └────────┬────────┘            └─────────┬───────┘ │
+        │           │                               │          │
+        │  ┌────────▼────────┐            ┌─────────▼───────┐ │
+        │  │  Vision Service │            │   Wallet Svc    │ │
+        │  │   (Bedrock AI)  │            │    (ACID)       │ │
+        │  └────────┬────────┘            └─────────┬───────┘ │
+        │           │                               │          │
+        │  ┌────────▼────────┐            ┌─────────▼───────┐ │
+        │  │ Storage Service │            │   Email Svc     │ │
+        │  │   (S3 Photos)   │            │   (Resend)      │ │
+        │  └────────┬────────┘            └─────────┬───────┘ │
+        │           │                               │          │
+        └───────────┼───────────────────────────────┼──────────┘
+                    │                               │
+                    └───────────────┬───────────────┘
+                                    │
+                        ┌───────────▼───────────┐
+                        │   PostgreSQL DB       │
+                        │  • shopkeepers        │
+                        │  • campaigns          │
+                        │  • tasks              │
+                        │  • wallet_txns        │
+                        │  • photos             │
+                        └───────────────────────┘
+```
+
+---
+
+## 📱 Shopkeeper Complete Journey
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    DAY 1: ONBOARDING                             │
+└─────────────────────────────────────────────────────────────────┘
+
+Step 1: SIGNUP (2 minutes)
+┌──────────────┐
+│   Browser    │
+│ /signup page │
+└──────┬───────┘
+       │ Fill form: phone, email, password, name, shop
+       ▼
+┌──────────────┐
+│  POST /api/  │
+│ auth/signup  │
+└──────┬───────┘
+       │ Create Cognito user + Generate OTP
+       ▼
+┌──────────────┐
+│   Resend     │
+│ Send OTP     │
+│   Email      │
+└──────┬───────┘
+       │ Email delivered
+       ▼
+┌──────────────┐
+│ Shopkeeper   │
+│ Inbox: OTP   │
+│   123456     │
+└──────────────┘
+
+Step 2: VERIFY (1 minute)
+┌──────────────┐
+│   Browser    │
+│ /verify page │
+└──────┬───────┘
+       │ Enter OTP: 123456
+       ▼
+┌──────────────┐
+│  POST /api/  │
+│ auth/verify  │
+└──────┬───────┘
+       │ Validate OTP + Confirm account + Create DB record
+       ▼
+┌──────────────┐
+│  PostgreSQL  │
+│ INSERT INTO  │
+│ shopkeepers  │
+└──────┬───────┘
+       │ Record created
+       ▼
+┌──────────────┐
+│   Resend     │
+│   Welcome    │
+│    Email     │
+└──────┬───────┘
+       │ Email delivered
+       ▼
+┌──────────────┐
+│   Browser    │
+│  /dashboard  │
+│ Balance: ₹0  │
+└──────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    DAY 1: FIRST TASK                             │
+└─────────────────────────────────────────────────────────────────┘
+
+Step 3: TAKE PHOTO (2 minutes)
+┌──────────────┐
+│   Browser    │
+│ /camera page │
+└──────┬───────┘
+       │ Open camera
+       ▼
+┌──────────────┐
+│   Camera     │
+│   Capture    │
+│   Shelf      │
+└──────┬───────┘
+       │ Photo captured
+       ▼
+┌──────────────┐
+│  POST /api/  │
+│photos/upload │
+│     -url     │
+└──────┬───────┘
+       │ Generate S3 pre-signed URL
+       ▼
+┌──────────────┐
+│   AWS S3     │
+│ PUT photo    │
+│   (direct)   │
+└──────┬───────┘
+       │ Photo stored: s3://shelf-bidder-photos-mumbai/...
+       ▼
+┌──────────────┐
+│  POST /api/  │
+│photos/analyze│
+└──────┬───────┘
+       │ Fetch photo from S3
+       ▼
+┌──────────────┐
+│ AWS Bedrock  │
+│  Nova Pro    │
+│   Analyze    │
+└──────┬───────┘
+       │ AI Response: Found 3 empty spaces
+       ▼
+┌──────────────┐
+│  PostgreSQL  │
+│ INSERT INTO  │
+│   photos     │
+└──────┬───────┘
+       │ Analysis saved
+       ▼
+┌──────────────┐
+│   Browser    │
+│ Show: 3 empty│
+│   spaces     │
+└──────────────┘
+
+Step 4: CAMPAIGN MATCH (1 minute)
+┌──────────────┐
+│  POST /api/  │
+│campaigns/    │
+│    match     │
+└──────┬───────┘
+       │ Query active campaigns
+       ▼
+┌──────────────┐
+│  PostgreSQL  │
+│ SELECT FROM  │
+│  campaigns   │
+│ WHERE active │
+└──────┬───────┘
+       │ Found: Coca-Cola campaign
+       ▼
+┌──────────────┐
+│ BEGIN TRANS  │
+│ Lock campaign│
+│ Deduct budget│
+│ Create task  │
+│   COMMIT     │
+└──────┬───────┘
+       │ Task created
+       ▼
+┌──────────────┐
+│   Browser    │
+│ New Task!    │
+│ Reward: ₹50  │
+│ Place 2 Coke │
+└──────────────┘
+
+Step 5: COMPLETE TASK (5 minutes)
+┌──────────────┐
+│ Shopkeeper   │
+│ Places Coke  │
+│ on shelf     │
+└──────┬───────┘
+       │ Products placed
+       ▼
+┌──────────────┐
+│   Browser    │
+│ /camera page │
+│ Proof photo  │
+└──────┬───────┘
+       │ Take proof photo
+       ▼
+┌──────────────┐
+│   AWS S3     │
+│ PUT proof    │
+│   (direct)   │
+└──────┬───────┘
+       │ Proof stored
+       ▼
+┌──────────────┐
+│  POST /api/  │
+│tasks/verify  │
+└──────┬───────┘
+       │ Fetch before + after photos
+       ▼
+┌──────────────┐
+│ AWS Bedrock  │
+│  Nova Pro    │
+│   Compare    │
+└──────┬───────┘
+       │ Verified: TRUE
+       ▼
+┌──────────────┐
+│ BEGIN TRANS  │
+│ Update task  │
+│ Create txn   │
+│ Update wallet│
+│   COMMIT     │
+└──────┬───────┘
+       │ Earnings credited
+       ▼
+┌──────────────┐
+│   Browser    │
+│ Task Done! ✅ │
+│ Earned: ₹50  │
+│ Balance: ₹50 │
+└──────────────┘
+
+Step 6: WITHDRAW (2 minutes)
+┌──────────────┐
+│   Browser    │
+│ /wallet page │
+└──────┬───────┘
+       │ Click "Withdraw"
+       ▼
+┌──────────────┐
+│  POST /api/  │
+│wallet/       │
+│  withdraw    │
+└──────┬───────┘
+       │ Validate balance >= amount
+       ▼
+┌──────────────┐
+│ Simulate     │
+│ Withdrawal   │
+│ (1s delay)   │
+└──────┬───────┘
+       │ Success
+       ▼
+┌──────────────┐
+│   Browser    │
+│ Withdrawn! ✅ │
+│ Balance: ₹0  │
+└──────────────┘
+```
+
+---
+
+## 🏢 Brand Complete Journey
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    BRAND ONBOARDING                              │
+└─────────────────────────────────────────────────────────────────┘
+
+Step 1: SIGNUP (2 minutes)
+┌──────────────┐
+│   Browser    │
+│/brand/login  │
+│ (signup tab) │
+└──────┬───────┘
+       │ Fill: email, password, brandName, contact
+       ▼
+┌──────────────┐
+│  POST /api/  │
+│ brand/auth   │
+│action: signup│
+└──────┬───────┘
+       │ Create Cognito user + Generate OTP
+       ▼
+┌──────────────┐
+│   Resend     │
+│ Send OTP     │
+│   Email      │
+└──────┬───────┘
+       │ Email delivered
+       ▼
+┌──────────────┐
+│    Brand     │
+│ Inbox: OTP   │
+│   654321     │
+└──────────────┘
+
+Step 2: VERIFY (1 minute)
+┌──────────────┐
+│   Browser    │
+│ Enter OTP    │
+└──────┬───────┘
+       │ OTP: 654321
+       ▼
+┌──────────────┐
+│  POST /api/  │
+│ brand/auth/  │
+│   verify     │
+└──────┬───────┘
+       │ Validate OTP + Confirm account
+       ▼
+┌──────────────┐
+│   Resend     │
+│   Welcome    │
+│    Email     │
+└──────┬───────┘
+       │ Email delivered
+       ▼
+┌──────────────┐
+│   Browser    │
+│/brand/       │
+│ dashboard    │
+│ Balance: ₹0  │
+└──────────────┘
+
+Step 3: RECHARGE WALLET (2 minutes)
+┌──────────────┐
+│   Browser    │
+│/brand/wallet │
+└──────┬───────┘
+       │ Click "Recharge"
+       ▼
+┌──────────────┐
+│ Select Amount│
+│   ₹10,000    │
+└──────┬───────┘
+       │ Confirm
+       ▼
+┌──────────────┐
+│  POST /api/  │
+│brand/wallet/ │
+│  recharge    │
+└──────┬───────┘
+       │ Validate amount >= ₹1,000
+       ▼
+┌──────────────┐
+│ Simulate     │
+│ Payment      │
+│ Gateway      │
+│ (2s delay)   │
+└──────┬───────┘
+       │ Success
+       ▼
+┌──────────────┐
+│   Browser    │
+│ Recharged! ✅ │
+│Balance:₹10K  │
+└──────────────┘
+
+Step 4: CREATE CAMPAIGN (5 minutes)
+┌──────────────┐
+│   Browser    │
+│/brand/       │
+│ campaigns    │
+└──────┬───────┘
+       │ Click "New Campaign"
+       ▼
+┌──────────────┐
+│ Fill Form:   │
+│ Name: Coke   │
+│ Budget: ₹5K  │
+│ Reward: ₹50  │
+│ Category:    │
+│ Beverages    │
+└──────┬───────┘
+       │ Submit
+       ▼
+┌──────────────┐
+│  POST /api/  │
+│  campaigns   │
+└──────┬───────┘
+       │ Validate budget <= wallet balance
+       ▼
+┌──────────────┐
+│  PostgreSQL  │
+│ INSERT INTO  │
+│  campaigns   │
+└──────┬───────┘
+       │ Campaign created
+       ▼
+┌──────────────┐
+│   Browser    │
+│ Campaign     │
+│ Active! ✅    │
+│ 100 tasks    │
+│ available    │
+└──────────────┘
+```
+
+---
+
+## 🔄 Data Flow: Photo → Task → Earnings
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    COMPLETE DATA FLOW                            │
+└─────────────────────────────────────────────────────────────────┘
+
+[Shopkeeper]
+     │
+     │ 1. Take Photo
+     ▼
+[Camera API]
+     │
+     │ 2. Request Upload URL
+     ▼
+[S3 Pre-signed URL]
+     │
+     │ 3. Direct Upload
+     ▼
+[AWS S3 Bucket]
+     │ shelf-bidder-photos-mumbai/
+     │ shelf-photos/shopkeeper_123/photo.jpg
+     │
+     │ 4. Trigger Analysis
+     ▼
+[Bedrock API]
+     │ Model: amazon.nova-pro-v1:0
+     │ Prompt: "Analyze shelf, find empty spaces"
+     │
+     │ 5. AI Response
+     ▼
+[Analysis Result]
+     │ {
+     │   emptySpaces: [
+     │     { location: "top-left", size: "medium",
+     │       category: "beverages", confidence: 0.85 }
+     │   ]
+     │ }
+     │
+     │ 6. Save to DB
+     ▼
+[PostgreSQL]
+     │ INSERT INTO photos (
+     │   shopkeeper_id, s3_key, analysis_result
+     │ )
+     │
+     │ 7. Match Campaign
+     ▼
+[Campaign Matcher]
+     │ Query: SELECT * FROM campaigns
+     │        WHERE category = 'beverages'
+     │        AND status = 'active'
+     │        AND remaining_budget > 0
+     │
+     │ 8. Best Match Found
+     ▼
+[Coca-Cola Campaign]
+     │ Budget: ₹5,000
+     │ Reward: ₹50/task
+     │ Category: Beverages
+     │
+     │ 9. ACID Transaction
+     ▼
+[BEGIN TRANSACTION]
+     │
+     ├─ Lock: SELECT * FROM campaigns
+     │         WHERE id = 'coke_123' FOR UPDATE
+     │
+     ├─ Deduct: UPDATE campaigns
+     │           SET remaining_budget = remaining_budget - 50
+     │           WHERE id = 'coke_123'
+     │
+     ├─ Create: INSERT INTO tasks (
+     │           shopkeeper_id, campaign_id, reward_amount
+     │          )
+     │
+     └─ COMMIT
+     │
+     │ 10. Task Created
+     ▼
+[Task Assigned]
+     │ Task ID: task_456
+     │ Reward: ₹50
+     │ Instructions: "Place 2 Coca-Cola bottles"
+     │ Deadline: 24 hours
+     │
+     │ 11. Shopkeeper Completes
+     ▼
+[Proof Photo]
+     │ Upload to S3 (same flow as step 1-3)
+     │
+     │ 12. Verify Task
+     ▼
+[Bedrock Verification]
+     │ Model: amazon.nova-pro-v1:0
+     │ Prompt: "Compare before/after photos"
+     │ Input: before.jpg + after.jpg
+     │
+     │ 13. Verification Result
+     ▼
+[Verified: TRUE]
+     │ Confidence: 0.95
+     │ Feedback: "Perfect placement!"
+     │
+     │ 14. ACID Transaction
+     ▼
+[BEGIN TRANSACTION]
+     │
+     ├─ Update: UPDATE tasks
+     │           SET status = 'completed'
+     │           WHERE id = 'task_456'
+     │
+     ├─ Create: INSERT INTO wallet_transactions (
+     │           shopkeeper_id, type, amount
+     │          ) VALUES (..., 'earning', 50)
+     │
+     ├─ Credit: UPDATE shopkeepers
+     │           SET wallet_balance = wallet_balance + 50
+     │           WHERE id = 'shopkeeper_123'
+     │
+     └─ COMMIT
+     │
+     │ 15. Earnings Credited
+     ▼
+[Shopkeeper Wallet]
+     │ Previous: ₹0
+     │ Earned: +₹50
+     │ New Balance: ₹50
+     │
+     │ 16. Withdrawal Request
+     ▼
+[Withdrawal API]
+     │ Amount: ₹50
+     │ Validate: balance >= amount ✅
+     │ Process: Simulate (demo mode)
+     │
+     │ 17. Withdrawal Complete
+     ▼
+[Final Balance]
+     │ ₹50 - ₹50 = ₹0
+     │
+     └─ [END]
+```
+
+---
+
+## 🔐 Authentication Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    JWT AUTHENTICATION FLOW                       │
+└─────────────────────────────────────────────────────────────────┘
+
+[Client]
+     │
+     │ 1. Login Request
+     │ POST /api/auth/signin
+     │ { phone, password }
+     ▼
+[Auth API]
+     │
+     │ 2. Verify with Cognito
+     ▼
+[AWS Cognito]
+     │ Validate credentials
+     │ Return: Cognito tokens
+     │
+     │ 3. Generate JWT
+     ▼
+[JWT Service]
+     │ Create Access Token (15 min)
+     │ Create Refresh Token (7 days)
+     │
+     │ 4. Return Tokens
+     ▼
+[Client]
+     │ Store in localStorage:
+     │ - accessToken
+     │ - refreshToken
+     │
+     │ 5. API Request
+     │ GET /api/dashboard
+     │ Header: Authorization: Bearer {accessToken}
+     ▼
+[API Middleware]
+     │
+     ├─ Extract token from header
+     ├─ Verify JWT signature
+     ├─ Check expiration
+     ├─ Extract user ID
+     └─ Attach to request: req.user = { id, email }
+     │
+     │ 6. Route Handler
+     ▼
+[Protected Route]
+     │ Access req.user.id
+     │ Query database
+     │ Return data
+     │
+     │ 7. Token Expired?
+     ▼
+[Refresh Flow]
+     │ POST /api/auth/refresh
+     │ { refreshToken }
+     │
+     ├─ Verify refresh token
+     ├─ Generate new access token
+     └─ Return new tokens
+     │
+     └─ [Continue]
+```
+
+---
+
+## 📊 Database Transaction Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ACID TRANSACTION EXAMPLE                      │
+│                  (Campaign Budget Deduction)                     │
+└─────────────────────────────────────────────────────────────────┘
+
+[API Request]
+     │ POST /api/campaigns/match
+     │ { photoId, shopkeeperId }
+     ▼
+[Campaign Matcher]
+     │ Find best campaign
+     │ Campaign ID: coke_123
+     │ Reward: ₹50
+     │
+     │ START TRANSACTION
+     ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ BEGIN;                                                           │
+│                                                                  │
+│ Step 1: LOCK ROW                                                 │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ SELECT * FROM campaigns                                     │ │
+│ │ WHERE id = 'coke_123'                                       │ │
+│ │ FOR UPDATE;  ← Row-level lock acquired                     │ │
+│ │                                                             │ │
+│ │ Result: { id: 'coke_123', remaining_budget: 5000 }         │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│ Step 2: VALIDATE                                                 │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ IF remaining_budget < 50:                                   │ │
+│ │   ROLLBACK;                                                 │ │
+│ │   RETURN error;                                             │ │
+│ │ ELSE:                                                       │ │
+│ │   Continue...                                               │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│ Step 3: DEDUCT BUDGET                                            │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ UPDATE campaigns                                            │ │
+│ │ SET remaining_budget = remaining_budget - 50                │ │
+│ │ WHERE id = 'coke_123';                                      │ │
+│ │                                                             │ │
+│ │ New value: 5000 - 50 = 4950                                │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│ Step 4: CREATE TASK                                              │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ INSERT INTO tasks (                                         │ │
+│ │   id, shopkeeper_id, campaign_id,                          │ │
+│ │   reward_amount, status, created_at                        │ │
+│ │ ) VALUES (                                                  │ │
+│ │   'task_456', 'shopkeeper_123', 'coke_123',               │ │
+│ │   50, 'pending', NOW()                                     │ │
+│ │ );                                                          │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│ Step 5: COMMIT                                                   │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ COMMIT;  ← All changes saved atomically                    │ │
+│ │                                                             │ │
+│ │ Lock released                                               │ │
+│ │ Other transactions can now access this row                 │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+     │
+     │ SUCCESS
+     ▼
+[Return Result]
+     │ { taskId: 'task_456', reward: 50 }
+     │
+     └─ [END]
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    ROLLBACK SCENARIO                             │
+└─────────────────────────────────────────────────────────────────┘
+
+[Concurrent Request]
+     │ Another shopkeeper tries same campaign
+     │
+     │ BEGIN;
+     │ SELECT * FROM campaigns WHERE id = 'coke_123' FOR UPDATE;
+     │
+     │ ⏳ WAITING... (row is locked by first transaction)
+     │
+     │ First transaction COMMITS
+     │ Lock released
+     │
+     │ Second transaction acquires lock
+     │ remaining_budget = 4950
+     │
+     │ IF 4950 < 50: ✅ OK
+     │   Deduct 50
+     │   Create task
+     │   COMMIT
+     │
+     │ IF 4950 < 50: ❌ FAIL
+     │   ROLLBACK
+     │   Return error: "Insufficient budget"
+     │
+     └─ [END]
+```
+
+---
+
+**Last Updated:** March 7, 2026  
+**Purpose:** Visual documentation for hackathon demo  
+**Status:** Complete and accurate
+

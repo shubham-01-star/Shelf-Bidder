@@ -24,8 +24,9 @@ export function useWallet() {
   );
 
   const requestPayout = async (amount: number) => {
-    await apiClient.post('/api/wallet/payout', { amount });
+    const response = await apiClient.post('/api/wallet/withdraw', { amount });
     mutate(); // Refresh balance and transaction list
+    return response;
   };
 
   return {

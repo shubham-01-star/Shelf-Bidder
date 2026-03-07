@@ -18,6 +18,7 @@ export default function WalletPage() {
   const router = useRouter();
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState<number>(0);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { walletData, isLoading, isError, requestPayout } = useWallet();
 
   const balance = walletData?.balance || 0;
@@ -28,15 +29,23 @@ export default function WalletPage() {
   const handleRequestPayout = async () => {
     try {
       if (payoutAmount <= 0 || payoutAmount > balance) {
-        alert('Invalid payout amount.');
+        alert('Invalid payout amount. Please enter an amount between ₹1 and ₹' + balance);
         return;
       }
-      await requestPayout(payoutAmount);
+      
+      setIsProcessing(true);
+      const response = await requestPayout(payoutAmount);
       setShowPayoutModal(false);
-      alert('Payout requested successfully!');
-    } catch (error) {
-      alert('Failed to request payout.');
-      console.error(error);
+      setPayoutAmount(0);
+      
+      // Show success message
+      alert(`✅ Withdrawal Successful!\n\n₹${payoutAmount} has been transferred to your bank account.\n\nBank: State Bank of India •••• 1234\nTransaction ID: ${response?.data?.transactionId || 'N/A'}`);
+    } catch (error: any) {
+      console.error('Withdrawal error:', error);
+      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to process withdrawal';
+      alert(`❌ Withdrawal Failed\n\n${errorMessage}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -200,28 +209,44 @@ export default function WalletPage() {
                   onChange={(e) => setPayoutAmount(Number(e.target.value))}
                   placeholder={balance.toString()}
                   max={balance}
-                  className="w-full text-5xl font-black bg-transparent border-none outline-none text-[#1a1c1e] placeholder:text-slate-300 text-left p-0 focus:ring-0"
+                  disabled={isProcessing}
+                  className="w-full text-5xl font-black bg-transparent border-none outline-none text-[#1a1c1e] placeholder:text-slate-300 text-left p-0 focus:ring-0 disabled:opacity-50"
                   autoFocus
                 />
               </div>
               <div className="w-full flex justify-between mt-4 border-t border-slate-200 pt-3">
-                 <button onClick={() => setPayoutAmount(balance)} className="text-xs font-bold text-[#11d452] bg-[#11d452]/10 px-3 py-1.5 rounded-lg active:bg-[#11d452]/20 transition-colors">Max Fill</button>
+                 <button 
+                   onClick={() => setPayoutAmount(balance)} 
+                   disabled={isProcessing}
+                   className="text-xs font-bold text-[#11d452] bg-[#11d452]/10 px-3 py-1.5 rounded-lg active:bg-[#11d452]/20 transition-colors disabled:opacity-50"
+                 >
+                   Max Fill
+                 </button>
                  <span className="text-xs font-semibold text-slate-500 flex items-center gap-1"><Landmark className="w-3.5 h-3.5"/> State Bank of India •••• 1234</span>
               </div>
             </div>
 
             <div className="flex gap-4 mt-8">
               <button
-                className="flex-1 bg-slate-100 text-[#1a1c1e] hover:bg-slate-200 font-bold py-4 rounded-2xl transition-colors"
+                className="flex-1 bg-slate-100 text-[#1a1c1e] hover:bg-slate-200 font-bold py-4 rounded-2xl transition-colors disabled:opacity-50"
                 onClick={() => setShowPayoutModal(false)}
+                disabled={isProcessing}
               >
                 Cancel
               </button>
               <button
-                className="flex-[2] bg-text-main dark:bg-[#1a1c1e] text-white font-bold py-4 rounded-2xl shadow-xl shadow-black/20 active:scale-95 transition-transform"
+                className="flex-[2] bg-text-main dark:bg-[#1a1c1e] text-white font-bold py-4 rounded-2xl shadow-xl shadow-black/20 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2"
                 onClick={handleRequestPayout}
+                disabled={isProcessing || payoutAmount <= 0 || payoutAmount > balance}
               >
-                Confirm Transfer
+                {isProcessing ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Processing...
+                  </>
+                ) : (
+                  'Confirm Transfer'
+                )}
               </button>
             </div>
 

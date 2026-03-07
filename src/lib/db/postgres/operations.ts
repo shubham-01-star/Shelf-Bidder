@@ -31,6 +31,8 @@ import type {
   CreateTransactionInput,
   QueryOptions,
   PaginatedResult,
+} from './types';
+import {
   NotFoundError,
   DuplicateError,
   InsufficientFundsError,

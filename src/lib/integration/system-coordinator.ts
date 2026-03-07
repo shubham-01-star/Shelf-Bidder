@@ -7,7 +7,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { bedrockVisionService } from '@/lib/vision/bedrock-client';
+import { analyzeShelfPhoto } from '@/lib/vision/bedrock-client';
 import { campaignMatcher } from '@/lib/services/campaign-matcher';
 import { ShelfSpaceOperations } from '@/lib/db/postgres/operations/shelf-space';
 import { ShopkeeperOperations } from '@/lib/db/postgres/operations/shopkeeper';
@@ -54,14 +54,14 @@ export class SystemCoordinator {
     try {
       // Step 1: Photo analysis with Bedrock Vision
       logger.info('Step 1: Analyzing shelf photo with Bedrock');
-      const analysisResult = await bedrockVisionService.analyzeShelfPhoto(photoUrl);
+      const analysisResult = await analyzeShelfPhoto(photoUrl, 'image/jpeg');
 
-      if (!analysisResult.success || !analysisResult.emptySpaces || analysisResult.emptySpaces.length === 0) {
+      if (!analysisResult || !analysisResult.emptySpaces || analysisResult.emptySpaces.length === 0) {
         return {
           success: false,
           message: 'No empty shelf spaces detected. Please try again with a clearer photo.',
           data: {
-            analysisConfidence: analysisResult.confidence,
+            analysisConfidence: analysisResult?.analysisConfidence || 0,
           },
         };
       }
@@ -70,23 +70,28 @@ export class SystemCoordinator {
       logger.info('Step 2: Storing shelf space analysis');
       const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(context.shopkeeperId);
       
-      const shelfSpace = await ShelfSpaceOperations.create({
-        shopkeeper_id: shopkeeper.id,
-        photo_url: photoUrl,
-        empty_spaces: analysisResult.emptySpaces,
-        current_inventory: analysisResult.currentProducts || [],
-        analysis_confidence: analysisResult.confidence || 85,
-      });
+      const mappedEmptySpaces = analysisResult.emptySpaces.map((space: any) => ({
+        ...space,
+        shelf_level: space.shelfLevel,
+      }));
+
+      const shelfSpace = await ShelfSpaceOperations.create(
+        shopkeeper.id,
+        photoUrl,
+        mappedEmptySpaces,
+        (analysisResult.currentInventory as any) || [],
+        analysisResult.analysisConfidence || 85
+      );
 
       // Step 3: Campaign matching
       logger.info('Step 3: Matching campaign');
-      const location = context.location || shopkeeper.storeAddress.split(',')[0].trim();
+      const location = context.location || shopkeeper.store_address.split(',')[0].trim();
       
       const matchResult = await campaignMatcher.matchCampaign(
         shopkeeper.id,
         shelfSpace.id,
         location,
-        analysisResult.emptySpaces
+        mappedEmptySpaces
       );
 
       if (!matchResult.matched) {
@@ -109,15 +114,15 @@ export class SystemCoordinator {
 
       return {
         success: true,
-        message: `Great! You've been matched with ${matchResult.campaign?.brandName}. Complete the task to earn ₹${matchResult.earnings}!`,
+        message: `Great! You've been matched with ${matchResult.campaign?.brand_name}. Complete the task to earn ₹${matchResult.earnings}!`,
         data: {
           shelfSpaceId: shelfSpace.id,
           emptySpaces: analysisResult.emptySpaces.length,
           campaignMatched: true,
           taskId: matchResult.taskId,
           earnings: matchResult.earnings,
-          brandName: matchResult.campaign?.brandName,
-          productName: matchResult.campaign?.productName,
+          brandName: matchResult.campaign?.brand_name,
+          productName: matchResult.campaign?.product_name,
         },
       };
     } catch (error) {

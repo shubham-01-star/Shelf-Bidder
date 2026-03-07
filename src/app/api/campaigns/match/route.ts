@@ -53,8 +53,8 @@ async function handlePOST(request: Request) {
       matched: true,
       campaign: {
         id: result.campaign?.id,
-        brandName: result.campaign?.brandName,
-        productName: result.campaign?.productName,
+        brandName: result.campaign?.brand_name,
+        productName: result.campaign?.product_name,
         earnings: result.earnings,
       },
       taskId: result.taskId,

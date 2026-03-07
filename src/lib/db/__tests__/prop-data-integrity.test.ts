@@ -84,7 +84,7 @@ describe('Property 13: Data Persistence and Integrity', () => {
         const item = ShopkeeperMapper.toItem(shopkeeper);
         expect(item).toHaveProperty('PK');
         expect(item).toHaveProperty('SK');
-        expect(item.ShopkeeperId).toBe(shopkeeper.id);
+        expect(item.shopkeeperId).toBe(shopkeeper.id);
       }),
       { numRuns: 100 }
     );

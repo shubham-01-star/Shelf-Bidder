@@ -32,34 +32,49 @@ export async function GET(request: NextRequest) {
     }
     // ── End local dev mock ───────────────────────────────────────────
 
-    // Production: real DynamoDB calls
-    const { getBalance } = await import('@/lib/wallet/wallet-service');
-    const { TaskOperations, AuctionOperations, WalletTransactionOperations } = await import('@/lib/db');
+    // Production: PostgreSQL queries
+    const {
+      ShopkeeperOperations,
+      TaskOperations,
+      CampaignOperations,
+      WalletTransactionOperations,
+    } = await import('@/lib/db/postgres/operations');
 
-    const totalBalance = await getBalance(shopkeeperId);
-    const allTasksRes = await TaskOperations.queryByShopkeeper(shopkeeperId);
-    const tasks = allTasksRes.items || [];
+    // Get shopkeeper balance
+    const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
+    const totalBalance = shopkeeper.wallet_balance;
+
+    // Get tasks for this shopkeeper
+    const tasksRes = await TaskOperations.queryByShopkeeper(shopkeeperId, undefined, { limit: 100 });
+    const tasks = tasksRes.items;
     const activeTasks = tasks.filter(t => t.status === 'assigned' || t.status === 'in_progress').length;
-    const todayPrefix = new Date().toISOString().split('T')[0];
-    const completedToday = tasks.filter(t => t.status === 'completed' && t.completedDate?.startsWith(todayPrefix)).length;
 
-    const txnsRes = await WalletTransactionOperations.queryByShopkeeper(shopkeeperId);
-    const txns = txnsRes.items || [];
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const completedToday = tasks.filter(
+      t => t.status === 'completed' && t.completed_date && new Date(t.completed_date) >= todayStart
+    ).length;
+
+    // Get earnings by querying transactions with date ranges
+    const now = new Date();
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const sevenDaysAgoIso = sevenDaysAgo.toISOString();
 
-    let todayEarnings = 0;
-    let weeklyEarnings = 0;
-    txns.forEach(txn => {
-      if (txn.type === 'earning' && txn.status === 'completed') {
-        if (txn.timestamp.startsWith(todayPrefix)) todayEarnings += txn.amount;
-        if (txn.timestamp >= sevenDaysAgoIso) weeklyEarnings += txn.amount;
-      }
-    });
+    const [todayTxns, weeklyTxns] = await Promise.all([
+      WalletTransactionOperations.queryByShopkeeper(shopkeeperId, todayStart, now, { limit: 1000 }),
+      WalletTransactionOperations.queryByShopkeeper(shopkeeperId, sevenDaysAgo, now, { limit: 1000 }),
+    ]);
 
-    const auctionsRes = await AuctionOperations.queryByStatus('active');
-    const pendingAuctions = auctionsRes.items ? auctionsRes.items.length : 0;
+    const sumEarnings = (items: typeof todayTxns.items) =>
+      items.filter(t => t.type === 'earning' && t.status === 'completed')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const todayEarnings = sumEarnings(todayTxns.items);
+    const weeklyEarnings = sumEarnings(weeklyTxns.items);
+
+    // Get active campaigns count
+    const campaignsRes = await CampaignOperations.queryActive({ limit: 1 });
+    const pendingAuctions = campaignsRes.total;
 
     return NextResponse.json({
       success: true,

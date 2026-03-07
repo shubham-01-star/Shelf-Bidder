@@ -5,34 +5,40 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import type { Shopkeeper, WalletTransaction } from '@/types/models';
 
 // ============================================================================
 // Mocks
 // ============================================================================
 
 const mockTxnCreate = jest.fn<(...args: unknown[]) => Promise<unknown>>();
-const mockTxnGet = jest.fn<(...args: unknown[]) => Promise<unknown>>();
-const mockTxnUpdateStatus = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockTxnGetById = jest.fn<(...args: unknown[]) => Promise<unknown>>();
 const mockTxnQueryByShopkeeper = jest.fn<(...args: unknown[]) => Promise<unknown>>();
-const mockShopkeeperGet = jest.fn<(...args: unknown[]) => Promise<unknown>>();
-const mockShopkeeperUpdate = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockShopkeeperGetByShopkeeperId = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockProcessPayout = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+const mockQuery = jest.fn<(...args: unknown[]) => Promise<unknown>>();
 
-jest.mock('@/lib/db', () => ({
+jest.mock('@/lib/db/postgres/operations', () => ({
   WalletTransactionOperations: {
     create: (...args: unknown[]) => mockTxnCreate(...args),
-    get: (...args: unknown[]) => mockTxnGet(...args),
-    updateStatus: (...args: unknown[]) => mockTxnUpdateStatus(...args),
+    getById: (...args: unknown[]) => mockTxnGetById(...args),
     queryByShopkeeper: (...args: unknown[]) => mockTxnQueryByShopkeeper(...args),
   },
   ShopkeeperOperations: {
-    get: (...args: unknown[]) => mockShopkeeperGet(...args),
-    update: (...args: unknown[]) => mockShopkeeperUpdate(...args),
+    getByShopkeeperId: (...args: unknown[]) => mockShopkeeperGetByShopkeeperId(...args),
+  },
+  TransactionOperations: {
+    processPayout: (...args: unknown[]) => mockProcessPayout(...args),
   },
 }));
 
-jest.mock('uuid', () => ({
-  v4: () => 'mock-uuid-wallet',
+jest.mock('@/lib/db/postgres/client', () => ({
+  query: (...args: unknown[]) => mockQuery(...args),
+}));
+
+jest.mock('@/lib/db/postgres/mappers', () => ({
+  WalletTransactionMapper: {
+    fromRow: (row: unknown) => row,
+  },
 }));
 
 import {
@@ -48,19 +54,22 @@ import {
 } from '../wallet-service';
 
 // ============================================================================
-// Test Data
+// Test Data (PostgreSQL snake_case format)
 // ============================================================================
 
-const mockShopkeeper: Shopkeeper = {
-  id: 'shop-123',
+const mockShopkeeper = {
+  id: 'uuid-123',
+  shopkeeper_id: 'shop-123',
   name: 'Ramesh Kumar',
-  phoneNumber: '+919876543210',
-  storeAddress: '123 Main Street, Mumbai',
-  preferredLanguage: 'hi',
+  phone_number: '+919876543210',
+  store_address: '123 Main Street, Mumbai',
+  preferred_language: 'hi',
   timezone: 'Asia/Kolkata',
-  walletBalance: 500,
-  registrationDate: '2024-01-01T00:00:00.000Z',
-  lastActiveDate: '2024-01-15T10:30:00.000Z',
+  wallet_balance: 500,
+  registration_date: new Date('2024-01-01'),
+  last_active_date: new Date('2024-01-15'),
+  created_at: new Date(),
+  updated_at: new Date(),
 };
 
 // ============================================================================
@@ -71,20 +80,29 @@ describe('creditEarnings', () => {
   beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should create a transaction and update balance', async () => {
-    mockTxnCreate.mockResolvedValueOnce({});
-    mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 100 });
-    mockShopkeeperUpdate.mockResolvedValueOnce({});
+    const mockTxn = {
+      id: 'txn-1',
+      shopkeeper_id: 'shop-123',
+      type: 'earning',
+      amount: 50,
+      description: 'Task completion payment',
+      status: 'completed',
+      transaction_date: new Date(),
+    };
+    mockTxnCreate.mockResolvedValueOnce(mockTxn);
 
     const result = await creditEarnings('shop-123', 50, 'task-1');
 
     expect(result.amount).toBe(50);
     expect(result.type).toBe('earning');
     expect(result.status).toBe('completed');
-    expect(result.shopkeeperId).toBe('shop-123');
-    expect(mockTxnCreate).toHaveBeenCalledTimes(1);
-    expect(mockShopkeeperUpdate).toHaveBeenCalledWith('shop-123', expect.objectContaining({
-      walletBalance: 150, // 100 + 50
-    }));
+    expect(mockTxnCreate).toHaveBeenCalledWith({
+      shopkeeper_id: 'shop-123',
+      task_id: 'task-1',
+      type: 'earning',
+      amount: 50,
+      description: 'Task completion payment',
+    });
   });
 
   it('should reject zero amount', async () => {
@@ -100,11 +118,12 @@ describe('getBalance', () => {
   beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should return current wallet balance', async () => {
-    mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 250 });
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce({ ...mockShopkeeper, wallet_balance: 250 });
 
     const balance = await getBalance('shop-123');
 
     expect(balance).toBe(250);
+    expect(mockShopkeeperGetByShopkeeperId).toHaveBeenCalledWith('shop-123');
   });
 });
 
@@ -112,22 +131,24 @@ describe('getTransactionHistory', () => {
   beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should return transactions for a shopkeeper', async () => {
-    const mockTransactions: WalletTransaction[] = [
+    const mockTransactions = [
       {
         id: 'txn-1',
-        shopkeeperId: 'shop-123',
+        shopkeeper_id: 'shop-123',
         type: 'earning',
         amount: 50,
         description: 'Task payment',
-        taskId: 'task-1',
-        timestamp: '2024-01-15T10:00:00.000Z',
+        transaction_date: new Date('2024-01-15'),
         status: 'completed',
       },
     ];
 
     mockTxnQueryByShopkeeper.mockResolvedValueOnce({
       items: mockTransactions,
-      count: 1,
+      total: 1,
+      page: 1,
+      pageSize: 100,
+      hasMore: false,
     });
 
     const result = await getTransactionHistory('shop-123');
@@ -141,27 +162,30 @@ describe('getEarningsSummary', () => {
   beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should calculate correct earnings summary', async () => {
-    const mockTransactions: WalletTransaction[] = [
+    const mockTransactions = [
       {
-        id: 'txn-1', shopkeeperId: 'shop-123', type: 'earning',
-        amount: 50, description: 'Task 1', timestamp: new Date().toISOString(),
+        id: 'txn-1', shopkeeper_id: 'shop-123', type: 'earning',
+        amount: 50, description: 'Task 1', transaction_date: new Date(),
         status: 'completed',
       },
       {
-        id: 'txn-2', shopkeeperId: 'shop-123', type: 'earning',
-        amount: 75, description: 'Task 2', timestamp: new Date().toISOString(),
+        id: 'txn-2', shopkeeper_id: 'shop-123', type: 'earning',
+        amount: 75, description: 'Task 2', transaction_date: new Date(),
         status: 'completed',
       },
       {
-        id: 'txn-3', shopkeeperId: 'shop-123', type: 'payout',
-        amount: 30, description: 'Payout', timestamp: new Date().toISOString(),
+        id: 'txn-3', shopkeeper_id: 'shop-123', type: 'payout',
+        amount: 30, description: 'Payout', transaction_date: new Date(),
         status: 'completed',
       },
     ];
 
     mockTxnQueryByShopkeeper.mockResolvedValueOnce({
       items: mockTransactions,
-      count: 3,
+      total: 3,
+      page: 1,
+      pageSize: 1000,
+      hasMore: false,
     });
 
     const summary = await getEarningsSummary('shop-123', 7);
@@ -175,7 +199,10 @@ describe('getEarningsSummary', () => {
   it('should return zeros when no transactions', async () => {
     mockTxnQueryByShopkeeper.mockResolvedValueOnce({
       items: [],
-      count: 0,
+      total: 0,
+      page: 1,
+      pageSize: 1000,
+      hasMore: false,
     });
 
     const summary = await getEarningsSummary('shop-123');
@@ -190,7 +217,7 @@ describe('checkPayoutEligibility', () => {
   beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should be eligible when balance >= threshold', async () => {
-    mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 200 });
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce({ ...mockShopkeeper, wallet_balance: 200 });
 
     const result = await checkPayoutEligibility('shop-123');
 
@@ -200,7 +227,7 @@ describe('checkPayoutEligibility', () => {
   });
 
   it('should not be eligible when balance < threshold', async () => {
-    mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 50 });
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce({ ...mockShopkeeper, wallet_balance: 50 });
 
     const result = await checkPayoutEligibility('shop-123');
 
@@ -213,47 +240,49 @@ describe('requestPayout', () => {
   beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should create payout transaction and deduct balance', async () => {
-    mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 500 });
-    mockTxnCreate.mockResolvedValueOnce({});
-    mockShopkeeperUpdate.mockResolvedValueOnce({});
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce({ ...mockShopkeeper, wallet_balance: 500 });
+    const mockTxn = {
+      id: 'txn-payout', shopkeeper_id: 'shop-123', type: 'payout',
+      amount: 200, description: 'Payout request - ₹200',
+      status: 'pending', transaction_date: new Date(),
+    };
+    mockProcessPayout.mockResolvedValueOnce({ transaction: mockTxn, newBalance: 300 });
 
     const result = await requestPayout('shop-123', 200);
 
     expect(result.type).toBe('payout');
     expect(result.amount).toBe(200);
-    expect(result.status).toBe('pending');
-    expect(mockShopkeeperUpdate).toHaveBeenCalledWith('shop-123', expect.objectContaining({
-      walletBalance: 300, // 500 - 200
-    }));
+    expect(mockProcessPayout).toHaveBeenCalledWith('shop-123', 200, 'Payout request - ₹200');
   });
 
   it('should payout full balance when no amount specified', async () => {
-    mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 500 });
-    mockTxnCreate.mockResolvedValueOnce({});
-    mockShopkeeperUpdate.mockResolvedValueOnce({});
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce({ ...mockShopkeeper, wallet_balance: 500 });
+    const mockTxn = {
+      id: 'txn-payout', shopkeeper_id: 'shop-123', type: 'payout',
+      amount: 500, status: 'pending', transaction_date: new Date(),
+    };
+    mockProcessPayout.mockResolvedValueOnce({ transaction: mockTxn, newBalance: 0 });
 
     const result = await requestPayout('shop-123');
 
     expect(result.amount).toBe(500);
-    expect(mockShopkeeperUpdate).toHaveBeenCalledWith('shop-123', expect.objectContaining({
-      walletBalance: 0,
-    }));
+    expect(mockProcessPayout).toHaveBeenCalledWith('shop-123', 500, 'Payout request - ₹500');
   });
 
   it('should reject payout exceeding balance', async () => {
-    mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 100 });
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce({ ...mockShopkeeper, wallet_balance: 100 });
 
     await expect(requestPayout('shop-123', 500)).rejects.toThrow('Insufficient balance');
   });
 
   it('should reject payout below threshold', async () => {
-    mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 50 });
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce({ ...mockShopkeeper, wallet_balance: 50 });
 
     await expect(requestPayout('shop-123', 30)).rejects.toThrow('threshold');
   });
 
   it('should reject payout exceeding max limit', async () => {
-    mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 50000 });
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce({ ...mockShopkeeper, wallet_balance: 50000 });
 
     await expect(requestPayout('shop-123', 15000)).rejects.toThrow('maximum limit');
   });
@@ -263,22 +292,24 @@ describe('failPayout', () => {
   beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should refund amount and mark transaction as failed', async () => {
-    const mockTxn: WalletTransaction = {
-      id: 'txn-payout', shopkeeperId: 'shop-123', type: 'payout',
-      amount: 200, description: 'Payout', timestamp: '2024-01-15T10:00:00.000Z',
+    const mockTxn = {
+      id: 'txn-payout', shopkeeper_id: 'shop-123', type: 'payout',
+      amount: 200, description: 'Payout', transaction_date: new Date(),
       status: 'pending',
     };
 
-    mockTxnGet.mockResolvedValueOnce(mockTxn);
-    mockShopkeeperGet.mockResolvedValueOnce({ ...mockShopkeeper, walletBalance: 300 });
-    mockShopkeeperUpdate.mockResolvedValueOnce({});
-    mockTxnUpdateStatus.mockResolvedValueOnce({ ...mockTxn, status: 'failed' });
+    mockTxnGetById.mockResolvedValueOnce(mockTxn);
+    // Mock refund query
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    // Mock update status query
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ ...mockTxn, status: 'failed' }],
+      rowCount: 1,
+    });
 
-    const result = await failPayout('txn-payout', 'shop-123', '2024-01-15T10:00:00.000Z');
+    const result = await failPayout('txn-payout', 'shop-123');
 
     expect(result.status).toBe('failed');
-    expect(mockShopkeeperUpdate).toHaveBeenCalledWith('shop-123', expect.objectContaining({
-      walletBalance: 500, // 300 + 200 refund
-    }));
+    expect(mockTxnGetById).toHaveBeenCalledWith('txn-payout');
   });
 });

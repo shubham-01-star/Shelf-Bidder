@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getShopkeeperIdFromRequest } from '@/lib/auth/server-auth';
-import { TaskOperations } from '@/lib/db';
+import { TaskOperations } from '@/lib/db/postgres/operations';
 
 interface RouteContext {
   params: Promise<{ taskId: string }>;
@@ -15,12 +15,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const shopkeeperId = getShopkeeperIdFromRequest(request);
     const { taskId } = await context.params;
 
-    // We don't have the assignedDate easily available in the URL, 
-    // so we must query the task first to get its sort key (assignedDate).
-    // Let's use the GSI to get the task.
     const taskDetails = await TaskOperations.getById(taskId);
 
-    if (taskDetails.shopkeeperId !== shopkeeperId) {
+    if (taskDetails.shopkeeper_id !== shopkeeperId) {
       return NextResponse.json({ error: 'Unauthorized to access this task' }, { status: 403 });
     }
 
@@ -28,13 +25,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Task is not in assigned state' }, { status: 400 });
     }
 
-    // Update status.
-    const updatedTask = await TaskOperations.update(
-      taskId,
-      shopkeeperId,
-      taskDetails.assignedDate,
-      { status: 'in_progress' }
-    );
+    // PostgreSQL updateStatus only needs (id, status)
+    const updatedTask = await TaskOperations.updateStatus(taskId, 'in_progress');
 
     return NextResponse.json({
       success: true,

@@ -49,7 +49,7 @@ export async function GET() {
           : 0,
       },
       features: {
-        authentication: !!process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID,
+        authentication: !!process.env.NEXT_PUBLIC_USER_POOL_ID,
         photoProcessing: !!process.env.S3_BUCKET_PHOTOS,
         visionAnalysis: !!process.env.AWS_REGION,
         auctionEngine: !!process.env.DYNAMODB_TABLE_AUCTIONS,

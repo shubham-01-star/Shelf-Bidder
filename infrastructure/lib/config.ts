@@ -40,8 +40,7 @@ export const Config = {
 
   // Multi-region Configuration
   regions: {
-    primary: 'us-east-1',
-    replica: 'us-west-2',
+    primary: 'ap-south-1',
   },
 
   // Lifecycle Policies

@@ -7,16 +7,12 @@
  * Manages earnings crediting, balance, transaction history, and payouts.
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import {
-  WalletTransaction,
-  TransactionType,
-  TransactionStatus,
-} from '@/types/models';
 import {
   WalletTransactionOperations,
   ShopkeeperOperations,
-} from '@/lib/db';
+  TransactionOperations,
+} from '@/lib/db/postgres/operations';
+import type { WalletTransaction } from '@/lib/db/postgres/types';
 
 // ============================================================================
 // Constants
@@ -72,31 +68,13 @@ export async function creditEarnings(
     );
   }
 
-  // Create the transaction
-  const transaction: WalletTransaction = {
-    id: uuidv4(),
-    shopkeeperId,
-    type: 'earning' as TransactionType,
+  return WalletTransactionOperations.create({
+    shopkeeper_id: shopkeeperId,
+    task_id: taskId,
+    type: 'earning',
     amount,
     description,
-    taskId,
-    timestamp: new Date().toISOString(),
-    status: 'completed' as TransactionStatus,
-  };
-
-  // Save transaction
-  await WalletTransactionOperations.create(transaction);
-
-  // Update shopkeeper's wallet balance
-  const shopkeeper = await ShopkeeperOperations.get(shopkeeperId);
-  const newBalance = shopkeeper.walletBalance + amount;
-
-  await ShopkeeperOperations.update(shopkeeperId, {
-    walletBalance: newBalance,
-    lastActiveDate: new Date().toISOString(),
   });
-
-  return transaction;
 }
 
 // ============================================================================
@@ -110,8 +88,8 @@ export async function creditEarnings(
  * @returns Current wallet balance
  */
 export async function getBalance(shopkeeperId: string): Promise<number> {
-  const shopkeeper = await ShopkeeperOperations.get(shopkeeperId);
-  return shopkeeper.walletBalance;
+  const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
+  return shopkeeper.wallet_balance;
 }
 
 /**
@@ -129,8 +107,9 @@ export async function getTransactionHistory(
 ): Promise<WalletTransaction[]> {
   const result = await WalletTransactionOperations.queryByShopkeeper(
     shopkeeperId,
-    startDate,
-    endDate
+    startDate ? new Date(startDate) : undefined,
+    endDate ? new Date(endDate) : undefined,
+    { limit: 100 }
   );
   return result.items;
 }
@@ -154,12 +133,16 @@ export async function getEarningsSummary(
 }> {
   const startDate = new Date(
     Date.now() - periodDays * 24 * 60 * 60 * 1000
-  ).toISOString();
-
-  const transactions = await getTransactionHistory(
-    shopkeeperId,
-    startDate
   );
+  const endDate = new Date();
+
+  const result = await WalletTransactionOperations.queryByShopkeeper(
+    shopkeeperId,
+    startDate,
+    endDate,
+    { limit: 1000 }
+  );
+  const transactions = result.items;
 
   const totalEarnings = transactions
     .filter((t) => t.type === 'earning' && t.status === 'completed')
@@ -202,8 +185,7 @@ export async function checkPayoutEligibility(
 /**
  * Request a payout from the shopkeeper's wallet
  *
- * Creates a pending payout transaction and deducts from balance.
- * The actual payout processing is handled separately.
+ * Uses TransactionOperations.processPayout() for ACID atomicity.
  *
  * @param shopkeeperId - The shopkeeper requesting payout
  * @param amount - Amount to pay out (optional, defaults to full balance)
@@ -214,8 +196,8 @@ export async function requestPayout(
   amount?: number
 ): Promise<WalletTransaction> {
   // Get current balance
-  const shopkeeper = await ShopkeeperOperations.get(shopkeeperId);
-  const currentBalance = shopkeeper.walletBalance;
+  const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
+  const currentBalance = shopkeeper.wallet_balance;
 
   // Determine payout amount
   const payoutAmount = amount || currentBalance;
@@ -253,48 +235,40 @@ export async function requestPayout(
     );
   }
 
-  // Create payout transaction (pending until processed)
-  const transaction: WalletTransaction = {
-    id: uuidv4(),
+  // ACID payout: atomically deducts balance and creates transaction
+  const result = await TransactionOperations.processPayout(
     shopkeeperId,
-    type: 'payout' as TransactionType,
-    amount: payoutAmount,
-    description: `Payout request - ₹${payoutAmount}`,
-    timestamp: new Date().toISOString(),
-    status: 'pending' as TransactionStatus,
-  };
+    payoutAmount,
+    `Payout request - ₹${payoutAmount}`
+  );
 
-  // Save transaction
-  await WalletTransactionOperations.create(transaction);
-
-  // Deduct from wallet balance
-  const newBalance = currentBalance - payoutAmount;
-  await ShopkeeperOperations.update(shopkeeperId, {
-    walletBalance: newBalance,
-  });
-
-  return transaction;
+  return result.transaction;
 }
 
 /**
  * Complete a pending payout (called after actual payment is made)
  *
  * @param transactionId - The payout transaction to complete
- * @param shopkeeperId - The shopkeeper
- * @param timestamp - The transaction timestamp
  * @returns Updated transaction
  */
 export async function completePayout(
-  transactionId: string,
-  shopkeeperId: string,
-  timestamp: string
+  transactionId: string
 ): Promise<WalletTransaction> {
-  return WalletTransactionOperations.updateStatus(
-    transactionId,
-    shopkeeperId,
-    timestamp,
-    'completed'
+  // Use raw query since monolithic operations doesn't expose updateStatus for transactions
+  const { query } = await import('@/lib/db/postgres/client');
+  const { WalletTransactionMapper } = await import('@/lib/db/postgres/mappers');
+  type WTRow = import('@/lib/db/postgres/types').WalletTransactionRow;
+
+  const result = await query<WTRow>(
+    `UPDATE wallet_transactions SET status = 'completed' WHERE id = $1 RETURNING *`,
+    [transactionId]
   );
+
+  if (result.rows.length === 0) {
+    throw new WalletError('Transaction not found', 'NOT_FOUND', { transactionId });
+  }
+
+  return WalletTransactionMapper.fromRow(result.rows[0]);
 }
 
 /**
@@ -302,30 +276,36 @@ export async function completePayout(
  *
  * @param transactionId - The payout transaction that failed
  * @param shopkeeperId - The shopkeeper
- * @param timestamp - The transaction timestamp
  * @returns Updated transaction
  */
 export async function failPayout(
   transactionId: string,
-  shopkeeperId: string,
-  timestamp: string
+  shopkeeperId: string
 ): Promise<WalletTransaction> {
+  const { query } = await import('@/lib/db/postgres/client');
+  const { WalletTransactionMapper } = await import('@/lib/db/postgres/mappers');
+  type WTRow = import('@/lib/db/postgres/types').WalletTransactionRow;
+
   // Get the transaction to know the amount
-  const transaction = await WalletTransactionOperations.get(transactionId);
+  const txn = await WalletTransactionOperations.getById(transactionId);
 
   // Refund the amount
-  const shopkeeper = await ShopkeeperOperations.get(shopkeeperId);
-  await ShopkeeperOperations.update(shopkeeperId, {
-    walletBalance: shopkeeper.walletBalance + transaction.amount,
-  });
+  await query(
+    `UPDATE shopkeepers SET wallet_balance = wallet_balance + $1 WHERE shopkeeper_id = $2`,
+    [txn.amount, shopkeeperId]
+  );
 
   // Mark transaction as failed
-  return WalletTransactionOperations.updateStatus(
-    transactionId,
-    shopkeeperId,
-    timestamp,
-    'failed'
+  const result = await query<WTRow>(
+    `UPDATE wallet_transactions SET status = 'failed' WHERE id = $1 RETURNING *`,
+    [transactionId]
   );
+
+  if (result.rows.length === 0) {
+    throw new WalletError('Transaction not found', 'NOT_FOUND', { transactionId });
+  }
+
+  return WalletTransactionMapper.fromRow(result.rows[0]);
 }
 
 // ============================================================================

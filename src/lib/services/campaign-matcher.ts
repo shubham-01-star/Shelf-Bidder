@@ -51,7 +51,7 @@ export class CampaignMatcher {
 
       // 2. Select best campaign (highest budget first)
       const selectedCampaign = campaigns[0];
-      const earnings = selectedCampaign.payoutPerTask;
+      const earnings = selectedCampaign.payout_per_task;
 
       // 3. Execute ACID transaction: deduct budget + create task
       const result = await this.createTaskWithBudgetDeduction(
@@ -195,8 +195,8 @@ export class CampaignMatcher {
         completedTasks: parseInt(stats.completed_tasks),
         pendingTasks: parseInt(stats.pending_tasks),
         totalSpent: parseFloat(stats.total_spent || '0'),
-        remainingBudget: campaign.remainingBudget,
-        budgetUtilization: ((campaign.budget - campaign.remainingBudget) / campaign.budget) * 100,
+        remainingBudget: campaign.remaining_budget,
+        budgetUtilization: ((campaign.budget - campaign.remaining_budget) / campaign.budget) * 100,
       },
     };
   }

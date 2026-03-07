@@ -57,12 +57,13 @@ export async function GET(request: NextRequest) {
     }
     // ── End local dev mock ───────────────────────────────────────────
 
-    const { TaskOperations } = await import('@/lib/db');
-    const tasksRes = await TaskOperations.queryByShopkeeper(shopkeeperId);
+    // Production: PostgreSQL queries
+    const { TaskOperations } = await import('@/lib/db/postgres/operations');
+    const tasksRes = await TaskOperations.queryByShopkeeper(shopkeeperId, undefined, { limit: 100 });
 
     return NextResponse.json({
       success: true,
-      data: { tasks: tasksRes.items || [], count: tasksRes.items?.length || 0 },
+      data: { tasks: tasksRes.items, count: tasksRes.total },
     });
 
   } catch (error) {

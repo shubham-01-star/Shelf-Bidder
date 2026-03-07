@@ -13,8 +13,8 @@ const REQUIRED_SERVER_VARS = [
 ] as const;
 
 const REQUIRED_PUBLIC_VARS = [
-  'NEXT_PUBLIC_COGNITO_USER_POOL_ID',
-  'NEXT_PUBLIC_COGNITO_CLIENT_ID',
+  'NEXT_PUBLIC_USER_POOL_ID',
+  'NEXT_PUBLIC_USER_POOL_CLIENT_ID',
 ] as const;
 
 export function validateEnv() {

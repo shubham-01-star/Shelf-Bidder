@@ -5,13 +5,10 @@
 
 export {
   getBedrockClient,
-  invokeClaude,
   imageToBase64,
   getMediaType,
   type ImageSource,
   type MessageContent,
-  type ClaudeRequest,
-  type ClaudeResponse,
 } from './bedrock-client';
 
 export {

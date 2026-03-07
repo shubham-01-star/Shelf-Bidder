@@ -8,7 +8,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeAuctions, getActiveAuctions } from '@/lib/auction';
-import { ShelfSpaceOperations } from '@/lib/db';
+import { ShelfSpaceOperations } from '@/lib/db/postgres/operations';
+import type { EmptySpace } from '@/types/models';
 
 /**
  * GET /api/auctions
@@ -61,9 +62,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the shelf space to get empty spaces
-    const shelfSpace = await ShelfSpaceOperations.get(shelfSpaceId);
+    const shelfSpace = await ShelfSpaceOperations.getById(shelfSpaceId);
 
-    if (!shelfSpace.emptySpaces || shelfSpace.emptySpaces.length === 0) {
+    if (!shelfSpace.empty_spaces || shelfSpace.empty_spaces.length === 0) {
       return NextResponse.json(
         {
           error: 'No empty spaces found',
@@ -73,10 +74,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Map PostgreSQL snake_case to model camelCase for auction engine
+    const emptySpaces: EmptySpace[] = shelfSpace.empty_spaces.map(s => ({
+      id: s.id,
+      coordinates: s.coordinates,
+      shelfLevel: s.shelf_level,
+      visibility: s.visibility,
+      accessibility: s.accessibility,
+    }));
+
     // Initialize auctions for each empty space
     const auctions = await initializeAuctions(
       shelfSpaceId,
-      shelfSpace.emptySpaces,
+      emptySpaces,
       durationMinutes
     );
 

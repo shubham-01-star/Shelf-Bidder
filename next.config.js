@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
@@ -154,6 +153,7 @@ const withPWA = require('next-pwa')({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   turbopack: {
     root: __dirname,

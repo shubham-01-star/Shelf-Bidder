@@ -69,30 +69,38 @@ export async function GET(request: NextRequest) {
     }
     // ── End local dev mock ───────────────────────────────────────────
 
-    // Production: real DynamoDB calls
-    const { getBalance } = await import('@/lib/wallet/wallet-service');
-    const { WalletTransactionOperations } = await import('@/lib/db');
+    // Production: PostgreSQL queries
+    const {
+      ShopkeeperOperations,
+      WalletTransactionOperations,
+    } = await import('@/lib/db/postgres/operations');
 
-    const balance = await getBalance(shopkeeperId);
-    const txnsRes = await WalletTransactionOperations.queryByShopkeeper(shopkeeperId);
-    const rawTxns = txnsRes.items || [];
-    const transactions = rawTxns.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+    // Get balance from shopkeeper record
+    const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
+    const balance = shopkeeper.wallet_balance;
 
-    const todayPrefix = new Date().toISOString().split('T')[0];
+    // Get recent transactions (sorted by date desc in the query)
+    const txnsRes = await WalletTransactionOperations.queryByShopkeeper(shopkeeperId, undefined, undefined, { limit: 50 });
+    const transactions = txnsRes.items;
+
+    // Get today and weekly earnings by querying with date ranges
+    const now = new Date();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const sevenDaysAgoIso = sevenDaysAgo.toISOString();
 
-    let todayEarnings = 0;
-    let weeklyEarnings = 0;
-    transactions.forEach(txn => {
-      if (txn.type === 'earning' && txn.status === 'completed') {
-        if (txn.timestamp.startsWith(todayPrefix)) todayEarnings += txn.amount;
-        if (txn.timestamp >= sevenDaysAgoIso) weeklyEarnings += txn.amount;
-      }
-    });
+    const [todayTxns, weeklyTxns] = await Promise.all([
+      WalletTransactionOperations.queryByShopkeeper(shopkeeperId, todayStart, now, { limit: 1000 }),
+      WalletTransactionOperations.queryByShopkeeper(shopkeeperId, sevenDaysAgo, now, { limit: 1000 }),
+    ]);
+
+    const sumEarnings = (items: typeof todayTxns.items) =>
+      items.filter(t => t.type === 'earning' && t.status === 'completed')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const todayEarnings = sumEarnings(todayTxns.items);
+    const weeklyEarnings = sumEarnings(weeklyTxns.items);
 
     return NextResponse.json({
       success: true,

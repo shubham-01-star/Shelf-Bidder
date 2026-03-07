@@ -46,7 +46,7 @@ export const StagingConfig = {
 
   // Multi-region Configuration (staging uses single region)
   regions: {
-    primary: 'us-east-1',
+    primary: 'ap-south-1',
     // No replica for staging to reduce costs
   },
 

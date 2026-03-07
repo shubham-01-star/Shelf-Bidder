@@ -67,12 +67,12 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           transactionId: transaction.id,
-          shopkeeperId: transaction.shopkeeperId,
+          shopkeeperId: transaction.shopkeeper_id,
           amount: transaction.amount,
           status: transaction.status,
           message: `Withdrawal request submitted for ₹${amount}`,
           bankAccount: 'State Bank of India •••• 1234',
-          timestamp: transaction.timestamp,
+          timestamp: transaction.transaction_date,
         },
       });
     } catch (error: any) {

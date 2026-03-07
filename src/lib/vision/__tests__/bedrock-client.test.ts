@@ -14,13 +14,14 @@ import {
 
 // Mock the database query function
 jest.mock('@/lib/db/postgres/client', () => ({
-  query: jest.fn().mockResolvedValue({ rows: [] }),
+  query: jest.fn().mockImplementation(() => Promise.resolve({ rows: [], rowCount: 0, command: '', oid: 0, fields: [] })),
 }));
 
 // Mock AWS SDK
 jest.mock('@aws-sdk/client-bedrock-runtime', () => ({
   BedrockRuntimeClient: jest.fn().mockImplementation(() => ({
     send: jest.fn(),
+    config: { region: 'us-east-1' },
   })),
   InvokeModelCommand: jest.fn(),
 }));

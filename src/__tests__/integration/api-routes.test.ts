@@ -19,7 +19,7 @@ const mockShelfSpaceGet = jest.fn<(...args: any[]) => any>();
 const mockTaskCreate = jest.fn<(...args: any[]) => any>();
 const mockTaskUpdate = jest.fn<(...args: any[]) => any>();
 const mockTaskQueryByStatus = jest.fn<(...args: any[]) => any>().mockReturnValue({ items: [] });
-const mockShopkeeperGet = jest.fn<(...args: any[]) => any>().mockImplementation((id: string) => Promise.resolve({ id, shopkeeperId: id, walletBalance: 1000 }));
+const mockShopkeeperGet = jest.fn<(...args: any[]) => any>().mockImplementation((id: string) => Promise.resolve({ id, shopkeeperId: id, wallet_balance: 1000 }));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockShopkeeperUpdate = jest.fn<(...args: any[]) => any>().mockImplementation((id: any, updates: any) => Promise.resolve({ id, ...updates }));
 const mockWalletGet = jest.fn<(...args: any[]) => any>();
@@ -51,6 +51,21 @@ jest.mock('../../lib/db', () => ({
     get: (...args: unknown[]) => mockWalletGet(...args),
     update: (...args: unknown[]) => mockWalletUpdate(...args),
     queryTransactions: (...args: unknown[]) => mockWalletQueryTransactions(...args),
+  },
+}));
+
+// Mock PostgreSQL operations (used by wallet-service)
+jest.mock('../../lib/db/postgres/operations', () => ({
+  WalletTransactionOperations: {
+    create: (...args: unknown[]) => Promise.resolve(args[0]),
+    getById: jest.fn<(...args: any[]) => any>(),
+    queryByShopkeeper: jest.fn<(...args: any[]) => any>().mockReturnValue({ items: [], total: 0 }),
+  },
+  ShopkeeperOperations: {
+    getByShopkeeperId: (...args: unknown[]) => mockShopkeeperGet(...args),
+  },
+  TransactionOperations: {
+    processPayout: jest.fn<(...args: any[]) => any>(),
   },
 }));
 
@@ -121,12 +136,11 @@ describe('Integration: Cross-Service Data Flow', () => {
     // 4. Task created from auction
     const task = await createTaskFromAuction(auction.id, 'sk-flow');
 
-    // 5. Credit earnings
-    mockShopkeeperGet.mockResolvedValueOnce({ shopkeeperId: 'sk-flow', walletBalance: 1000 });
+    // 5. Credit earnings (PostgreSQL create() handles balance atomically)
     await creditEarnings('sk-flow', task.earnings, task.id, 'FlowProduct placement');
 
     // 6. Verify balance
-    mockShopkeeperGet.mockResolvedValueOnce({ shopkeeperId: 'sk-flow', walletBalance: 1095 });
+    mockShopkeeperGet.mockResolvedValueOnce({ shopkeeperId: 'sk-flow', wallet_balance: 1095 });
     const balance = await getBalance('sk-flow');
 
     expect(task.earnings).toBe(95);

@@ -39,7 +39,7 @@ export default function WalletPage() {
       setPayoutAmount(0);
       
       // Show success message
-      alert(`✅ Withdrawal Successful!\n\n₹${payoutAmount} has been transferred to your bank account.\n\nBank: State Bank of India •••• 1234\nTransaction ID: ${response?.data?.transactionId || 'N/A'}`);
+      alert(`✅ Withdrawal Successful!\n\n₹${payoutAmount} has been transferred to your bank account.\n\nBank: State Bank of India •••• 1234\nTransaction ID: ${(response as any)?.data?.transactionId || 'N/A'}`);
     } catch (error: any) {
       console.error('Withdrawal error:', error);
       const errorMessage = error?.response?.data?.error || error?.message || 'Failed to process withdrawal';

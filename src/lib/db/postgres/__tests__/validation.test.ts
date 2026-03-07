@@ -10,7 +10,6 @@ import {
   CreateTaskSchema,
   CreateTransactionSchema,
   validate,
-  safeValidate,
   validateOrThrow,
 } from '../validation';
 
@@ -25,7 +24,7 @@ describe('PostgreSQL Validation Schemas', () => {
         store_address: '123 Test St',
       };
 
-      const result = safeValidate(CreateShopkeeperSchema, validData);
+      const result = validate(CreateShopkeeperSchema, validData);
       expect(result.success).toBe(true);
     });
 
@@ -38,7 +37,7 @@ describe('PostgreSQL Validation Schemas', () => {
         store_address: '123 Test St',
       };
 
-      const result = safeValidate(CreateShopkeeperSchema, invalidData);
+      const result = validate(CreateShopkeeperSchema, invalidData);
       expect(result.success).toBe(false);
     });
 
@@ -51,7 +50,7 @@ describe('PostgreSQL Validation Schemas', () => {
         store_address: '123 Test St',
       };
 
-      const result = safeValidate(CreateShopkeeperSchema, invalidData);
+      const result = validate(CreateShopkeeperSchema, invalidData);
       expect(result.success).toBe(false);
     });
   });
@@ -83,7 +82,7 @@ describe('PostgreSQL Validation Schemas', () => {
         end_date: new Date('2025-12-31'),
       };
 
-      const result = safeValidate(CreateCampaignSchema, validData);
+      const result = validate(CreateCampaignSchema, validData);
       expect(result.success).toBe(true);
     });
 
@@ -107,7 +106,7 @@ describe('PostgreSQL Validation Schemas', () => {
         end_date: new Date('2025-01-01'),
       };
 
-      const result = safeValidate(CreateCampaignSchema, invalidData);
+      const result = validate(CreateCampaignSchema, invalidData);
       expect(result.success).toBe(false);
     });
 
@@ -131,7 +130,7 @@ describe('PostgreSQL Validation Schemas', () => {
         end_date: new Date('2025-12-31'),
       };
 
-      const result = safeValidate(CreateCampaignSchema, invalidData);
+      const result = validate(CreateCampaignSchema, invalidData);
       expect(result.success).toBe(false);
     });
   });
@@ -146,7 +145,7 @@ describe('PostgreSQL Validation Schemas', () => {
         description: 'Task completion payment',
       };
 
-      const result = safeValidate(CreateTransactionSchema, validData);
+      const result = validate(CreateTransactionSchema, validData);
       expect(result.success).toBe(true);
     });
 
@@ -158,13 +157,13 @@ describe('PostgreSQL Validation Schemas', () => {
         description: 'Task completion payment',
       };
 
-      const result = safeValidate(CreateTransactionSchema, invalidData);
+      const result = validate(CreateTransactionSchema, invalidData);
       expect(result.success).toBe(false);
     });
   });
 
   describe('Validation Helper Functions', () => {
-    it('validate() should throw on invalid data', () => {
+    it('validate() should return failure for invalid data', () => {
       const invalidData = {
         shopkeeper_id: 'test-123',
         name: 'Test',
@@ -173,10 +172,11 @@ describe('PostgreSQL Validation Schemas', () => {
         store_address: '123 Test St',
       };
 
-      expect(() => validate(CreateShopkeeperSchema, invalidData)).toThrow();
+      const result = validate(CreateShopkeeperSchema, invalidData);
+      expect(result.success).toBe(false);
     });
 
-    it('validateOrThrow() should throw with entity name', () => {
+    it('validateOrThrow() should throw on invalid data', () => {
       const invalidData = {
         shopkeeper_id: 'test-123',
         name: 'Test',
@@ -186,8 +186,8 @@ describe('PostgreSQL Validation Schemas', () => {
       };
 
       expect(() =>
-        validateOrThrow(CreateShopkeeperSchema, invalidData, 'Shopkeeper')
-      ).toThrow(/Shopkeeper validation failed/);
+        validateOrThrow(CreateShopkeeperSchema, invalidData)
+      ).toThrow();
     });
   });
 });

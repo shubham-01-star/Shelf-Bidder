@@ -21,7 +21,7 @@ const mockShelfSpaceGet = jest.fn<(...args: any[]) => any>();
 const mockTaskCreate = jest.fn<(...args: any[]) => any>();
 const mockTaskUpdate = jest.fn<(...args: any[]) => any>();
 const mockTaskQueryByStatus = jest.fn<(...args: any[]) => any>().mockReturnValue({ items: [] });
-const mockShopkeeperGet = jest.fn<(...args: any[]) => any>().mockImplementation((id: string) => Promise.resolve({ id, shopkeeperId: id, walletBalance: 1000 }));
+const mockShopkeeperGet = jest.fn<(...args: any[]) => any>().mockImplementation((id: string) => Promise.resolve({ id, shopkeeperId: id, wallet_balance: 1000 }));
 const mockShopkeeperUpdate = jest.fn<(...args: any[]) => any>().mockImplementation((id: unknown, updates: unknown) => Promise.resolve({ id, ...(updates as Record<string, unknown>) }));
 const mockWalletGet = jest.fn<(...args: any[]) => any>();
 const mockWalletUpdate = jest.fn<(...args: any[]) => any>();
@@ -52,6 +52,21 @@ jest.mock('../../lib/db', () => ({
     get: (...args: unknown[]) => mockWalletGet(...args),
     update: (...args: unknown[]) => mockWalletUpdate(...args),
     queryTransactions: (...args: unknown[]) => mockWalletQueryTransactions(...args),
+  },
+}));
+
+// Mock PostgreSQL operations (used by wallet-service)
+jest.mock('../../lib/db/postgres/operations', () => ({
+  WalletTransactionOperations: {
+    create: (...args: unknown[]) => Promise.resolve(args[0]),
+    getById: jest.fn<(...args: any[]) => any>(),
+    queryByShopkeeper: jest.fn<(...args: any[]) => any>().mockReturnValue({ items: [], total: 0 }),
+  },
+  ShopkeeperOperations: {
+    getByShopkeeperId: (...args: unknown[]) => mockShopkeeperGet(...args),
+  },
+  TransactionOperations: {
+    processPayout: jest.fn<(...args: any[]) => any>(),
   },
 }));
 
@@ -210,22 +225,20 @@ describe('Integration: Complete Daily Workflow', () => {
 
   describe('Wallet Earnings', () => {
     it('should credit earnings and return balance', async () => {
-      mockShopkeeperGet.mockResolvedValueOnce({ shopkeeperId: 'sk-1', walletBalance: 1000 });
-      mockShopkeeperUpdate.mockResolvedValue(undefined);
-
+      // creditEarnings now uses PostgreSQL create() which handles balance atomically
       const tx = await creditEarnings('sk-1', 75, 'task-1', 'Pepsi placement');
       expect(tx).toBeDefined();
       expect(tx.type).toBe('earning');
       expect(tx.amount).toBe(75);
 
-      // Check balance
-      mockShopkeeperGet.mockResolvedValueOnce({ shopkeeperId: 'sk-1', walletBalance: 1075 });
+      // Check balance - getBalance calls ShopkeeperOperations.getByShopkeeperId
+      mockShopkeeperGet.mockResolvedValueOnce({ shopkeeperId: 'sk-1', wallet_balance: 1075 });
       const balance = await getBalance('sk-1');
       expect(balance).toBe(1075);
     });
 
     it('should reject payout below threshold', async () => {
-      mockShopkeeperGet.mockResolvedValue({ shopkeeperId: 'sk-low', walletBalance: 50 });
+      mockShopkeeperGet.mockResolvedValue({ shopkeeperId: 'sk-low', wallet_balance: 50 });
       await expect(requestPayout('sk-low', 50)).rejects.toThrow();
     });
   });

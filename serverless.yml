@@ -5,11 +5,11 @@ frameworkVersion: '3'
 provider:
   name: aws
   runtime: nodejs18.x
-  region: ${opt:region, 'us-east-1'}
+  region: ${opt:region, 'ap-south-1'}
   stage: ${opt:stage, 'dev'}
   memorySize: 512
   timeout: 30
-  
+
   environment:
     NODE_ENV: ${self:provider.stage}
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
@@ -22,7 +22,7 @@ provider:
     COGNITO_USER_POOL_ID: ${self:custom.cognito.userPoolId}
     COGNITO_CLIENT_ID: ${self:custom.cognito.clientId}
     BEDROCK_MODEL_ID: anthropic.claude-3-5-sonnet-20241022-v2:0
-  
+
   iam:
     role:
       statements:
@@ -48,7 +48,7 @@ provider:
             - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.auctions}/index/*
             - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.tasks}/index/*
             - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.transactions}/index/*
-        
+
         # S3 permissions
         - Effect: Allow
           Action:
@@ -59,7 +59,7 @@ provider:
           Resource:
             - arn:aws:s3:::${self:custom.buckets.photos}
             - arn:aws:s3:::${self:custom.buckets.photos}/*
-        
+
         # Cognito permissions
         - Effect: Allow
           Action:
@@ -69,7 +69,7 @@ provider:
             - cognito-idp:AdminInitiateAuth
           Resource:
             - arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:custom.cognito.userPoolId}
-        
+
         # Bedrock permissions
         - Effect: Allow
           Action:
@@ -85,20 +85,20 @@ custom:
     auctions: ${self:provider.stage}-shelf-bidder-auctions
     tasks: ${self:provider.stage}-shelf-bidder-tasks
     transactions: ${self:provider.stage}-shelf-bidder-transactions
-  
+
   buckets:
     photos: ${self:provider.stage}-shelf-bidder-photos-${aws:accountId}
-  
+
   cognito:
     userPoolId: ${ssm:/${self:provider.stage}/shelf-bidder/cognito/user-pool-id}
     clientId: ${ssm:/${self:provider.stage}/shelf-bidder/cognito/client-id}
-  
+
   # Serverless plugins
   webpack:
     webpackConfig: ./webpack.config.js
     includeModules: true
     packager: npm
-  
+
   prune:
     automatic: true
     number: 3
@@ -117,7 +117,7 @@ functions:
           path: /health
           method: get
           cors: true
-  
+
   # System status
   systemStatus:
     handler: lambda/handlers/system-status.handler
@@ -126,7 +126,7 @@ functions:
           path: /system/status
           method: get
           cors: true
-  
+
   # Authentication
   authSignup:
     handler: lambda/handlers/auth/signup.handler
@@ -135,7 +135,7 @@ functions:
           path: /auth/signup
           method: post
           cors: true
-  
+
   authVerify:
     handler: lambda/handlers/auth/verify.handler
     events:
@@ -143,7 +143,7 @@ functions:
           path: /auth/verify
           method: post
           cors: true
-  
+
   authResendOtp:
     handler: lambda/handlers/auth/resend-otp.handler
     events:
@@ -151,7 +151,7 @@ functions:
           path: /auth/resend-otp
           method: post
           cors: true
-  
+
   # Profile
   profile:
     handler: lambda/handlers/profile.handler
@@ -170,7 +170,7 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.cognitoAuthorizer}
-  
+
   # Photos
   photosUploadUrl:
     handler: lambda/handlers/photos/upload-url.handler
@@ -182,7 +182,7 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.cognitoAuthorizer}
-  
+
   photosAnalyze:
     handler: lambda/handlers/photos/analyze.handler
     timeout: 60
@@ -195,7 +195,7 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.cognitoAuthorizer}
-  
+
   photosProcess:
     handler: lambda/handlers/photos/process.handler
     timeout: 60
@@ -204,7 +204,7 @@ functions:
           bucket: ${self:custom.buckets.photos}
           event: s3:ObjectCreated:*
           existing: true
-  
+
   # Auctions
   auctionsCreate:
     handler: lambda/handlers/auctions/create.handler
@@ -213,7 +213,7 @@ functions:
           path: /auctions
           method: post
           cors: true
-  
+
   auctionsBid:
     handler: lambda/handlers/auctions/bid.handler
     events:
@@ -221,14 +221,14 @@ functions:
           path: /auctions/{auctionId}/bid
           method: post
           cors: true
-  
+
   auctionsClose:
     handler: lambda/handlers/auctions/close.handler
     events:
       - schedule:
           rate: rate(5 minutes)
           enabled: true
-  
+
   # Tasks
   tasksGet:
     handler: lambda/handlers/tasks/get.handler
@@ -240,7 +240,7 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.cognitoAuthorizer}
-  
+
   tasksVerify:
     handler: lambda/handlers/tasks/verify.handler
     timeout: 60
@@ -253,7 +253,7 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.cognitoAuthorizer}
-  
+
   # Wallet
   walletBalance:
     handler: lambda/handlers/wallet/balance.handler
@@ -265,7 +265,7 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.cognitoAuthorizer}
-  
+
   walletTransactions:
     handler: lambda/handlers/wallet/transactions.handler
     events:
@@ -276,7 +276,7 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.cognitoAuthorizer}
-  
+
   walletPayout:
     handler: lambda/handlers/wallet/payout.handler
     events:
@@ -287,7 +287,7 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.cognitoAuthorizer}
-  
+
   # Dashboard
   dashboard:
     handler: lambda/handlers/dashboard.handler
@@ -299,7 +299,7 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: ${self:custom.cognitoAuthorizer}
-  
+
   # Workflow
   workflowComplete:
     handler: lambda/handlers/workflow/complete.handler
@@ -310,7 +310,7 @@ functions:
           path: /workflow/complete
           method: post
           cors: true
-  
+
   # Notifications
   notificationsMorning:
     handler: lambda/handlers/notifications/morning.handler
@@ -318,7 +318,7 @@ functions:
       - schedule:
           rate: cron(0 2 * * ? *)
           enabled: true
-  
+
   # System monitoring
   systemErrors:
     handler: lambda/handlers/system/errors.handler
@@ -327,7 +327,7 @@ functions:
           path: /system/errors
           method: get
           cors: true
-  
+
   systemMetrics:
     handler: lambda/handlers/system/metrics.handler
     events:
@@ -349,7 +349,7 @@ resources:
           Ref: ApiGatewayRestApi
         ProviderARNs:
           - arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/${self:custom.cognito.userPoolId}
-  
+
   Outputs:
     ApiUrl:
       Description: API Gateway endpoint URL
@@ -359,7 +359,7 @@ resources:
           - - https://
             - Ref: ApiGatewayRestApi
             - .execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}
-    
+
     CognitoAuthorizerId:
       Description: Cognito Authorizer ID
       Value:

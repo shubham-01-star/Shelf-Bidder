@@ -37,7 +37,7 @@ describe('ShopkeeperMapper', () => {
     expect(item.PK).toBe('SHOPKEEPER#123e4567-e89b-41d4-a456-426614174000');
     expect(item.SK).toBe('METADATA');
     expect(item.EntityType).toBe('SHOPKEEPER');
-    expect(item.ShopkeeperId).toBe(mockShopkeeper.id);
+    expect(item.shopkeeperId).toBe(mockShopkeeper.id);
     expect(item.Name).toBe(mockShopkeeper.name);
     expect(item.WalletBalance).toBe(mockShopkeeper.walletBalance);
   });

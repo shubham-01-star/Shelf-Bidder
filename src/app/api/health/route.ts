@@ -112,8 +112,8 @@ async function checkBedrock(): Promise<ServiceHealth> {
 async function checkAuth(): Promise<ServiceHealth> {
   try {
     // Check if Cognito configuration is present
-    if (!process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || 
-        !process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID) {
+    if (!process.env.NEXT_PUBLIC_USER_POOL_ID ||
+        !process.env.NEXT_PUBLIC_USER_POOL_CLIENT_ID) {
       return { status: 'down', error: 'Cognito configuration missing' };
     }
     

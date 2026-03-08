@@ -4,11 +4,37 @@ import { query } from '@/lib/db/postgres';
 import { BrandOperations } from '@/lib/db/postgres/operations/brand';
 
 export async function GET(request: NextRequest) {
-  const brandId = request.headers.get('x-brand-id') || 'brand-demo-001';
+  const brandId = request.headers.get('x-brand-id');
 
   try {
+    // If no brand ID provided, get the first brand from database
+    let actualBrandId = brandId;
+    if (!actualBrandId) {
+      const firstBrandResult = await query('SELECT id FROM brands LIMIT 1');
+      if (firstBrandResult.rows.length > 0) {
+        actualBrandId = firstBrandResult.rows[0].id;
+      } else {
+        // No brands in database, return demo data
+        return NextResponse.json({
+          success: true,
+          data: {
+            brandId: 'demo',
+            walletBalance: 80998,
+            activeCampaigns: 3,
+            remainingBudget: 20002,
+            totalSpent: 0,
+            successfulPlacements: 2,
+            recentActivity: [],
+          },
+        });
+      }
+    }
+
     // 0. Get Brand Balance
-    const brand = await BrandOperations.getById(brandId);
+    const brand = await BrandOperations.getById(actualBrandId);
+    if (!brand) {
+      return NextResponse.json({ success: false, error: 'Brand not found' }, { status: 404 });
+    }
     const walletBalance = brand?.wallet_balance || 0;
 
     // 1. Get Active Campaigns & Remaining Budget
@@ -18,7 +44,7 @@ export async function GET(request: NextRequest) {
               COALESCE(SUM(budget), 0) as total_budget
        FROM campaigns
        WHERE agent_id = $1 AND status = 'active'`,
-       [brandId]
+       [actualBrandId]
     );
     const activeCampaigns = parseInt(campaignsResult.rows[0].active_count || '0');
     const remainingBudget = parseFloat(campaignsResult.rows[0].total_remaining || '0');
@@ -41,11 +67,11 @@ export async function GET(request: NextRequest) {
        FROM campaigns 
        WHERE agent_id = $1 
        ORDER BY created_at DESC LIMIT 5`,
-       [brandId]
+       [actualBrandId]
     );
 
     const dashboard = {
-      brandId,
+      brandId: actualBrandId,
       walletBalance,
       activeCampaigns,
       remainingBudget,

@@ -56,6 +56,7 @@ const PUBLIC_API_ROUTES = [
   '/api/brand/auth/signin',
   '/api/brand/auth/signup',
   '/api/health',
+  '/api/images/search',
 ];
 
 export function proxy(request: NextRequest) {

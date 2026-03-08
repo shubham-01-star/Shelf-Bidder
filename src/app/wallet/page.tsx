@@ -154,10 +154,18 @@ export default function WalletPage() {
                         <CheckCircle2 className="w-3.5 h-3.5 text-[#11d452]" />
                      )}
                      <p className="text-slate-500 text-xs font-semibold">
-                       {new Intl.DateTimeFormat('en-IN', { 
-                         month: 'short', day: 'numeric', 
-                         hour: 'numeric', minute: '2-digit' 
-                       }).format(new Date(txn.timestamp))}
+                       {(() => {
+                         try {
+                           const date = new Date(txn.timestamp);
+                           if (isNaN(date.getTime())) return 'Just now';
+                           return new Intl.DateTimeFormat('en-IN', { 
+                             month: 'short', day: 'numeric', 
+                             hour: 'numeric', minute: '2-digit' 
+                           }).format(date);
+                         } catch {
+                           return 'Just now';
+                         }
+                       })()}
                      </p>
                    </div>
                  </div>

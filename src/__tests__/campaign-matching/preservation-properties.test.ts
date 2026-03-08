@@ -151,8 +151,20 @@ describe('Preservation Properties - Non-Matching Flows', () => {
     // Simulate AI analysis with low confidence (< 85%)
     const analysisConfidence = 70; // Below threshold
     const emptySpaces: EmptySpace[] = [
-      { id: 'space-1', shelf_level: 1 },
-      { id: 'space-2', shelf_level: 2 },
+      { 
+        id: 'space-1', 
+        shelf_level: 1,
+        coordinates: { x: 0, y: 0, width: 100, height: 100 },
+        visibility: 'high',
+        accessibility: 'easy'
+      },
+      { 
+        id: 'space-2', 
+        shelf_level: 2,
+        coordinates: { x: 0, y: 100, width: 100, height: 100 },
+        visibility: 'high',
+        accessibility: 'easy'
+      },
     ];
     
     // When confidence < 85%, campaign matching should NOT occur
@@ -208,7 +220,13 @@ describe('Preservation Properties - Non-Matching Flows', () => {
       shopkeeper.id,
       'test-shelf-space-1',
       'Himachal Pradesh', // Location not in campaign target_locations
-      [{ id: 'space-1', shelf_level: 1 }]
+      [{ 
+        id: 'space-1', 
+        shelf_level: 1,
+        coordinates: { x: 0, y: 0, width: 100, height: 100 },
+        visibility: 'high',
+        accessibility: 'easy'
+      }]
     );
 
     // Expected behavior: No match found
@@ -270,7 +288,13 @@ describe('Preservation Properties - Non-Matching Flows', () => {
             shopkeeper.id,
             'test-shelf-space-acid',
             'Gurgaon',
-            [{ id: 'space-1', shelf_level: 1 }]
+            [{ 
+              id: 'space-1', 
+              shelf_level: 1,
+              coordinates: { x: 0, y: 0, width: 100, height: 100 },
+              visibility: 'high',
+              accessibility: 'easy'
+            }]
           );
 
           if (result.matched && result.taskId) {
@@ -345,7 +369,13 @@ describe('Preservation Properties - Non-Matching Flows', () => {
       shopkeeper.id,
       'test-shelf-space-insufficient',
       'Gurgaon',
-      [{ id: 'space-1', shelf_level: 1 }]
+      [{ 
+        id: 'space-1', 
+        shelf_level: 1,
+        coordinates: { x: 0, y: 0, width: 100, height: 100 },
+        visibility: 'high',
+        accessibility: 'easy'
+      }]
     );
 
     // Expected behavior: Match fails due to insufficient budget
@@ -445,7 +475,13 @@ describe('Preservation Properties - Non-Matching Flows', () => {
               shopkeeper.id,
               'test-shelf-space-prop',
               scenario.location,
-              [{ id: 'space-1', shelf_level: 1 }]
+              [{ 
+                id: 'space-1', 
+                shelf_level: 1,
+                coordinates: { x: 0, y: 0, width: 100, height: 100 },
+                visibility: 'high',
+                accessibility: 'easy'
+              }]
             );
             expect(result.matched).toBe(false);
             return true;
@@ -457,7 +493,13 @@ describe('Preservation Properties - Non-Matching Flows', () => {
               shopkeeper.id,
               'test-shelf-space-prop',
               'Gurgaon',
-              [{ id: 'space-1', shelf_level: 1 }]
+              [{ 
+                id: 'space-1', 
+                shelf_level: 1,
+                coordinates: { x: 0, y: 0, width: 100, height: 100 },
+                visibility: 'high',
+                accessibility: 'easy'
+              }]
             );
             
             if (result.matched && result.taskId) {

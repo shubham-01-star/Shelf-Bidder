@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth/AuthContext';
 import OfflineIndicator from '@/components/offline/OfflineIndicator';
@@ -10,6 +10,12 @@ validateEnv();
 const inter = Inter({ 
   subsets: ['latin'], 
   variable: '--font-inter',
+  display: 'swap',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
   display: 'swap',
 });
 
@@ -46,7 +52,7 @@ export default function RootLayout({
         />
       </head>
       <body 
-        className={`${inter.variable} font-sans antialiased bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen`}
+        className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 min-h-screen`}
         suppressHydrationWarning={true}
       >
         <AuthProvider>

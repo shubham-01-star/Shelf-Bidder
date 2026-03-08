@@ -85,7 +85,6 @@ async function handlePOST(request: Request) {
 
     const campaign = await CampaignOperations.create({
       agent_id: brandId,
-      brand_id: brandId,
       brand_name: body.brandName || brand.name || 'Demo Brand',
       product_name: body.productName,
       product_category: body.category,

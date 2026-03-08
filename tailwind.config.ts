@@ -10,18 +10,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        "primary": "#ff5c61",
-        "primary-dark": "#e64a4f",
-        "background-light": "#f8f5f5",
-        "background-dark": "#230f0f",
+        "primary": "#0ba6da",
+        "primary-dark": "#0284c7",
+        "accent-teal": "#0d9488",
+        "accent-red": "#e11d48",
+        "background-light": "#F8F5F5",
+        "background-dark": "#101e22",
         "surface-light": "#ffffff",
-        "surface-dark": "#2d1b1b",
-        "text-main": "#1e293b",
+        "surface-dark": "#1e293b",
+        "text-main": "#0f172a",
         "text-sub": "#64748b",
       },
       fontFamily: {
-        "display": ["Inter", "sans-serif"],
-        "sans": ["Inter", "sans-serif"],
+        "display": ["var(--font-space-grotesk)", "sans-serif"],
+        "sans": ["var(--font-inter)", "sans-serif"],
       },
       boxShadow: {
         "soft": "0 4px 20px -2px rgba(0, 0, 0, 0.05)",

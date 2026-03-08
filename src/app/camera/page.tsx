@@ -133,6 +133,9 @@ function CameraContent() {
           timestamp: new Date().toISOString(),
         });
         setAnalysisResult({
+          emptySpaces: 0,
+          currentInventory: [],
+          analysisConfidence: 0,
           message: 'Saved offline. Will sync when back online.',
         });
         setState('done');
@@ -170,6 +173,9 @@ function CameraContent() {
         });
         
         setAnalysisResult({
+          emptySpaces: 0,
+          currentInventory: [],
+          analysisConfidence: 0,
           isVerification: true,
           verified: verifyData.verified,
           message: verifyData.feedback || 'Verification completed.',
@@ -200,7 +206,7 @@ function CameraContent() {
           console.log('[Camera] 📍 Extracted location:', shopkeeperLocation);
           console.log('[Camera] 🏪 Store address:', shopkeeper?.store_address);
 
-          const response = await apiClient.post('/api/campaigns/match', {
+          const response = await apiClient.post<{ data?: any; status?: number }>('/api/campaigns/match', {
             shopkeeperId: shopkeeper.id,
             shelfSpaceId: analyzeData.id,
             location: shopkeeperLocation,

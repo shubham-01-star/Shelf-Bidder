@@ -61,7 +61,8 @@ export async function signUp(
   phoneNumber: string,
   password: string,
   name: string,
-  email: string
+  email: string,
+  storeAddress: string
 ): Promise<void> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
   
@@ -75,6 +76,7 @@ export async function signUp(
       password,
       name,
       email,
+      storeAddress,
     }),
   });
 

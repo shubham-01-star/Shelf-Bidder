@@ -42,7 +42,7 @@ export default function CreateCampaignPage() {
 
       if (response.ok && data.success) {
         alert('✅ Campaign Launched Successfully!\n\nThe system is now ready to detect empty spaces and assign tasks.');
-        router.push('/brand/dashboard'); // Redirect to Command Center
+        router.push('/brand'); // Redirect to Command Center
       } else {
         alert(`❌ Failed to launch campaign: ${data.error || 'Unknown error'}`);
       }

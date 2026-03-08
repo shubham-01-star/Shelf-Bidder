@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phoneNumber, password, name, email } = body;
+    const { phoneNumber, password, name, email, storeAddress } = body;
 
     // Validate input
     if (!phoneNumber || !password || !name || !email) {
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         phone_number: phoneNumber,
         email,
         password: password, // Store password
-        store_address: '',
+        store_address: storeAddress || '',
         preferred_language: 'en',
         timezone: 'Asia/Kolkata',
         wallet_balance: 0,

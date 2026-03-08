@@ -5,6 +5,8 @@
 
 import { query, transaction } from '../client';
 import { CampaignMapper } from '../mappers';
+import prisma from '@/lib/prisma';
+import { isLocationMatch } from '@/lib/utils/location';
 import type {
   Campaign,
   CampaignRow,
@@ -119,7 +121,8 @@ export const CampaignOperations = {
 
   /**
    * Find matching campaigns for a location
-   * Uses location-based filtering with target_locations array
+   * Uses flexible location-based filtering with case-insensitive partial matching
+   * Supports regional matching (e.g., "Delhi NCR" matches "Delhi", "Gurgaon", "Noida")
    */
   async findMatchingCampaigns(
     location: string,
@@ -128,21 +131,84 @@ export const CampaignOperations = {
   ): Promise<Campaign[]> {
     const limit = options.limit || 10;
 
-    const sql = `
-      SELECT * FROM campaigns
-      WHERE status = 'active'
-        AND remaining_budget >= $1
-        AND start_date <= CURRENT_TIMESTAMP
-        AND end_date >= CURRENT_TIMESTAMP
-        AND $2 = ANY(target_locations)
-      ORDER BY remaining_budget DESC, created_at ASC
-      LIMIT $3
-    `;
+    console.log(`[Campaign] 🔍 Finding campaigns for location: "${location}", minBudget: ${minBudget}`);
 
-    const result = await query<CampaignRow>(sql, [minBudget, location, limit]);
+    // Fetch all active campaigns that meet basic criteria
+    const campaigns = await prisma.campaigns.findMany({
+      where: {
+        status: 'active',
+        remaining_budget: {
+          gte: minBudget,
+        },
+        start_date: {
+          lte: new Date(),
+        },
+        end_date: {
+          gte: new Date(),
+        },
+      },
+      orderBy: {
+        payout_per_task: 'desc',
+      },
+    });
 
-    console.log(`[Campaign] 🔍 Found ${result.rows.length} matching campaigns for location: ${location}`);
-    return result.rows.map(CampaignMapper.fromRow);
+    console.log(`[Campaign] 📊 Total active campaigns: ${campaigns.length}`);
+    
+    // Debug: Log all campaigns and their locations
+    campaigns.forEach((c: any, i: number) => {
+      console.log(`[Campaign] ${i + 1}. ${c.brand_name} - ${c.product_name}`);
+      console.log(`[Campaign]    Locations: ${JSON.stringify(c.target_locations)}`);
+      console.log(`[Campaign]    Budget: ₹${c.remaining_budget}`);
+    });
+
+    // Filter using flexible location matching with normalization
+    console.log(`[Campaign] 🔍 Location to match: "${location}"`);
+    
+    const matchedCampaigns = campaigns.filter((campaign: any) => {
+      console.log(`[Campaign] 🔎 Checking campaign: ${campaign.brand_name} - ${campaign.product_name}`);
+      console.log(`[Campaign]    Target locations: ${JSON.stringify(campaign.target_locations)}`);
+      
+      const hasMatch = campaign.target_locations.some((targetLocation: string) => {
+        const matches = isLocationMatch(location, targetLocation);
+        console.log(`[Campaign]    isLocationMatch("${location}", "${targetLocation}") = ${matches}`);
+        if (matches) {
+          console.log(`[Campaign] ✓ Match found: "${targetLocation}" matches "${location}"`);
+        }
+        return matches;
+      });
+      
+      console.log(`[Campaign]    Final result for this campaign: ${hasMatch ? 'MATCHED' : 'NO MATCH'}`);
+      return hasMatch;
+    }).slice(0, limit);
+
+    console.log(`[Campaign] ✅ Found ${matchedCampaigns.length} matching campaigns for location: ${location}`);
+    if (matchedCampaigns.length > 0) {
+      console.log(`[Campaign] 🎯 Top campaign: ${matchedCampaigns[0].brand_name} - ${matchedCampaigns[0].product_name} (₹${matchedCampaigns[0].payout_per_task})`);
+    }
+    
+    // Convert Prisma results to CampaignRow format (Decimal -> string for numeric fields)
+    const campaignRows: CampaignRow[] = matchedCampaigns.map((c: any) => ({
+      id: c.id,
+      agent_id: c.agent_id,
+      brand_id: c.brand_id,
+      brand_name: c.brand_name,
+      product_name: c.product_name,
+      product_category: c.product_category,
+      budget: c.budget.toString(),
+      remaining_budget: c.remaining_budget.toString(),
+      payout_per_task: c.payout_per_task.toString(),
+      target_locations: c.target_locations,
+      target_radius_km: c.target_radius_km.toString(),
+      placement_requirements: c.placement_requirements,
+      product_dimensions: c.product_dimensions,
+      start_date: c.start_date,
+      end_date: c.end_date,
+      status: c.status,
+      created_at: c.created_at,
+      updated_at: c.updated_at,
+    }));
+    
+    return campaignRows.map(CampaignMapper.fromRow);
   },
 
   /**

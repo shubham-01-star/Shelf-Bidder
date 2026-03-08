@@ -41,8 +41,8 @@ export default function TasksPage() {
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const { tasks: allTasks, isLoading, isError, startTask } = useTasks();
 
-  const activeTasks = useMemo(() => allTasks.filter(t => t.status === 'assigned' || t.status === 'in_progress'), [allTasks]);
-  const completedTasks = useMemo(() => allTasks.filter(t => t.status === 'completed' || t.status === 'failed'), [allTasks]);
+  const activeTasks = useMemo(() => allTasks.filter(t => t.status === 'assigned' || t.status === 'in_progress' || t.status === 'failed'), [allTasks]);
+  const completedTasks = useMemo(() => allTasks.filter(t => t.status === 'completed'), [allTasks]);
 
   const filteredTasks = activeTab === 'active' ? activeTasks : completedTasks;
 
@@ -164,6 +164,10 @@ export default function TasksPage() {
                               <span className="px-3 py-1.5 bg-amber-100 text-amber-700 text-[11px] font-black uppercase tracking-wider rounded-lg border border-amber-200 shadow-sm whitespace-nowrap">
                                 New Task
                               </span>
+                           ) : task.status === 'failed' ? (
+                              <span className="px-3 py-1.5 bg-red-100 text-red-700 text-[11px] font-black uppercase tracking-wider rounded-lg border border-red-200 shadow-sm whitespace-nowrap">
+                                Failed - Retry
+                              </span>
                            ) : (
                               <span className="px-3 py-1.5 bg-blue-100 text-blue-700 text-[11px] font-black uppercase tracking-wider rounded-lg border border-blue-200 shadow-sm whitespace-nowrap">
                                 In Progress
@@ -202,6 +206,14 @@ export default function TasksPage() {
                         >
                           <Play className="w-5 h-5 fill-current" />
                           <span>Start This Task</span>
+                        </button>
+                      ) : task.status === 'failed' ? (
+                        <button 
+                          onClick={() => router.push(`/camera?taskId=${task.id}`)}
+                          className="flex w-full mt-2 cursor-pointer items-center justify-center gap-2 rounded-xl h-14 bg-orange-500 text-white text-lg font-black shadow-[0_8px_20px_rgba(249,115,22,0.3)] active:scale-95 transition-transform"
+                        >
+                          <Camera className="w-6 h-6 stroke-[2.5]" />
+                          <span>Retry Task</span>
                         </button>
                       ) : (
                         <button 

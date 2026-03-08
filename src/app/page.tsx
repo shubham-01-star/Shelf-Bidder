@@ -12,6 +12,13 @@ const categories = [
   { name: 'Entrance', icon: 'door_front' },
 ];
 
+const shelfTypeOptions = [
+  { label: 'Eye-Level', value: 'eye-level' },
+  { label: 'Counter Top', value: 'counter-top' },
+  { label: 'Entrance', value: 'entrance' },
+  { label: 'End Cap', value: 'end-cap' },
+];
+
 const auctions = [
   {
     id: 1,
@@ -64,6 +71,7 @@ export default function Home() {
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [voiceAlerts, setVoiceAlerts] = useState(true);
   const [searchLocation, setSearchLocation] = useState('');
+  const [searchShelfType, setSearchShelfType] = useState('eye-level');
 
   const toggleFavorite = (id: number) => {
     setFavorites((prev) => {
@@ -75,8 +83,10 @@ export default function Home() {
   };
 
   const handleSearch = () => {
-    const query = searchLocation.trim() || 'Gurgaon';
-    router.push(`/dashboard?location=${encodeURIComponent(query)}`);
+    const location = searchLocation.trim() || 'Gurgaon';
+    router.push(
+      `/search?location=${encodeURIComponent(location)}&shelfType=${encodeURIComponent(searchShelfType)}`
+    );
   };
 
   // const scrollToAuctions = () => {
@@ -112,20 +122,17 @@ export default function Home() {
               {menuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50 animate-[fadeIn_0.15s_ease-out]">
                   <Link href="/signin" className="block px-4 py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => setMenuOpen(false)}>
-                    Sign In
+                    Retail Partner Login
                   </Link>
                   <Link href="/signup" className="block px-4 py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => setMenuOpen(false)}>
-                    Sign Up
+                    Retail Partner Registration
                   </Link>
                   <div className="h-[1px] bg-gray-100 dark:bg-gray-800 my-1"></div>
-                  <Link href="/profile" className="block px-4 py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => setMenuOpen(false)}>
-                    Profile
+                  <Link href="/brand/login" className="block px-4 py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                    Brand Portal Login
                   </Link>
-                  <Link href="/dashboard" className="block px-4 py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => setMenuOpen(false)}>
-                    Dashboard
-                  </Link>
-                  <Link href="/wallet" className="block px-4 py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => setMenuOpen(false)}>
-                    Wallet
+                  <Link href="/brand/login?mode=signup" className="block px-4 py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                    Brand Registration
                   </Link>
                 </div>
               )}
@@ -156,7 +163,17 @@ export default function Home() {
             </div>
             <div className="hidden sm:flex flex-1 px-4 flex-col justify-center border-r border-gray-200 dark:border-gray-700">
               <span className="text-[10px] font-bold text-text-main uppercase tracking-wider">Shelf Type</span>
-              <span className="text-sm text-text-sub truncate">Eye-Level</span>
+              <select
+                value={searchShelfType}
+                onChange={(e) => setSearchShelfType(e.target.value)}
+                className="text-sm text-text-sub truncate bg-transparent border-none p-0 focus:ring-0 focus:outline-none"
+              >
+                {shelfTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <button
               onClick={handleSearch}
@@ -475,7 +492,7 @@ export default function Home() {
 
           <div className="pt-8 border-t border-gray-200 dark:border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-text-sub dark:text-gray-500">
-              © {new Date().getFullYear()} Shelf-Bidder by IAS. All rights reserved.
+              © {new Date().getFullYear()} Shelf-Bidder. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm">
               <Link href="#" className="text-text-sub dark:text-gray-500 hover:text-primary transition-colors">Privacy Policy</Link>

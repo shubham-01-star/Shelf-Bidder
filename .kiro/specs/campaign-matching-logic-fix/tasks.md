@@ -1,0 +1,118 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Campaign Matching with Actual Location
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: Scope the property to concrete failing cases: shopkeepers in non-Gurgaon locations with matching campaigns
+  - Test that when AI analysis detects empty shelf spaces (confidence ≥85%) and shopkeeper's actual location differs from 'Gurgaon', the system extracts the shopkeeper's city from store_address and matches campaigns using flexible location matching
+  - Test scenarios:
+    - Noida shopkeeper with store_address="Shop 45, Sector 18, Noida" and campaign with target_locations=['Delhi', 'Noida']
+    - Delhi NCR regional test with store_address="DLF Phase 3, Gurgaon" and campaign with target_locations=['Delhi NCR']
+    - Case sensitivity test with store_address="Main Market, delhi" and campaign with target_locations=['Delhi']
+  - The test assertions should verify: result.state = 'offer', result.matchedCampaign != null, result.matchedCampaign.location matches shopkeeper.actualLocation
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found: no campaigns matched for non-Gurgaon shopkeepers, hardcoded location prevents matching
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - ACID Transactions and Non-Matching Flows
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs (offline mode, task verification, error handling, no empty spaces, low confidence)
+  - Write property-based tests capturing observed behavior patterns:
+    - Offline mode: photo queueing works without campaign matching
+    - Task verification: flow with taskId works correctly
+    - Error handling: upload/analysis errors show appropriate messages
+    - No empty spaces: AI detects 0 spaces → 'done' state without matching
+    - Low confidence: AI confidence < 85% → 'done' state without matching
+    - ACID transactions: budget deduction and task creation are atomic
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [x] 3. Fix for campaign matching logic
+
+  - [x] 3.1 Create location utility functions
+    - Create new file `src/lib/utils/location.ts`
+    - Implement `extractCityFromAddress(address: string): string` function
+      - Split address by commas
+      - Identify city component (usually last or second-to-last segment)
+      - Handle common address formats in India
+      - Return extracted city or 'Unknown' if extraction fails
+    - Implement `normalizeCityName(city: string): string` function
+      - Handle spelling variations (Gurgaon → Gurugram)
+      - Trim whitespace and convert to lowercase
+      - Return normalized string
+    - Implement `isLocationMatch(shopkeeperCity: string, targetLocation: string): boolean` function
+      - Handle exact matches (case-insensitive)
+      - Handle regional matches (Delhi NCR includes Delhi, Gurgaon, Noida, Faridabad)
+      - Return true if match found, false otherwise
+    - Add unit tests for each utility function
+    - _Bug_Condition: isBugCondition(input) where input.shopkeeperLocation != 'Gurgaon' AND NOT exactMatch(input.shopkeeperLocation, campaignTargetLocations)_
+    - _Expected_Behavior: Extract city from store_address, normalize city names, implement flexible location matching_
+    - _Preservation: No impact on existing flows - these are new utility functions_
+    - _Requirements: 2.2, 2.3_
+
+  - [x] 3.2 Update frontend to extract actual location
+    - Modify `src/app/camera/page.tsx` in the `handleUpload` function (around line 157)
+    - Replace hardcoded `location: 'Gurgaon'` with extracted city from `shopkeeper.store_address`
+    - Import and use `extractCityFromAddress` utility function
+    - Add error handling if shopkeeper or store_address is missing
+    - Fallback to 'Unknown' if extraction fails
+    - _Bug_Condition: isBugCondition(input) where hardcoded 'Gurgaon' is sent instead of actual location_
+    - _Expected_Behavior: Extract shopkeeper's actual location from store_address and send to API_
+    - _Preservation: Preserve all other handleUpload behavior - photo upload, compression, AI analysis, error handling_
+    - _Requirements: 2.1, 2.2_
+
+  - [x] 3.3 Implement flexible location matching in database query
+    - Modify `src/lib/db/postgres/operations/campaign.ts` in the `findMatchingCampaigns` function (line 124-148)
+    - Replace exact string match `$2 = ANY(target_locations)` with flexible matching
+    - Use case-insensitive matching with ILIKE operator
+    - Support partial matching for regional names using array containment
+    - Normalize location parameter before querying
+    - Update SQL query to: `EXISTS (SELECT 1 FROM unnest(target_locations) AS tl WHERE LOWER(tl) LIKE '%' || LOWER($2) || '%' OR LOWER($2) LIKE '%' || LOWER(tl) || '%')`
+    - Ensure ORDER BY payout_per_task DESC remains to select highest-paying campaign
+    - _Bug_Condition: isBugCondition(input) where exactMatch fails but flexibleMatch should succeed_
+    - _Expected_Behavior: Use flexible location matching to find campaigns targeting shopkeeper's city or region_
+    - _Preservation: Preserve ACID transaction guarantees, budget checking, and all other query filters_
+    - _Requirements: 2.3, 2.4_
+
+  - [x] 3.4 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Campaign Matching with Actual Location
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - Verify all test scenarios pass:
+      - Noida shopkeeper matches campaign with target_locations=['Delhi', 'Noida']
+      - Gurgaon shopkeeper matches campaign with target_locations=['Delhi NCR']
+      - Case-insensitive matching works for 'delhi' vs 'Delhi'
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+
+  - [x] 3.5 Verify preservation tests still pass
+    - **Property 2: Preservation** - ACID Transactions and Non-Matching Flows
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - Verify all preservation scenarios still work:
+      - Offline mode behavior unchanged
+      - Task verification flow unchanged
+      - Error handling unchanged
+      - No empty spaces → 'done' state unchanged
+      - Low confidence → 'done' state unchanged
+      - ACID transactions still atomic
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix (no regressions)
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Run all unit tests for location utilities
+  - Run all property-based tests for bug condition and preservation
+  - Run integration tests for full campaign matching flow
+  - Verify no regressions in existing functionality
+  - Ensure all tests pass, ask the user if questions arise

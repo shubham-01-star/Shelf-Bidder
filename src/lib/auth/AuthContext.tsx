@@ -28,7 +28,7 @@ interface AuthContextType {
   shopkeeper: ShopkeeperProfile | null;
   tokens: AuthTokens | null;
   signIn: (phoneNumber: string, password: string) => Promise<void>;
-  signUp: (phoneNumber: string, password: string, name: string, email: string) => Promise<void>;
+  signUp: (phoneNumber: string, password: string, name: string, email: string, storeAddress: string) => Promise<void>;
   verifyPhoneNumber: (phoneNumber: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshTokens: () => Promise<void>;
@@ -122,10 +122,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     phoneNumber: string,
     password: string,
     name: string,
-    email: string
+    email: string,
+    storeAddress: string
   ) => {
     try {
-      await cognitoSignUp(phoneNumber, password, name, email);
+      await cognitoSignUp(phoneNumber, password, name, email, storeAddress);
     } catch (err) {
       throw err;
     }

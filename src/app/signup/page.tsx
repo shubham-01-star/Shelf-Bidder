@@ -11,6 +11,7 @@ export default function SignUpPage() {
   const [phoneDigits, setPhoneDigits] = useState('');
   const phoneNumber = `+91${phoneDigits}`;
   const [password, setPassword] = useState('');
+  const [storeAddress, setStoreAddress] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
@@ -37,6 +38,10 @@ export default function SignUpPage() {
       setError('Please enter a valid 10-digit mobile number.');
       return;
     }
+    if (storeAddress.trim().length === 0) {
+      setError('Store address is required.');
+      return;
+    }
     if (password.length < 8) {
       setError('Password must be at least 8 characters long.');
       return;
@@ -44,7 +49,7 @@ export default function SignUpPage() {
 
     try {
       setIsLoading(true);
-      await signUp(phoneNumber, password, name, email);
+      await signUp(phoneNumber, password, name, email, storeAddress);
       alert('Account created successfully! Please sign in with your credentials.');
       router.push('/signin');
     } catch (err: unknown) {
@@ -124,6 +129,21 @@ export default function SignUpPage() {
                   disabled={isLoading}
                 />
               </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Store Address
+              </label>
+              <input
+                type="text"
+                value={storeAddress}
+                onChange={(e) => setStoreAddress(e.target.value)}
+                placeholder="Shop 123, Main Market, Delhi"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-colors placeholder:text-slate-400"
+                disabled={isLoading}
+              />
+              <p className="text-[10px] mt-1 text-slate-500 font-medium">Include your city name</p>
             </div>
 
             <div className="space-y-1">

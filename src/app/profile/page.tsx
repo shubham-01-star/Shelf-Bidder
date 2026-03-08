@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/navigation/BottomNav';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -8,22 +8,71 @@ import { ArrowLeft, Store, Pencil, Wallet, Languages, HeadphonesIcon, FileText, 
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { shopkeeper, signOut } = useAuth();
+  const { shopkeeper: authShopkeeper, tokens, signOut } = useAuth();
+  
+  // Fetch full shopkeeper data from API
+  const [shopkeeper, setShopkeeper] = useState<any>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        if (tokens?.accessToken) {
+          headers['Authorization'] = `Bearer ${tokens.accessToken}`;
+        }
+        
+        const response = await fetch('/api/profile', { headers });
+        if (response.ok) {
+          const data = await response.json();
+          setShopkeeper(data.data);
+        } else {
+          console.error('Failed to fetch profile:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+    
+    // Only fetch if we have both shopkeeper and tokens
+    if (authShopkeeper && tokens?.accessToken) {
+      fetchProfile();
+    } else if (authShopkeeper && !tokens) {
+      // If logged in but no tokens yet, wait a bit
+      setIsLoadingProfile(false);
+    }
+  }, [authShopkeeper, tokens]);
   
   // Use user data if available, otherwise fallback to defaults
   const shopkeeperData = shopkeeper as any;
   const storeName = shopkeeperData?.storeName || 'My Kirana Store';
-  const ownerName = shopkeeper?.name || 'Store Owner';
+  const ownerName = shopkeeper?.name || authShopkeeper?.name || 'Store Owner';
+  const storeAddress = shopkeeper?.store_address || 'Not configured';
   const upiId = shopkeeperData?.paymentDetails?.upiId || 'Not configured';
 
   // Edit state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [isEditingUPI, setIsEditingUPI] = useState(false);
   const [editName, setEditName] = useState(ownerName);
+  const [editAddress, setEditAddress] = useState(storeAddress);
   const [editUPI, setEditUPI] = useState(upiId);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Update edit states when shopkeeper data loads
+  useEffect(() => {
+    if (shopkeeper) {
+      setEditName(shopkeeper.name || ownerName);
+      setEditAddress(shopkeeper.store_address || 'Not configured');
+    }
+  }, [shopkeeper]);
 
   const handleLogout = async () => {
     await signOut();
@@ -40,9 +89,17 @@ export default function ProfilePage() {
       setIsLoading(true);
       setError('');
       
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (tokens?.accessToken) {
+        headers['Authorization'] = `Bearer ${tokens.accessToken}`;
+      }
+      
       const response = await fetch('/api/profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ name: editName.trim() }),
       });
 
@@ -63,6 +120,62 @@ export default function ProfilePage() {
     } catch (err) {
       console.error('Update profile error:', err);
       setError(err instanceof Error ? err.message : 'Failed to update profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveAddress = async () => {
+    if (!editAddress.trim()) {
+      setError('Store address cannot be empty');
+      return;
+    }
+
+    console.log('[Profile] 🔍 Saving address...');
+    console.log('[Profile] 📝 Tokens available:', !!tokens);
+    console.log('[Profile] 📝 Access token:', tokens?.accessToken ? 'Present' : 'Missing');
+
+    try {
+      setIsLoading(true);
+      setError('');
+      
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (tokens?.accessToken) {
+        headers['Authorization'] = `Bearer ${tokens.accessToken}`;
+        console.log('[Profile] ✅ Added Authorization header');
+      } else {
+        console.log('[Profile] ❌ No access token available!');
+        setError('Please log in again to update your profile');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('[Profile] 📤 Sending PATCH request...');
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ storeAddress: editAddress.trim() }),
+      });
+
+      console.log('[Profile] 📥 Response status:', response.status);
+      const data = await response.json();
+      console.log('[Profile] 📦 Response data:', data);
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update address');
+      }
+
+      setSuccessMessage('Store address updated successfully!');
+      setIsEditingAddress(false);
+      
+      setTimeout(() => setSuccessMessage(''), 3000);
+      window.location.reload();
+    } catch (err) {
+      console.error('[Profile] ❌ Update address error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update address');
     } finally {
       setIsLoading(false);
     }
@@ -179,8 +292,69 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Payment Details */}
+        {/* Store Address */}
         <div className="flex flex-col gap-3 animate-fadeInUp animate-fadeInUp-delay-1">
+          <h3 className="text-text-main dark:text-white text-base font-bold px-1">Store Information</h3>
+          <div className="flex flex-col gap-3 bg-surface-light dark:bg-surface-dark p-4 rounded-[1.25rem] border border-gray-100 dark:border-gray-800 shadow-sm">
+            <div className="flex items-center gap-4 justify-between">
+              <div className="flex items-center gap-4">
+                <div className="text-primary bg-primary/10 flex items-center justify-center rounded-xl shrink-0 size-12 shadow-sm border border-primary/5">
+                  <Store className="w-6 h-6" />
+                </div>
+                <div className="flex flex-col">
+                  <p className="text-text-main dark:text-white text-sm font-bold">{storeAddress}</p>
+                  <p className="text-text-sub dark:text-gray-400 text-xs font-semibold mt-0.5">Store Address</p>
+                </div>
+              </div>
+              {!isEditingAddress && (
+                <button 
+                  onClick={() => setIsEditingAddress(true)}
+                  className="flex items-center justify-center rounded-lg h-9 px-4 bg-primary text-white text-sm font-black active:scale-95 transition-transform shadow-sm"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+            
+            {isEditingAddress && (
+              <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <input
+                  type="text"
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  placeholder="Shop 123, Main Market, Delhi"
+                  className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-700 text-text-main dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                  disabled={isLoading}
+                />
+                <p className="text-[10px] text-text-sub dark:text-gray-400 font-medium">Include your city name for campaign matching</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveAddress}
+                    disabled={isLoading}
+                    className="flex-1 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isLoading ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditingAddress(false);
+                      setEditAddress(storeAddress);
+                      setError('');
+                    }}
+                    disabled={isLoading}
+                    className="bg-gray-100 dark:bg-gray-800 text-text-sub dark:text-gray-400 px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Payment Details */}
+        <div className="flex flex-col gap-3 animate-fadeInUp animate-fadeInUp-delay-2">
           <h3 className="text-text-main dark:text-white text-base font-bold px-1">Payment Details</h3>
           <div className="flex flex-col gap-3 bg-surface-light dark:bg-surface-dark p-4 rounded-[1.25rem] border border-gray-100 dark:border-gray-800 shadow-sm">
             <div className="flex items-center gap-4 justify-between">

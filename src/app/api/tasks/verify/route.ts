@@ -37,9 +37,13 @@ interface VerifyTaskRequest {
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
+  console.log('[Verify] ========== NEW VERIFICATION REQUEST ==========');
+
   try {
     // Parse request body
     const body: VerifyTaskRequest = await request.json();
+    console.log('[Verify] Request body keys:', Object.keys(body));
+    
     const {
       taskId,
       shopkeeperId,
@@ -50,8 +54,19 @@ export async function POST(request: NextRequest) {
       mimeType = 'image/jpeg',
     } = body;
 
+    console.log('[Verify] Parsed params:', {
+      taskId,
+      shopkeeperId,
+      hasBeforePhotoUrl: !!beforePhotoUrl,
+      hasBeforePhotoData: !!beforePhotoData,
+      hasAfterPhotoUrl: !!afterPhotoUrl,
+      hasAfterPhotoData: !!afterPhotoData,
+      mimeType,
+    });
+
     // Validate required fields
     if (!taskId || !shopkeeperId) {
+      console.error('[Verify] ❌ Missing required fields');
       return NextResponse.json(
         {
           error: 'Missing required fields',
@@ -62,6 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!afterPhotoUrl && !afterPhotoData) {
+      console.error('[Verify] ❌ After photo missing');
       return NextResponse.json(
         {
           error: 'After photo is required',
@@ -71,21 +87,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!beforePhotoUrl && !beforePhotoData) {
-      return NextResponse.json(
-        {
-          error: 'Before photo is required',
-          details: 'Either beforePhotoUrl or beforePhotoData must be provided for verification',
-        },
-        { status: 400 }
-      );
-    }
-
-    // Get task details
+    // Get task details first (we need shelf_space_id for before photo)
+    console.log('[Verify] Fetching task:', taskId);
     const task = await TaskOperations.getById(taskId);
 
-    // Verify task belongs to shopkeeper
-    if (task.shopkeeper_id !== shopkeeperId) {
+    // Get shopkeeper UUID from shopkeeper_id (if it's in sk-xxx format)
+    let shopkeeperUUID = shopkeeperId;
+    if (shopkeeperId.startsWith('sk-')) {
+      const { ShopkeeperOperations } = await import('@/lib/db/postgres/operations');
+      const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
+      shopkeeperUUID = shopkeeper.id;
+    }
+
+    // Verify task belongs to shopkeeper (compare UUIDs)
+    if (task.shopkeeper_id !== shopkeeperUUID) {
       return NextResponse.json(
         {
           error: 'Unauthorized',
@@ -101,6 +116,45 @@ export async function POST(request: NextRequest) {
         {
           error: 'Task already completed',
           details: 'This task has already been verified and completed',
+        },
+        { status: 400 }
+      );
+    }
+
+    // If beforePhotoUrl not provided, fetch from shelf_space
+    let finalBeforePhotoUrl = beforePhotoUrl;
+    let finalBeforePhotoData = beforePhotoData;
+    
+    console.log(`[Verify] Before photo check:`, {
+      beforePhotoUrl: !!beforePhotoUrl,
+      beforePhotoData: !!beforePhotoData,
+      shelf_space_id: task.shelf_space_id,
+    });
+    
+    if (!finalBeforePhotoUrl && !finalBeforePhotoData && task.shelf_space_id) {
+      console.log(`[Verify] Fetching shelf space: ${task.shelf_space_id}`);
+      const { ShelfSpaceOperations } = await import('@/lib/db/postgres/operations');
+      try {
+        const shelfSpace = await ShelfSpaceOperations.getById(task.shelf_space_id);
+        finalBeforePhotoUrl = shelfSpace.photo_url;
+        console.log(`[Verify] ✅ Using shelf space photo as before photo: ${finalBeforePhotoUrl}`);
+      } catch (error) {
+        console.error(`[Verify] ❌ Failed to fetch shelf space:`, error);
+      }
+    }
+
+    if (!finalBeforePhotoUrl && !finalBeforePhotoData) {
+      console.error(`[Verify] ❌ No before photo available`, {
+        beforePhotoUrl: !!beforePhotoUrl,
+        beforePhotoData: !!beforePhotoData,
+        shelf_space_id: task.shelf_space_id,
+        finalBeforePhotoUrl: !!finalBeforePhotoUrl,
+        finalBeforePhotoData: !!finalBeforePhotoData,
+      });
+      return NextResponse.json(
+        {
+          error: 'Before photo is required',
+          details: 'Could not find before photo from shelf space or request',
         },
         { status: 400 }
       );
@@ -127,8 +181,8 @@ export async function POST(request: NextRequest) {
 
     // Get before image
     const beforeBuffer = await getImageBuffer(
-      beforePhotoUrl,
-      beforePhotoData,
+      finalBeforePhotoUrl,
+      finalBeforePhotoData,
       'before photo'
     );
     const beforeBase64 = beforeBuffer.toString('base64');

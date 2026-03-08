@@ -12,12 +12,17 @@ interface RouteContext {
  */
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const shopkeeperId = getShopkeeperIdFromRequest(request);
+    const shopkeeperIdFromToken = getShopkeeperIdFromRequest(request);
     const { taskId } = await context.params;
+
+    // Get shopkeeper UUID from shopkeeper_id
+    const { ShopkeeperOperations } = await import('@/lib/db/postgres/operations');
+    const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperIdFromToken);
 
     const taskDetails = await TaskOperations.getById(taskId);
 
-    if (taskDetails.shopkeeper_id !== shopkeeperId) {
+    // Compare using UUID (shopkeeper.id) instead of shopkeeper_id
+    if (taskDetails.shopkeeper_id !== shopkeeper.id) {
       return NextResponse.json({ error: 'Unauthorized to access this task' }, { status: 403 });
     }
 

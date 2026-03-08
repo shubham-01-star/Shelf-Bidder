@@ -82,12 +82,25 @@ export async function POST(request: NextRequest) {
     // Analyze shelf space
     const result = await analyzeShelfSpace(imageBuffer, mimeType);
 
+    console.log('[Analyze] 🔍 Looking up shopkeeper with ID:', shopkeeperId);
+    
     // Fetch internal Shopkeeper UUID to maintain foreign key relations
     const shopkeeperRecord = await prisma.shopkeepers.findUnique({
       where: { shopkeeper_id: shopkeeperId }
     });
 
+    console.log('[Analyze] 📝 Shopkeeper record found:', shopkeeperRecord ? 'YES' : 'NO');
+    if (shopkeeperRecord) {
+      console.log('[Analyze] ✅ Shopkeeper:', {
+        id: shopkeeperRecord.id,
+        shopkeeper_id: shopkeeperRecord.shopkeeper_id,
+        name: shopkeeperRecord.name,
+        store_address: shopkeeperRecord.store_address
+      });
+    }
+
     if (!shopkeeperRecord) {
+      console.error('[Analyze] ❌ Shopkeeper not found for ID:', shopkeeperId);
       return NextResponse.json(
         { error: 'Invalid user', details: 'Shopkeeper not found in database' },
         { status: 404 }

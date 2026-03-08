@@ -8,13 +8,14 @@
  * Requirements: 2.1, 7.3
  */
 
-import { useState, useRef, useCallback, Suspense } from 'react';
+import { useState, useRef, useCallback, Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { apiClient } from '@/lib/api-client';
 import { compressImage } from '@/lib/utils/image-compression';
 import { queuePhoto } from '@/lib/offline/storage';
 import { useIsOffline } from '@/hooks/use-offline';
+import { extractCityFromAddress } from '@/lib/utils/location';
 import { ChevronLeft, Zap, Grid, Image as ImageIcon, History, Camera as CameraIcon, Check, X, RefreshCw, UploadCloud, CheckCircle2, AlertCircle } from 'lucide-react';
 
 type CameraState = 'ready' | 'capturing' | 'preview' | 'uploading' | 'analyzing' | 'offer' | 'done';
@@ -41,10 +42,49 @@ interface MatchedCampaign {
 }
 
 function CameraContent() {
-  const { shopkeeper } = useAuth();
+  const { shopkeeper: authShopkeeper, tokens } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const taskId = searchParams.get('taskId');
+  
+  // Fetch full shopkeeper data from API (includes store_address)
+  const [shopkeeper, setShopkeeper] = useState<any>(authShopkeeper);
+  
+  // Fetch fresh shopkeeper data on mount
+  useEffect(() => {
+    const fetchShopkeeper = async () => {
+      try {
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        if (tokens?.accessToken) {
+          headers['Authorization'] = `Bearer ${tokens.accessToken}`;
+        }
+        
+        const response = await fetch('/api/profile', { headers });
+        if (response.ok) {
+          const data = await response.json();
+          setShopkeeper(data.data);
+          console.log('[Camera] ✅ Fetched shopkeeper data:', data.data);
+          console.log('[Camera] 📍 Store address:', data.data.store_address);
+        } else {
+          console.error('[Camera] ❌ Failed to fetch shopkeeper, status:', response.status);
+          setShopkeeper(authShopkeeper);
+        }
+      } catch (error) {
+        console.error('[Camera] ❌ Failed to fetch shopkeeper:', error);
+        // Fallback to auth shopkeeper
+        setShopkeeper(authShopkeeper);
+      }
+    };
+    
+    if (authShopkeeper && tokens?.accessToken) {
+      fetchShopkeeper();
+    } else {
+      setShopkeeper(authShopkeeper);
+    }
+  }, [authShopkeeper, tokens]);
   
   const [state, setState] = useState<CameraState>('ready');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -125,7 +165,8 @@ function CameraContent() {
         const { data: verifyData } = await apiClient.post<{ data: { verified: boolean; feedback?: string; confidence?: number } }>(`/api/tasks/verify`, {
           shopkeeperId: shopkeeper.id,
           taskId,
-          photoUrl: uploadData.photoUrl,
+          afterPhotoUrl: uploadData.photoUrl,
+          mimeType: capturedFile.type,
         });
         
         setAnalysisResult({
@@ -137,7 +178,7 @@ function CameraContent() {
         setState('done');
       } else {
         const { data: analyzeData } = await apiClient.post<{ data: { id: string; emptySpaces: any[]; analysisConfidence: number; currentInventory: any[] } }>('/api/photos/analyze', {
-          shopkeeperId: shopkeeper.id,
+          shopkeeperId: shopkeeper.shopkeeper_id,
           photoUrl: uploadData.photoUrl,
           mimeType: capturedFile.type,
         });
@@ -151,14 +192,42 @@ function CameraContent() {
         
         // Step 2: Match Campaign
         try {
-          const { data: matchData } = await apiClient.post<{ matched: boolean; campaign: any; taskId: string }>('/api/campaigns/match', {
+          // Extract actual location from shopkeeper's store address
+          const shopkeeperLocation = shopkeeper?.store_address 
+            ? extractCityFromAddress(shopkeeper.store_address)
+            : 'Unknown';
+
+          console.log('[Camera] 📍 Extracted location:', shopkeeperLocation);
+          console.log('[Camera] 🏪 Store address:', shopkeeper?.store_address);
+
+          const response = await apiClient.post('/api/campaigns/match', {
             shopkeeperId: shopkeeper.id,
             shelfSpaceId: analyzeData.id,
-            location: 'Gurgaon', // TODO: Use real location from shopkeeper/browser
+            location: shopkeeperLocation,
             emptySpaces: Array.isArray(analyzeData.emptySpaces) && analyzeData.emptySpaces.length > 0 ? analyzeData.emptySpaces : [{ id: 'space-1', shelf_level: 1 }], 
           });
 
+          console.log('[Camera] 📦 Full response:', response);
+          console.log('[Camera] 📦 Response data:', response.data);
+          console.log('[Camera] 📦 Response status:', response.status);
+          
+          // Handle different response structures
+          const matchData = response.data || response;
+          
+          if (!matchData || typeof matchData !== 'object') {
+            console.error('[Camera] ❌ Invalid match data:', matchData);
+            setAnalysisResult(prev => prev ? {
+              ...prev,
+              message: 'Failed to match campaigns. Please try again.'
+            } : null);
+            setState('done');
+            return;
+          }
+
+          console.log('[Camera] ✅ Match data:', matchData);
+
           if (matchData.matched && matchData.campaign) {
+            console.log('[Camera] 🎉 Campaign matched!', matchData.campaign);
             setMatchedCampaign({
               id: matchData.campaign.id,
               brandName: matchData.campaign.brandName || matchData.campaign.brand_name,
@@ -168,6 +237,7 @@ function CameraContent() {
             });
             setState('offer');
           } else {
+            console.log('[Camera] ℹ️ No campaign matched:', matchData.message);
             setAnalysisResult(prev => prev ? {
               ...prev,
               message: matchData.message || 'No campaigns matched your current shelf availability.'

@@ -56,7 +56,11 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
+    console.log('[Profile PATCH] 🔍 Starting profile update...');
+    console.log('[Profile PATCH] 📋 Headers:', Object.fromEntries(request.headers.entries()));
+    
     const shopkeeperId = getShopkeeperIdFromRequest(request);
+    console.log('[Profile PATCH] 📝 Shopkeeper ID from token:', shopkeeperId);
 
     if (!shopkeeperId) {
       return NextResponse.json(
@@ -66,6 +70,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
+    console.log('[Profile PATCH] 📦 Request body:', body);
     const { name, storeAddress, preferredLanguage, timezone } = body;
 
     // Validate input
@@ -133,7 +138,20 @@ export async function PATCH(request: NextRequest) {
       data: updatedShopkeeper,
     });
   } catch (error) {
-    console.error('Update profile error:', error);
+    console.error('[Profile PATCH] ❌ Update profile error:', error);
+    console.error('[Profile PATCH] ❌ Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    
+    // Check if it's an authentication error
+    if (error instanceof Error && error.name === 'AuthenticationError') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Authentication required',
+        },
+        { status: 401 }
+      );
+    }
+    
     return NextResponse.json(
       {
         success: false,

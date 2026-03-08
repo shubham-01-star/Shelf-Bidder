@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     // Get tasks for this shopkeeper (tasks.shopkeeper_id references shopkeepers.id UUID)
     const tasksRes = await TaskOperations.queryByShopkeeper(skUuid, undefined, { limit: 100 });
     const tasks = tasksRes.items;
-    const activeTasks = tasks.filter(t => t.status === 'assigned' || t.status === 'in_progress').length;
+    const activeTasks = tasks.filter(t => t.status === 'assigned' || t.status === 'in_progress' || t.status === 'failed').length;
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);

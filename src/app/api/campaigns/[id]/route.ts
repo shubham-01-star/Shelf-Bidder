@@ -16,7 +16,8 @@ async function handleGET(
   try {
     const campaign = await CampaignOperations.getById(params.id);
     return NextResponse.json(campaign);
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     if (error.name === 'NotFoundError') {
       return NextResponse.json(
         { error: 'Campaign not found' },
@@ -62,7 +63,8 @@ async function handlePATCH(
     });
 
     return NextResponse.json(campaign);
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     if (error.name === 'NotFoundError') {
       return NextResponse.json(
         { error: 'Campaign not found' },
@@ -87,7 +89,8 @@ async function handleDELETE(
     logger.info('Campaign deleted', { campaignId: params.id });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     if (error.name === 'NotFoundError') {
       return NextResponse.json(
         { error: 'Campaign not found' },

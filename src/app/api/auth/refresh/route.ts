@@ -19,87 +19,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Local dev mock refresh ──────────────────────────────────────
-    const isLocalDev = process.env.NODE_ENV !== 'production';
-    const userPoolId = process.env.NEXT_PUBLIC_USER_POOL_ID || '';
-    const isPlaceholderPool = userPoolId.includes('localDev') || userPoolId === '';
-
-    if (isLocalDev && isPlaceholderPool) {
-      // In local dev, decode the refresh token and generate new tokens
-      try {
-        const tokenParts = refreshToken.split('.');
-        if (tokenParts.length < 2) {
-          return NextResponse.json(
-            { error: 'Invalid token', message: 'Malformed refresh token' },
-            { status: 401 }
-          );
-        }
-
-        // Decode the payload
-        const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const padded = base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4);
-        const payload = JSON.parse(Buffer.from(padded, 'base64').toString());
-
-        // Generate new tokens
-        const newPayload = {
-          ...payload,
-          iat: Math.floor(Date.now() / 1000),
-          exp: Math.floor(Date.now() / 1000) + 3600,
-        };
-        const encoded = Buffer.from(JSON.stringify(newPayload)).toString('base64url');
-        const newToken = `local.${encoded}.local`;
-
-        return NextResponse.json({
-          accessToken: newToken,
-          idToken: newToken,
-          refreshToken: `refresh.${newToken}`,
-          expiresIn: 3600,
-        });
-      } catch (err) {
+    // Decode the refresh token and generate new simple tokens
+    try {
+      const tokenParts = refreshToken.split('.');
+      if (tokenParts.length < 2) {
         return NextResponse.json(
-          { error: 'Invalid token', message: 'Failed to decode refresh token' },
+          { error: 'Invalid token', message: 'Malformed refresh token' },
           { status: 401 }
         );
       }
-    }
-    // ── End local dev mock ───────────────────────────────────────────
 
-    // Real AWS Cognito Token Refresh with Rotation
-    const { getAWSConfig } = await import('@/types/aws-config');
-    const { CognitoIdentityProviderClient, InitiateAuthCommand } = await import('@aws-sdk/client-cognito-identity-provider');
+      // Decode the payload
+      const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4);
+      const payload = JSON.parse(Buffer.from(padded, 'base64').toString());
 
-    const config = getAWSConfig();
-    const client = new CognitoIdentityProviderClient({ region: config.region });
+      // Generate new tokens
+      const newPayload = {
+        ...payload,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 7 * 24 * 3600, // Extend for 7 more days
+      };
+      
+      const encoded = Buffer.from(JSON.stringify(newPayload)).toString('base64url');
+      const newToken = `simple.${encoded}.token`;
 
-    // Use REFRESH_TOKEN_AUTH flow
-    const command = new InitiateAuthCommand({
-      AuthFlow: 'REFRESH_TOKEN_AUTH',
-      ClientId: config.userPoolClientId,
-      AuthParameters: {
-        REFRESH_TOKEN: refreshToken,
-      },
-    });
-
-    const response = await client.send(command);
-
-    if (!response.AuthenticationResult) {
+      return NextResponse.json({
+        accessToken: newToken,
+        idToken: newToken,
+        refreshToken: `refresh.${newToken}`,
+        expiresIn: 7 * 24 * 3600,
+      });
+    } catch (err) {
       return NextResponse.json(
-        { error: 'Token refresh failed', message: 'Failed to refresh authentication tokens' },
+        { error: 'Invalid token', message: 'Failed to decode refresh token' },
         { status: 401 }
       );
     }
 
-    // Cognito returns new access and ID tokens
-    // The refresh token may be rotated (new one provided) or remain the same
-    const result = response.AuthenticationResult;
 
-    return NextResponse.json({
-      accessToken: result.AccessToken,
-      idToken: result.IdToken,
-      // Use new refresh token if provided (rotation), otherwise keep the old one
-      refreshToken: result.RefreshToken || refreshToken,
-      expiresIn: result.ExpiresIn || 3600,
-    });
   } catch (error: unknown) {
     console.error('Token refresh error:', error);
 

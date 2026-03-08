@@ -53,7 +53,8 @@ const PUBLIC_API_ROUTES = [
   '/api/auth/signin',
   '/api/auth/signup',
   '/api/auth/verify',
-  '/api/brand/auth',
+  '/api/brand/auth/signin',
+  '/api/brand/auth/signup',
   '/api/health',
 ];
 

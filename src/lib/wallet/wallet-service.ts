@@ -68,8 +68,11 @@ export async function creditEarnings(
     );
   }
 
+  // Resolve Cognito sub → shopkeepers.id (UUID) for FK reference
+  const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
+
   return WalletTransactionOperations.create({
-    shopkeeper_id: shopkeeperId,
+    shopkeeper_id: shopkeeper.id,
     task_id: taskId,
     type: 'earning',
     amount,
@@ -105,8 +108,11 @@ export async function getTransactionHistory(
   startDate?: string,
   endDate?: string
 ): Promise<WalletTransaction[]> {
+  // Resolve Cognito sub → shopkeepers.id (UUID) for FK queries
+  const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
+
   const result = await WalletTransactionOperations.queryByShopkeeper(
-    shopkeeperId,
+    shopkeeper.id,
     startDate ? new Date(startDate) : undefined,
     endDate ? new Date(endDate) : undefined,
     { limit: 100 }
@@ -136,8 +142,11 @@ export async function getEarningsSummary(
   );
   const endDate = new Date();
 
+  // Resolve Cognito sub → shopkeepers.id (UUID) for FK queries
+  const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
+
   const result = await WalletTransactionOperations.queryByShopkeeper(
-    shopkeeperId,
+    shopkeeper.id,
     startDate,
     endDate,
     { limit: 1000 }
@@ -236,8 +245,9 @@ export async function requestPayout(
   }
 
   // ACID payout: atomically deducts balance and creates transaction
+  // processPayout expects shopkeepers.id (UUID), not Cognito sub
   const result = await TransactionOperations.processPayout(
-    shopkeeperId,
+    shopkeeper.id,
     payoutAmount,
     `Payout request - ₹${payoutAmount}`
   );

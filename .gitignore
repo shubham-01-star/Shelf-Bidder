@@ -58,3 +58,5 @@ Thumbs.db
 # PROJECT_SETUP.md
 # .kiro/
 # .kiro/specs/
+
+/src/generated/prisma

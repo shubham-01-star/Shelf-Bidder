@@ -40,12 +40,13 @@ export async function GET(request: NextRequest) {
       WalletTransactionOperations,
     } = await import('@/lib/db/postgres/operations');
 
-    // Get shopkeeper balance
+    // Get shopkeeper balance (uses Cognito sub to find shopkeeper)
     const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
     const totalBalance = shopkeeper.wallet_balance;
+    const skUuid = shopkeeper.id; // UUID primary key for FK queries
 
-    // Get tasks for this shopkeeper
-    const tasksRes = await TaskOperations.queryByShopkeeper(shopkeeperId, undefined, { limit: 100 });
+    // Get tasks for this shopkeeper (tasks.shopkeeper_id references shopkeepers.id UUID)
+    const tasksRes = await TaskOperations.queryByShopkeeper(skUuid, undefined, { limit: 100 });
     const tasks = tasksRes.items;
     const activeTasks = tasks.filter(t => t.status === 'assigned' || t.status === 'in_progress').length;
 
@@ -61,8 +62,8 @@ export async function GET(request: NextRequest) {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const [todayTxns, weeklyTxns] = await Promise.all([
-      WalletTransactionOperations.queryByShopkeeper(shopkeeperId, todayStart, now, { limit: 1000 }),
-      WalletTransactionOperations.queryByShopkeeper(shopkeeperId, sevenDaysAgo, now, { limit: 1000 }),
+      WalletTransactionOperations.queryByShopkeeper(skUuid, todayStart, now, { limit: 1000 }),
+      WalletTransactionOperations.queryByShopkeeper(skUuid, sevenDaysAgo, now, { limit: 1000 }),
     ]);
 
     const sumEarnings = (items: typeof todayTxns.items) =>

@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getShopkeeperIdFromRequest } from '@/lib/auth/server-auth';
-import { ShopkeeperOperations } from '@/lib/db/operations';
+import { ShopkeeperOperations } from '@/lib/db/postgres/operations';
 
 /**
  * GET /api/profile - Get shopkeeper profile
@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('[Profile GET] 📞 Calling ShopkeeperOperations.get...');
-    const shopkeeper = await ShopkeeperOperations.get(shopkeeperId);
+    console.log('[Profile GET] 📞 Calling ShopkeeperOperations.getByShopkeeperId...');
+    const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
     console.log('[Profile GET] ✅ Got shopkeeper:', shopkeeper);
 
     return NextResponse.json({
@@ -121,10 +121,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update last active date
-    updates.lastActiveDate = new Date().toISOString();
+    updates.last_active_date = new Date();
 
-    // Update shopkeeper
-    const updatedShopkeeper = await ShopkeeperOperations.update(shopkeeperId, updates);
+    // Get shopkeeper UUID first, then update
+    const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
+    const updatedShopkeeper = await ShopkeeperOperations.update(shopkeeper.id, updates);
 
     return NextResponse.json({
       success: true,

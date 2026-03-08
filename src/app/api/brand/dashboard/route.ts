@@ -1,111 +1,65 @@
-/**
- * Brand Dashboard API
- * GET /api/brand/dashboard — Spending summary, active bids, won auctions
- */
-
 import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/lib/db/postgres';
+
+import { BrandOperations } from '@/lib/db/postgres/operations/brand';
 
 export async function GET(request: NextRequest) {
-  const brandId = request.headers.get('x-brand-id') || 'default';
-  
-  // Since we use the same user pool, brandName is what identifies bids.
-  // In a real multi-tenant architecture, this might be a dedicated ID.
-  const brandNameObj = await getBrandNameFromRequest(request);
-  const brandName = brandNameObj || 'PepsiCo'; // fallback for demo if needed
+  const brandId = request.headers.get('x-brand-id') || 'brand-demo-001';
 
   try {
-    const { AuctionOperations } = await import('@/lib/db');
-    
-    // Fetch recent active and completed auctions 
-    const activeAuctionsRes = await AuctionOperations.queryByStatus('active', { limit: 50 });
-    const completedAuctionsRes = await AuctionOperations.queryByStatus('completed', { limit: 100 });
-    
-    const allAuctions = [...(activeAuctionsRes.items || []), ...(completedAuctionsRes.items || [])];
-    
-    let totalSpent = 0;
-    let activeBidsCount = 0;
-    let auctionsWon = 0;
-    let auctionsLost = 0;
-    const recentBids: any[] = [];
-    
-    // Process all auctions to extract this brand's metrics
-    for (const auction of allAuctions) {
-      if (!auction.bids) continue;
-      
-      const brandBids = auction.bids.filter(b => b.productDetails.brand === brandName);
-      if (brandBids.length === 0) continue;
-      
-      // Get the highest bid placed by this brand on this auction
-      const maxBid = brandBids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
-      
-      if (auction.status === 'active') {
-        activeBidsCount++;
-        recentBids.push({
-          id: maxBid.id,
-          auctionId: auction.id,
-          productName: maxBid.productDetails.name,
-          amount: maxBid.amount,
-          status: 'pending',
-          timestamp: maxBid.timestamp
-        });
-      } else if (auction.status === 'completed') {
-        const isWinner = auction.winnerId ? brandBids.some(b => b.agentId === auction.winnerId) : false;
-        
-        if (isWinner) {
-          auctionsWon++;
-          // For prototype, simply add winning bid to total spent
-          totalSpent += auction.winningBid || maxBid.amount;
-        } else {
-          auctionsLost++;
-        }
-        
-        recentBids.push({
-          id: maxBid.id,
-          auctionId: auction.id,
-          productName: maxBid.productDetails.name,
-          amount: maxBid.amount,
-          status: isWinner ? 'won' : 'lost',
-          timestamp: maxBid.timestamp
-        });
-      }
-    }
-    
-    // Sort recent bids by newest first
-    recentBids.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    // 0. Get Brand Balance
+    const brand = await BrandOperations.getById(brandId);
+    const walletBalance = brand?.wallet_balance || 0;
 
-    const auctionsParticipated = auctionsWon + auctionsLost + activeBidsCount;
-    const winRate = auctionsParticipated > 0 ? Math.round((auctionsWon / (auctionsWon + auctionsLost)) * 100) : 0;
+    // 1. Get Active Campaigns & Remaining Budget
+    const campaignsResult = await query(
+      `SELECT COUNT(*) as active_count,
+              COALESCE(SUM(remaining_budget), 0) as total_remaining,
+              COALESCE(SUM(budget), 0) as total_budget
+       FROM campaigns
+       WHERE agent_id = $1 AND status = 'active'`,
+       [brandId]
+    );
+    const activeCampaigns = parseInt(campaignsResult.rows[0].active_count || '0');
+    const remainingBudget = parseFloat(campaignsResult.rows[0].total_remaining || '0');
+    const totalBudget = parseFloat(campaignsResult.rows[0].total_budget || '0');
+
+    // 2. Get Successful Placements (count of completed tasks for this brand's campaigns)
+    // For demo, we use a simple count of payout transactions
+    const placementsResult = await query(
+      `SELECT COUNT(*) as placement_count
+       FROM wallet_transactions
+       WHERE type = 'payout'`,
+       []
+    );
+    const successfulPlacements = parseInt(placementsResult.rows[0]?.placement_count || '0');
+    
+    // For the demo presentation, fetch campaigns as recent activity
+    const recentTasksResult = await query(
+      `SELECT id, product_name, brand_name, payout_per_task as payout_amount, created_at, 
+              'https://staging-shelf-bidder-photos-338261675242.s3.amazonaws.com/demo/coke-after.png' as proof_url 
+       FROM campaigns 
+       WHERE agent_id = $1 
+       ORDER BY created_at DESC LIMIT 5`,
+       [brandId]
+    );
 
     const dashboard = {
       brandId,
-      totalSpent,
-      activeBids: activeBidsCount,
-      auctionsWon,
-      auctionsLost,
-      auctionsParticipated,
-      monthlySpend: totalSpent, // Simplified for prototype
-      winRate,
-      recentBids: recentBids.slice(0, 10), // Return top 10 recent
+      walletBalance,
+      activeCampaigns,
+      remainingBudget,
+      totalSpent: totalBudget - remainingBudget, // actual spent
+      successfulPlacements,
+      recentActivity: recentTasksResult.rows,
     };
 
     return NextResponse.json({
       success: true,
       data: dashboard,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch brand dashboard data', error);
-    return NextResponse.json({ success: false, error: 'Database query failed' }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-}
-
-// Helper to grab brandname from header for db filtering
-async function getBrandNameFromRequest(request: NextRequest) {
-  // We can pass brandName explicitly or resolve from token. 
-  // For prototype speed, we'll parse it from localstorage header if provided 
-  // Alternatively we pass brandName as header in the ui page fetch request
-  const headerBrandName = request.headers.get('x-brand-name');
-  if (headerBrandName) return headerBrandName;
-  
-  // Alternatively, parse from token
-  return null;
 }

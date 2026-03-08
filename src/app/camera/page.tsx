@@ -17,16 +17,28 @@ import { queuePhoto } from '@/lib/offline/storage';
 import { useIsOffline } from '@/hooks/use-offline';
 import { ChevronLeft, Zap, Grid, Image as ImageIcon, History, Camera as CameraIcon, Check, X, RefreshCw, UploadCloud, CheckCircle2, AlertCircle } from 'lucide-react';
 
-type CameraState = 'ready' | 'capturing' | 'preview' | 'uploading' | 'analyzing' | 'inventory' | 'done';
+type CameraState = 'ready' | 'capturing' | 'preview' | 'uploading' | 'analyzing' | 'offer' | 'done';
 
-const INVENTORY_BRANDS = [
-  { id: 'coke', name: 'Coca-Cola', emoji: '🥤' },
-  { id: 'pepsi', name: 'Pepsi', emoji: '🥤' },
-  { id: 'lays', name: 'Lays', emoji: '🍟' },
-  { id: 'parle', name: 'Parle-G', emoji: '🍪' },
-  { id: 'amul', name: 'Amul', emoji: '🧈' },
-  { id: 'local', name: 'Local Brand', emoji: '🏪' },
-];
+// Type for analysis result
+interface AnalysisResult {
+  emptySpaces: number;
+  currentInventory: any[];
+  analysisConfidence: number;
+  shelfSpaceId?: string;
+  isVerification?: boolean;
+  verified?: boolean;
+  message?: string;
+  confidence?: number;
+}
+
+// Type for matched campaign
+interface MatchedCampaign {
+  id: string;
+  brandName: string;
+  productName: string;
+  earnings: number;
+  taskId: string;
+}
 
 function CameraContent() {
   const { shopkeeper } = useAuth();
@@ -37,14 +49,8 @@ function CameraContent() {
   const [state, setState] = useState<CameraState>('ready');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
-  const [inventory, setInventory] = useState<Record<string, boolean>>({});
-  const [analysisResult, setAnalysisResult] = useState<{
-    emptySpaces?: number;
-    confidence?: number;
-    message?: string;
-    isVerification?: boolean;
-    verified?: boolean;
-  } | null>(null);
+  const [matchedCampaign, setMatchedCampaign] = useState<MatchedCampaign | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isOffline = useIsOffline();
 
@@ -130,19 +136,48 @@ function CameraContent() {
         });
         setState('done');
       } else {
-        const { data: analyzeData } = await apiClient.post<{ data: { emptySpaces: number; analysisConfidence: number } }>('/api/photos/analyze', {
+        const { data: analyzeData } = await apiClient.post<{ data: { id: string; emptySpaces: any[]; analysisConfidence: number; currentInventory: any[] } }>('/api/photos/analyze', {
           shopkeeperId: shopkeeper.id,
           photoUrl: uploadData.photoUrl,
           mimeType: capturedFile.type,
         });
 
         setAnalysisResult({
-          isVerification: false,
-          emptySpaces: analyzeData.emptySpaces || 0,
-          confidence: analyzeData.analysisConfidence || 100,
+          emptySpaces: Array.isArray(analyzeData.emptySpaces) ? analyzeData.emptySpaces.length : (analyzeData.emptySpaces || 0),
+          analysisConfidence: analyzeData.analysisConfidence || 100,
+          currentInventory: analyzeData.currentInventory || [],
+          shelfSpaceId: analyzeData.id,
         });
         
-        setState('inventory');
+        // Step 2: Match Campaign
+        try {
+          const { data: matchData } = await apiClient.post<{ matched: boolean; campaign: any; taskId: string }>('/api/campaigns/match', {
+            shopkeeperId: shopkeeper.id,
+            shelfSpaceId: analyzeData.id,
+            location: 'Gurgaon', // TODO: Use real location from shopkeeper/browser
+            emptySpaces: Array.isArray(analyzeData.emptySpaces) && analyzeData.emptySpaces.length > 0 ? analyzeData.emptySpaces : [{ id: 'space-1', shelf_level: 1 }], 
+          });
+
+          if (matchData.matched && matchData.campaign) {
+            setMatchedCampaign({
+              id: matchData.campaign.id,
+              brandName: matchData.campaign.brandName || matchData.campaign.brand_name,
+              productName: matchData.campaign.productName || matchData.campaign.product_name,
+              earnings: matchData.campaign.earnings || matchData.earnings,
+              taskId: matchData.taskId,
+            });
+            setState('offer');
+          } else {
+            setAnalysisResult(prev => prev ? {
+              ...prev,
+              message: matchData.message || 'No campaigns matched your current shelf availability.'
+            } : null);
+            setState('done');
+          }
+        } catch (matchError) {
+          console.error('Campaign match error:', matchError);
+          setState('done');
+        }
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -154,7 +189,6 @@ function CameraContent() {
   const handleRetake = () => {
     setCapturedImage(null);
     setAnalysisResult(null);
-    setInventory({});
     setState('ready');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -308,38 +342,40 @@ function CameraContent() {
             </div>
           )}
 
-          {/* INVENTORY STATE */}
-          {state === 'inventory' && (
-            <>
-              <div className="text-center mb-6 shrink-0">
-                <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-widest rounded-full mb-2">Live Verification</span>
-                <h2 className="text-[#1a1c1e] text-xl font-bold">What&apos;s in stock right now?</h2>
+          {/* OFFER STATE */}
+          {state === 'offer' && matchedCampaign && (
+            <div className="flex-1 flex flex-col items-center pt-4 animate-fadeInUp">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 text-4xl shadow-inner bg-primary/10 text-primary`}>
+                🎯
               </div>
-              
-              <div className="space-y-3 mb-8">
-                {INVENTORY_BRANDS.map((brand) => (
-                  <label key={brand.id} className="flex items-center gap-4 p-4 rounded-xl cursor-pointer bg-slate-50 border border-slate-100 hover:border-[#11d452]/50 transition-colors shadow-sm">
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5 rounded text-[#11d452] focus:ring-[#11d452]"
-                      checked={inventory[brand.id] || false}
-                      onChange={(e) => setInventory({ ...inventory, [brand.id]: e.target.checked })}
-                    />
-                    <span className="text-2xl">{brand.emoji}</span>
-                    <span className="font-bold flex-1 text-slate-700">{brand.name}</span>
-                  </label>
-                ))}
+              <h2 className="text-[#1a1c1e] text-2xl font-black mb-2 text-center">
+                Match Found: {matchedCampaign.brandName}
+              </h2>
+              <p className="text-slate-600 text-[17px] mb-8 font-medium text-center px-4 leading-snug">
+                Earn <span className="text-[#11d452] font-black">₹{matchedCampaign.earnings}</span> by placing {matchedCampaign.productName} here.
+              </p>
+
+              <div className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl mb-6 shadow-sm">
+                <h3 className="font-bold text-slate-800 text-[15px] text-center">Do you currently have this item in stock?</h3>
               </div>
 
-              <div className="mt-auto">
+              <div className="mt-auto w-full flex flex-col gap-3 pb-4">
+                <button 
+                  onClick={() => router.push('/tasks')}
+                  className="w-full flex items-center justify-center gap-3 bg-[#11d452] py-4 rounded-xl text-white shadow-[0_8px_20px_rgba(17,212,82,0.3)] active:scale-95 transition-all text-lg font-bold"
+                >
+                  <Check className="w-6 h-6 stroke-[3]" />
+                  YES, Accept Task
+                </button>
                 <button 
                   onClick={() => setState('done')}
-                  className="w-full flex items-center justify-center gap-3 bg-[#11d452] py-4 rounded-xl text-white shadow-lg shadow-[#11d452]/30 active:scale-95 transition-all text-lg font-bold"
+                  className="w-full flex items-center justify-center gap-3 bg-slate-100 py-4 rounded-xl text-slate-600 active:bg-slate-200 transition-all text-[15px] font-bold"
                 >
-                  Submit Inventory
+                  <X className="w-5 h-5 stroke-[3]" />
+                  NO, Out of Stock
                 </button>
               </div>
-            </>
+            </div>
           )}
 
           {/* DONE STATE */}
@@ -366,7 +402,7 @@ function CameraContent() {
                     </div>
                     <div className="w-px h-12 bg-slate-200"></div>
                     <div className="flex flex-col items-center">
-                      <span className="text-4xl font-extrabold text-[#8c25f4]">{analysisResult.confidence}%</span>
+                      <span className="text-4xl font-extrabold text-[#8c25f4]">{analysisResult.analysisConfidence}%</span>
                       <span className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Confidence</span>
                     </div>
                   </div>

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeShelfSpace, AnalysisError } from '@/lib/vision';
 import { getObject } from '@/lib/storage';
+import prisma from '@/lib/prisma';
 
 /**
  * Request body interface
@@ -81,6 +82,30 @@ export async function POST(request: NextRequest) {
     // Analyze shelf space
     const result = await analyzeShelfSpace(imageBuffer, mimeType);
 
+    // Fetch internal Shopkeeper UUID to maintain foreign key relations
+    const shopkeeperRecord = await prisma.shopkeepers.findUnique({
+      where: { shopkeeper_id: shopkeeperId }
+    });
+
+    if (!shopkeeperRecord) {
+      return NextResponse.json(
+        { error: 'Invalid user', details: 'Shopkeeper not found in database' },
+        { status: 404 }
+      );
+    }
+
+    // Step 5: Save Database Save & Result
+    // Log the photo and analysis data to PostgreSQL
+    const dbRecord = await prisma.shelf_spaces.create({
+      data: {
+        shopkeeper_id: shopkeeperRecord.id, // Must be the internal UUID
+        photo_url: photoUrl || (s3Key ? `s3://${s3Key}` : 'base64-upload'),
+        empty_spaces: result.emptySpaces as any,
+        current_inventory: result.currentInventory as any,
+        analysis_confidence: result.analysisConfidence,
+      }
+    });
+
     const totalTime = Date.now() - startTime;
 
     // Check if analysis meets performance requirement (30 seconds)
@@ -94,6 +119,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
+        id: dbRecord.id,
         shopkeeperId,
         photoUrl,
         emptySpaces: result.emptySpaces,
@@ -141,10 +167,18 @@ export async function POST(request: NextRequest) {
 function extractS3KeyFromUrl(url: string): string {
   try {
     const urlObj = new URL(url);
-    // Handle both path-style and virtual-hosted-style URLs
-    const pathname = urlObj.pathname;
-    // Remove leading slash and bucket name if present
-    return pathname.replace(/^\/[^/]+\//, '').replace(/^\//, '');
+    const pathname = urlObj.pathname; // Always starts with a "/"
+
+    // If it's a path-style URL: https://s3.region.amazonaws.com/bucket-name/key
+    if (urlObj.hostname === 's3.amazonaws.com' || /^s3-[a-z0-9-]+\.amazonaws\.com$/.test(urlObj.hostname)) {
+      const parts = pathname.split('/');
+      parts.shift(); // Remove the empty string before the first "/"
+      parts.shift(); // Remove the bucket name
+      return parts.join('/');
+    }
+
+    // Default to virtual-hosted-style URL: https://bucket-name.s3.region.amazonaws.com/key
+    return pathname.startsWith('/') ? pathname.slice(1) : pathname;
   } catch (error) {
     throw new Error(`Invalid S3 URL: ${url}`);
   }

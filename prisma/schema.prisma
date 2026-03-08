@@ -1,0 +1,182 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model bedrock_usage_logs {
+  id               String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  model            String       @db.VarChar(100)
+  status           String       @db.VarChar(20)
+  error_message    String?
+  request_type     String       @db.VarChar(50)
+  shopkeeper_id    String?      @db.Uuid
+  response_time_ms Int?
+  timestamp        DateTime?    @default(now()) @db.Timestamp(6)
+  created_at       DateTime?    @default(now()) @db.Timestamp(6)
+  shopkeepers      shopkeepers? @relation(fields: [shopkeeper_id], references: [id], onUpdate: NoAction)
+
+  @@index([model], map: "idx_bedrock_logs_model")
+  @@index([shopkeeper_id], map: "idx_bedrock_logs_shopkeeper")
+  @@index([status], map: "idx_bedrock_logs_status")
+  @@index([timestamp(sort: Desc)], map: "idx_bedrock_logs_timestamp")
+  @@index([timestamp(sort: Desc), status], map: "idx_bedrock_recent_failures", where: raw("((status)::text = 'failure'::text)"))
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model campaigns {
+  id                     String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  agent_id               String                @db.VarChar(255)
+  brand_id               String?               @db.Uuid
+  brand_name             String                @db.VarChar(255)
+  product_name           String                @db.VarChar(255)
+  product_category       String                @db.VarChar(100)
+  budget                 Decimal               @db.Decimal(10, 2)
+  remaining_budget       Decimal               @db.Decimal(10, 2)
+  payout_per_task        Decimal               @db.Decimal(10, 2)
+  target_locations       String[]
+  target_radius_km       Decimal?              @default(5.0) @db.Decimal(5, 2)
+  placement_requirements Json
+  product_dimensions     Json
+  start_date             DateTime              @db.Timestamp(6)
+  end_date               DateTime              @db.Timestamp(6)
+  status                 String?               @default("active") @db.VarChar(20)
+  created_at             DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at             DateTime?             @default(now()) @db.Timestamp(6)
+  brands                 brands?               @relation(fields: [brand_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  tasks                  tasks[]
+  wallet_transactions    wallet_transactions[]
+
+  @@index([agent_id], map: "idx_campaigns_agent")
+  @@index([remaining_budget], map: "idx_campaigns_budget", where: raw("((status)::text = 'active'::text)"))
+  @@index([product_category], map: "idx_campaigns_category")
+  @@index([start_date, end_date], map: "idx_campaigns_dates")
+  @@index([target_locations], map: "idx_campaigns_location", type: Gin)
+  @@index([status], map: "idx_campaigns_status", where: raw("((status)::text = 'active'::text)"))
+}
+
+model brands {
+  id              String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name            String      @db.VarChar(255)
+  email           String      @unique @db.VarChar(255)
+  password        String      @db.VarChar(255)
+  contact_person  String?     @db.VarChar(255)
+  wallet_balance  Decimal?    @default(0.00) @db.Decimal(10, 2)
+  created_at      DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?   @default(now()) @db.Timestamp(6)
+  campaigns       campaigns[]
+
+  @@index([email], map: "idx_brands_email")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model shelf_spaces {
+  id                  String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  shopkeeper_id       String      @db.Uuid
+  photo_url           String
+  analysis_date       DateTime?   @default(now()) @db.Timestamp(6)
+  empty_spaces        Json
+  current_inventory   Json
+  analysis_confidence Int?
+  created_at          DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?   @default(now()) @db.Timestamp(6)
+  shopkeepers         shopkeepers @relation(fields: [shopkeeper_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tasks               tasks[]
+
+  @@index([analysis_confidence], map: "idx_shelf_spaces_confidence")
+  @@index([analysis_date(sort: Desc)], map: "idx_shelf_spaces_date")
+  @@index([empty_spaces], map: "idx_shelf_spaces_empty_spaces", type: Gin)
+  @@index([shopkeeper_id], map: "idx_shelf_spaces_shopkeeper")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model shopkeepers {
+  id                  String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  shopkeeper_id       String                @unique @db.VarChar(255)
+  name                String                @db.VarChar(255)
+  phone_number        String                @unique @db.VarChar(20)
+  email               String                @unique @db.VarChar(255)
+  password            String?               @db.VarChar(255)
+  store_address       String
+  store_location      Unsupported("point")?
+  preferred_language  String?               @default("en") @db.VarChar(10)
+  timezone            String?               @default("UTC") @db.VarChar(50)
+  wallet_balance      Decimal?              @default(0.00) @db.Decimal(10, 2)
+  registration_date   DateTime?             @default(now()) @db.Timestamp(6)
+  last_active_date    DateTime?             @default(now()) @db.Timestamp(6)
+  created_at          DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?             @default(now()) @db.Timestamp(6)
+  bedrock_usage_logs  bedrock_usage_logs[]
+  shelf_spaces        shelf_spaces[]
+  tasks               tasks[]
+  wallet_transactions wallet_transactions[]
+
+  @@index([email], map: "idx_shopkeepers_email")
+  @@index([last_active_date], map: "idx_shopkeepers_last_active")
+  @@index([store_location], map: "idx_shopkeepers_location", type: Gist)
+  @@index([phone_number], map: "idx_shopkeepers_phone")
+  @@index([shopkeeper_id], map: "idx_shopkeepers_shopkeeper_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tasks {
+  id                  String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  campaign_id         String                @db.Uuid
+  shopkeeper_id       String                @db.Uuid
+  shelf_space_id      String                @db.Uuid
+  instructions        Json
+  status              String?               @default("assigned") @db.VarChar(20)
+  assigned_date       DateTime?             @default(now()) @db.Timestamp(6)
+  completed_date      DateTime?             @db.Timestamp(6)
+  proof_photo_url     String?
+  earnings            Decimal               @db.Decimal(10, 2)
+  verification_result Json?
+  created_at          DateTime?             @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?             @default(now()) @db.Timestamp(6)
+  campaigns           campaigns             @relation(fields: [campaign_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  shelf_spaces        shelf_spaces          @relation(fields: [shelf_space_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  shopkeepers         shopkeepers           @relation(fields: [shopkeeper_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  wallet_transactions wallet_transactions[]
+
+  @@index([assigned_date(sort: Desc)], map: "idx_tasks_assigned_date")
+  @@index([campaign_id], map: "idx_tasks_campaign")
+  @@index([completed_date(sort: Desc)], map: "idx_tasks_completed_date", where: raw("(completed_date IS NOT NULL)"))
+  @@index([shelf_space_id], map: "idx_tasks_shelf_space")
+  @@index([shopkeeper_id], map: "idx_tasks_shopkeeper")
+  @@index([status], map: "idx_tasks_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model wallet_transactions {
+  id               String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  shopkeeper_id    String      @db.Uuid
+  task_id          String?     @db.Uuid
+  campaign_id      String?     @db.Uuid
+  type             String      @db.VarChar(20)
+  amount           Decimal     @db.Decimal(10, 2)
+  description      String
+  status           String?     @default("completed") @db.VarChar(20)
+  transaction_date DateTime?   @default(now()) @db.Timestamp(6)
+  created_at       DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?   @default(now()) @db.Timestamp(6)
+  campaigns        campaigns?  @relation(fields: [campaign_id], references: [id], onUpdate: NoAction)
+  shopkeepers      shopkeepers @relation(fields: [shopkeeper_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tasks            tasks?      @relation(fields: [task_id], references: [id], onUpdate: NoAction)
+
+  @@index([campaign_id], map: "idx_wallet_transactions_campaign")
+  @@index([transaction_date(sort: Desc)], map: "idx_wallet_transactions_date")
+  @@index([shopkeeper_id], map: "idx_wallet_transactions_shopkeeper")
+  @@index([status], map: "idx_wallet_transactions_status")
+  @@index([task_id], map: "idx_wallet_transactions_task")
+  @@index([type], map: "idx_wallet_transactions_type")
+}

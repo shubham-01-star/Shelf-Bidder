@@ -1,33 +1,25 @@
-/**
- * Sign In API Route
- * Handles shopkeeper authentication with AWS Cognito.
- * In local dev (no real Cognito), uses mock auth for testing.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 
-// ---- Mock user store for local development ----
-// In production this is replaced by real Cognito calls.
-// Registered via /api/auth/signup, stored in-memory (resets on server restart).
-const LOCAL_DEV_USERS: Record<string, { name: string; password: string }> = {
-  // Pre-seeded sample user for easy testing
-  '+919876543210': { name: 'Ramesh Kumar', password: 'Test@1234' },
-};
+export const dynamic = 'force-dynamic';
+import { shopkeepers } from '@prisma/client';
 
-// Expose the store so signup route can add users
-export { LOCAL_DEV_USERS };
-
-function makeLocalToken(phoneNumber: string, name: string): string {
-  // Fake JWT-shaped token (base64 payload) for local dev
+function generateSimpleToken(user: shopkeepers) {
+  // A very simple token generation for the "simple API" 
+  // without external dependencies like 'jsonwebtoken'
   const payload = {
-    sub: `local-${phoneNumber.replace(/\D/g, '')}`,
-    phone_number: phoneNumber,
-    name,
+    sub: user.shopkeeper_id,
+    phone_number: user.phone_number,
+    name: user.name,
     iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 3600,
+    exp: Math.floor(Date.now() / 1000) + 7 * 24 * 3600, // 7 days
   };
-  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  return `local.${encoded}.local`;
+  
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  
+  // Note: For true security, this should be signed with a secret key (HMAC).
+  // For the requested "simple API", we are returning a basic payload.
+  return `simple.${encodedPayload}.token`;
 }
 
 export async function POST(request: NextRequest) {
@@ -42,93 +34,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Local dev mock auth ──────────────────────────────────────────
-    const isLocalDev = process.env.NODE_ENV !== 'production';
-    const userPoolId = process.env.NEXT_PUBLIC_USER_POOL_ID || '';
-    const isPlaceholderPool = userPoolId.includes('localDev') || userPoolId === '';
-
-    if (isLocalDev && isPlaceholderPool) {
-      const user = LOCAL_DEV_USERS[phoneNumber];
-      if (!user) {
-        return NextResponse.json(
-          { error: 'UserNotFoundException', message: 'No account found with this phone number. Please sign up first.' },
-          { status: 401 }
-        );
-      }
-      if (user.password !== password) {
-        return NextResponse.json(
-          { error: 'NotAuthorizedException', message: 'Incorrect password. Please try again.' },
-          { status: 401 }
-        );
-      }
-
-      const token = makeLocalToken(phoneNumber, user.name);
-      return NextResponse.json({
-        accessToken: token,
-        idToken: token,
-        refreshToken: `refresh.${token}`,
-        expiresIn: 3600,
-        name: user.name,
-        phoneNumber,
-      });
-    }
-    // ── End local dev mock ───────────────────────────────────────────
-
-    // Real AWS Cognito Authentication
-    const { getAWSConfig } = await import('@/types/aws-config');
-    const { CognitoIdentityProviderClient, InitiateAuthCommand } = await import('@aws-sdk/client-cognito-identity-provider');
-    
-    const config = getAWSConfig();
-    const client = new CognitoIdentityProviderClient({ region: config.region });
-
-    const command = new InitiateAuthCommand({
-      AuthFlow: 'USER_PASSWORD_AUTH',
-      ClientId: config.userPoolClientId,
-      AuthParameters: {
-        USERNAME: phoneNumber,
-        PASSWORD: password,
-      },
+    // Find the user in PostgreSQL
+    const user = await prisma.shopkeepers.findUnique({
+      where: { phone_number: phoneNumber }
     });
 
-    const authResponse = await client.send(command);
-
-    if (authResponse.AuthenticationResult) {
-      return NextResponse.json({
-        accessToken: authResponse.AuthenticationResult.AccessToken,
-        idToken: authResponse.AuthenticationResult.IdToken,
-        refreshToken: authResponse.AuthenticationResult.RefreshToken,
-        expiresIn: authResponse.AuthenticationResult.ExpiresIn,
-      });
-    }
-
-    return NextResponse.json(
-      { error: 'NotAuthorizedException', message: 'Authentication failed. Please check your credentials.' },
-      { status: 401 }
-    );
-  } catch (error: any) {
-    console.error('Sign in error:', error);
-
-    if (error.name === 'NotAuthorizedException') {
-      return NextResponse.json(
-        { error: 'NotAuthorizedException', message: 'Incorrect phone number or password.' },
-        { status: 401 }
-      );
-    }
-    
-    if (error.name === 'UserNotFoundException') {
+    if (!user) {
       return NextResponse.json(
         { error: 'UserNotFoundException', message: 'Account not found. Please sign up first.' },
         { status: 404 }
       );
     }
-    
-    if (error.name === 'UserNotConfirmedException') {
+
+    // Verify Password (direct string comparison for simple mode)
+    // Note: Use bcrypt in production
+    // @ts-ignore - Prisma types are cached in IDE
+    if (user.password !== password) {
       return NextResponse.json(
-        { error: 'UserNotConfirmedException', message: 'Please verify your phone number first.' },
-        { status: 403 }
+        { error: 'NotAuthorizedException', message: 'Incorrect password.' },
+        { status: 401 }
       );
     }
 
+    // Update last active date
+    await prisma.shopkeepers.update({
+      where: { id: user.id },
+      data: { last_active_date: new Date() }
+    });
+
+    const token = generateSimpleToken(user);
+
+    return NextResponse.json({
+      accessToken: token,
+      idToken: token,
+      refreshToken: `refresh.${token}`,
+      expiresIn: 7 * 24 * 3600,
+      name: user.name,
+      phoneNumber: user.phone_number,
+    });
+    
+  } catch (err: unknown) {
+    const error = err as Error;
+    console.error('Sign in error:', error);
     return NextResponse.json(
       { error: 'Internal server error', message: 'An error occurred during sign in' },
       { status: 500 }

@@ -80,6 +80,7 @@ describe('creditEarnings', () => {
   beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should create a transaction and update balance', async () => {
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce(mockShopkeeper);
     const mockTxn = {
       id: 'txn-1',
       shopkeeper_id: 'shop-123',
@@ -97,7 +98,7 @@ describe('creditEarnings', () => {
     expect(result.type).toBe('earning');
     expect(result.status).toBe('completed');
     expect(mockTxnCreate).toHaveBeenCalledWith({
-      shopkeeper_id: 'shop-123',
+      shopkeeper_id: 'uuid-123',
       task_id: 'task-1',
       type: 'earning',
       amount: 50,
@@ -131,6 +132,7 @@ describe('getTransactionHistory', () => {
   beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should return transactions for a shopkeeper', async () => {
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce(mockShopkeeper);
     const mockTransactions = [
       {
         id: 'txn-1',
@@ -162,6 +164,7 @@ describe('getEarningsSummary', () => {
   beforeEach(() => { jest.clearAllMocks(); return undefined; });
 
   it('should calculate correct earnings summary', async () => {
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce(mockShopkeeper);
     const mockTransactions = [
       {
         id: 'txn-1', shopkeeper_id: 'shop-123', type: 'earning',
@@ -197,6 +200,7 @@ describe('getEarningsSummary', () => {
   });
 
   it('should return zeros when no transactions', async () => {
+    mockShopkeeperGetByShopkeeperId.mockResolvedValueOnce(mockShopkeeper);
     mockTxnQueryByShopkeeper.mockResolvedValueOnce({
       items: [],
       total: 0,
@@ -252,7 +256,7 @@ describe('requestPayout', () => {
 
     expect(result.type).toBe('payout');
     expect(result.amount).toBe(200);
-    expect(mockProcessPayout).toHaveBeenCalledWith('shop-123', 200, 'Payout request - ₹200');
+    expect(mockProcessPayout).toHaveBeenCalledWith('uuid-123', 200, 'Payout request - ₹200');
   });
 
   it('should payout full balance when no amount specified', async () => {
@@ -266,7 +270,7 @@ describe('requestPayout', () => {
     const result = await requestPayout('shop-123');
 
     expect(result.amount).toBe(500);
-    expect(mockProcessPayout).toHaveBeenCalledWith('shop-123', 500, 'Payout request - ₹500');
+    expect(mockProcessPayout).toHaveBeenCalledWith('uuid-123', 500, 'Payout request - ₹500');
   });
 
   it('should reject payout exceeding balance', async () => {

@@ -153,7 +153,7 @@ const withPWA = require('next-pwa')({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  // output: 'standalone', // Disabled to avoid Windows colon in filename error during tracing
   reactStrictMode: true,
   turbopack: {
     root: __dirname,

@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/navigation/BottomNav';
 import { useWallet } from '@/hooks/use-wallet';
-import { ArrowLeft, TrendingUp, Package, Building2, Landmark, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Package, Landmark, CheckCircle2, Clock } from 'lucide-react';
 
 export default function WalletPage() {
   const router = useRouter();
@@ -39,8 +39,9 @@ export default function WalletPage() {
       setPayoutAmount(0);
       
       // Show success message
-      alert(`✅ Withdrawal Successful!\n\n₹${payoutAmount} has been transferred to your bank account.\n\nBank: State Bank of India •••• 1234\nTransaction ID: ${(response as any)?.data?.transactionId || 'N/A'}`);
-    } catch (error: any) {
+      alert(`✅ Withdrawal Successful!\n\n₹${payoutAmount} has been transferred to your bank account.\n\nBank: State Bank of India •••• 1234\nTransaction ID: ${(response as { data?: { transactionId?: string } })?.data?.transactionId || 'N/A'}`);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }, message?: string };
       console.error('Withdrawal error:', error);
       const errorMessage = error?.response?.data?.error || error?.message || 'Failed to process withdrawal';
       alert(`❌ Withdrawal Failed\n\n${errorMessage}`);

@@ -54,8 +54,8 @@ async function main() {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   
   const signinResult = await apiCall('/api/auth/signin', 'POST', {
-    phoneNumber: '+919876543210',
-    password: 'Test@1234',
+    phoneNumber: '+919902010000',
+    password: 'Password123!',
   });
   
   if (!signinResult.ok || !signinResult.data.accessToken) {

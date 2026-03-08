@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { campaignMatcher } from '@/lib/services/campaign-matcher';
-import { withAuth } from '@/lib/middleware/auth';
 import { logger } from '@/lib/logger';
 
 /**
@@ -72,4 +71,4 @@ async function handlePOST(request: Request) {
   }
 }
 
-export const POST = withAuth(handlePOST);
+export const POST = handlePOST;

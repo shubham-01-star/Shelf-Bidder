@@ -120,9 +120,9 @@ export class CampaignMatcher {
       // Update budget
       const updateSql = `
         UPDATE campaigns
-        SET remaining_budget = $1,
+        SET remaining_budget = $1::numeric,
             status = CASE
-              WHEN $1 <= 0 THEN 'completed'
+              WHEN $1::numeric <= 0 THEN 'completed'
               ELSE status
             END
         WHERE id = $2

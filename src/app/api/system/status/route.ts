@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { DynamoDBClient, ScanCommand } from '@aws-sdk/client-dynamodb';
+import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
 /**
@@ -11,51 +11,31 @@ import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION });
-    
-    // Get counts from various tables (with limits to avoid expensive scans)
-    const [shopkeepersResult, auctionsResult, tasksResult] = await Promise.allSettled([
-      client.send(new ScanCommand({
-        TableName: process.env.DYNAMODB_TABLE_SHOPKEEPERS || 'shelf-bidder-shopkeepers',
-        Select: 'COUNT',
-        Limit: 1000,
-      })),
-      client.send(new ScanCommand({
-        TableName: process.env.DYNAMODB_TABLE_AUCTIONS || 'shelf-bidder-auctions',
-        Select: 'COUNT',
-        Limit: 1000,
-      })),
-      client.send(new ScanCommand({
-        TableName: process.env.DYNAMODB_TABLE_TASKS || 'shelf-bidder-tasks',
-        Select: 'COUNT',
-        Limit: 1000,
-      })),
+    // Get counts from various tables
+    const [shopkeepersCount, campaignsCount, tasksCount] = await Promise.allSettled([
+      prisma.shopkeepers.count(),
+      prisma.campaigns.count(),
+      prisma.tasks.count()
     ]);
     
     const status = {
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
-      region: process.env.AWS_REGION,
+      region: process.env.AWS_REGION || 'local',
       version: '1.0.0',
       statistics: {
-        totalShopkeepers: shopkeepersResult.status === 'fulfilled' 
-          ? shopkeepersResult.value.Count || 0 
-          : 0,
-        totalAuctions: auctionsResult.status === 'fulfilled' 
-          ? auctionsResult.value.Count || 0 
-          : 0,
-        totalTasks: tasksResult.status === 'fulfilled' 
-          ? tasksResult.value.Count || 0 
-          : 0,
+        totalShopkeepers: shopkeepersCount.status === 'fulfilled' ? shopkeepersCount.value : 0,
+        totalAuctions: campaignsCount.status === 'fulfilled' ? campaignsCount.value : 0,
+        totalTasks: tasksCount.status === 'fulfilled' ? tasksCount.value : 0,
       },
       features: {
-        authentication: !!process.env.NEXT_PUBLIC_USER_POOL_ID,
+        authentication: true, // Now handled locally/DB
         photoProcessing: !!process.env.S3_BUCKET_PHOTOS,
         visionAnalysis: !!process.env.AWS_REGION,
-        auctionEngine: !!process.env.DYNAMODB_TABLE_AUCTIONS,
+        auctionEngine: true, // Now in Postgres
         notifications: !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
         voiceNotifications: !!process.env.AWS_CONNECT_INSTANCE_ID,
-        wallet: !!process.env.DYNAMODB_TABLE_TRANSACTIONS,
+        wallet: true, // Now in Postgres
       },
     };
     

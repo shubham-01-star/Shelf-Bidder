@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
-import { dynamoDBClient } from '@/lib/db/client';
-import { ScanCommand } from '@aws-sdk/lib-dynamodb';
+import prisma from '@/lib/prisma';
 
-// Type definition for shopkeeper basic info
-interface ShopkeeperInfo {
-  shopkeeperId: string;
-  name?: string;
-}
+
 
 /**
  * Morning Trigger API
@@ -25,13 +20,11 @@ export async function POST(request: Request) {
     }
 
     // 1. Fetch all active shopkeepers from DB
-    const command = new ScanCommand({
-      TableName: process.env.SHOPKEEPERS_TABLE || 'ShelfBidder-Shopkeepers',
-      // In production, we would use an Index to only fetch active users
+    // We only need the count, so we don't need to select specific fields
+    const shopkeepers = await prisma.shopkeepers.findMany({
+      // No specific fields are needed as we only use the array's length
+      // If actual notification sending were implemented, relevant fields (e.g., push subscription info) would be selected here.
     });
-
-    const response = await dynamoDBClient.send(command);
-    const shopkeepers = (response.Items || []) as unknown as ShopkeeperInfo[];
 
     // 2. Send notifications in parallel batches
     const successCount = shopkeepers.length; // Mock success
@@ -67,3 +60,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

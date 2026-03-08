@@ -45,8 +45,8 @@ export default function SignUpPage() {
     try {
       setIsLoading(true);
       await signUp(phoneNumber, password, name, email);
-      // Redirect to verification page
-      router.push(`/verify?phone=${encodeURIComponent(phoneNumber)}`);
+      alert('Account created successfully! Please sign in with your credentials.');
+      router.push('/signin');
     } catch (err: unknown) {
       console.error('Sign up error:', err);
       if (err instanceof Error) {

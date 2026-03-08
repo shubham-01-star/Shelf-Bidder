@@ -3,8 +3,6 @@
  * Handles shopkeeper authentication using AWS Cognito
  */
 
-import { getAWSConfig } from '@/types/aws-config';
-
 export interface AuthTokens {
   accessToken: string;
   idToken: string;
@@ -26,7 +24,6 @@ export async function signIn(
   phoneNumber: string,
   password: string
 ): Promise<AuthTokens> {
-  const config = getAWSConfig();
   
   // In a real implementation, this would use AWS Cognito SDK
   // For now, we'll call our API endpoint that handles Cognito authentication
@@ -163,20 +160,33 @@ export function decodeIdToken(idToken: string): ShopkeeperProfile {
   try {
     // Decode JWT token payload (supports both base64 and base64url)
     const parts = idToken.split('.');
-    if (parts.length < 2) throw new Error('Malformed token');
+    
+    // For our "simple" and "brand" mock tokens, the payload is the second part
+    // Format: type.payload.suffix
+    let payloadPart = '';
+    if (parts.length === 3 && (parts[0] === 'simple' || parts[0] === 'brand' || parts[2] === 'token')) {
+      payloadPart = parts[1];
+    } else if (parts.length >= 2) {
+      // Standard JWT format: header.payload.signature
+      payloadPart = parts[1];
+    } else {
+      throw new Error('Malformed token');
+    }
+
     // Convert base64url → base64 (replace - with +, _ with /)
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
     // Pad to multiple of 4
     const padded = base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4);
     const decoded = JSON.parse(atob(padded));
 
     return {
-      id: decoded.sub,
-      phoneNumber: decoded.phone_number,
+      id: decoded.sub || decoded.id,
+      phoneNumber: decoded.phone_number || '',
       name: decoded.name,
       email: decoded.email,
     };
-  } catch {
+  } catch (error) {
+    console.error('Failed to decode token:', error);
     throw new Error('Invalid ID token');
   }
 }

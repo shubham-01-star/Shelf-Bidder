@@ -78,9 +78,10 @@ export async function GET(request: NextRequest) {
     // Get balance from shopkeeper record
     const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
     const balance = shopkeeper.wallet_balance;
+    const skUuid = shopkeeper.id; // UUID primary key for FK queries
 
     // Get recent transactions (sorted by date desc in the query)
-    const txnsRes = await WalletTransactionOperations.queryByShopkeeper(shopkeeperId, undefined, undefined, { limit: 50 });
+    const txnsRes = await WalletTransactionOperations.queryByShopkeeper(skUuid, undefined, undefined, { limit: 50 });
     const transactions = txnsRes.items;
 
     // Get today and weekly earnings by querying with date ranges
@@ -91,8 +92,8 @@ export async function GET(request: NextRequest) {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const [todayTxns, weeklyTxns] = await Promise.all([
-      WalletTransactionOperations.queryByShopkeeper(shopkeeperId, todayStart, now, { limit: 1000 }),
-      WalletTransactionOperations.queryByShopkeeper(shopkeeperId, sevenDaysAgo, now, { limit: 1000 }),
+      WalletTransactionOperations.queryByShopkeeper(skUuid, todayStart, now, { limit: 1000 }),
+      WalletTransactionOperations.queryByShopkeeper(skUuid, sevenDaysAgo, now, { limit: 1000 }),
     ]);
 
     const sumEarnings = (items: typeof todayTxns.items) =>

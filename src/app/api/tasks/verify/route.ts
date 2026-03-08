@@ -13,7 +13,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyTaskCompletion, getMediaType } from '@/lib/vision/bedrock-client';
 import { getObject } from '@/lib/storage';
 import { TaskOperations } from '@/lib/db/postgres/operations/task';
-import { WalletTransactionOperations } from '@/lib/db/postgres/operations/wallet-transaction';
 import { transaction } from '@/lib/db/postgres/client';
 import type { VerificationResult } from '@/lib/db/postgres/types';
 
@@ -338,7 +337,15 @@ function extractS3KeyFromUrl(url: string): string {
   try {
     const urlObj = new URL(url);
     const pathname = urlObj.pathname;
-    return pathname.replace(/^\/[^/]+\//, '').replace(/^\//, '');
+
+    if (urlObj.hostname === 's3.amazonaws.com' || /^s3-[a-z0-9-]+\.amazonaws\.com$/.test(urlObj.hostname)) {
+      const parts = pathname.split('/');
+      parts.shift();
+      parts.shift();
+      return parts.join('/');
+    }
+
+    return pathname.startsWith('/') ? pathname.slice(1) : pathname;
   } catch (error) {
     throw new Error(`Invalid S3 URL: ${url}`);
   }

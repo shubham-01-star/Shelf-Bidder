@@ -58,8 +58,9 @@ export async function GET(request: NextRequest) {
     // ── End local dev mock ───────────────────────────────────────────
 
     // Production: PostgreSQL queries
-    const { TaskOperations } = await import('@/lib/db/postgres/operations');
-    const tasksRes = await TaskOperations.queryByShopkeeper(shopkeeperId, undefined, { limit: 100 });
+    const { ShopkeeperOperations, TaskOperations } = await import('@/lib/db/postgres/operations');
+    const shopkeeper = await ShopkeeperOperations.getByShopkeeperId(shopkeeperId);
+    const tasksRes = await TaskOperations.queryByShopkeeper(shopkeeper.id, undefined, { limit: 100 });
 
     return NextResponse.json({
       success: true,

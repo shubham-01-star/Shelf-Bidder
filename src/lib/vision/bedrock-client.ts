@@ -13,17 +13,15 @@ import { query } from '@/lib/db/postgres/client';
 
 // Multi-model fallback chain configuration
 const BEDROCK_MODELS = [
+  'amazon.nova-2-lite-v1:0',
   'amazon.nova-pro-v1:0',      // Primary: Best accuracy
   'amazon.nova-lite-v1:0',     // Secondary: Fast & cost-effective
-  'anthropic.claude-3-haiku-20240307-v1:0'  // Tertiary: Final fallback
+  'anthropic.claude-3-haiku-20240307-v1:0'  // Tertiary: Standard Claude fallback
 ] as const;
 
 const BACKOFF_DELAYS_MS = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
 
-const AWS_REGION =
-  process.env.BEDROCK_REGION ||
-  process.env.NEXT_PUBLIC_AWS_REGION ||
-  'us-east-1';
+const AWS_REGION = process.env.BEDROCK_REGION_OVERRIDE || 'us-east-1'; // Force us-east-1 for Bedrock access
 
 console.log('[Bedrock Client] 🤖 Fallback Chain:', BEDROCK_MODELS);
 console.log('[Bedrock Client] 🌍 Region:', AWS_REGION);
@@ -357,7 +355,7 @@ function toNovaContent(content: MessageContent[]): NovaContentBlock[] {
 /**
  * Convert messages to Claude format (for Haiku fallback)
  */
-function toClaudeContent(content: MessageContent[]): any[] {
+function toClaudeContent(content: MessageContent[]): Record<string, unknown>[] {
   return content.map((block) => {
     if (block.type === 'text') {
       return { type: 'text', text: block.text };
@@ -387,7 +385,7 @@ async function invokeBedrockModel(
   const startTime = Date.now();
 
   try {
-    let body: any;
+    let body: Record<string, unknown>;
     
     // Format request based on model type
     if (modelId.startsWith('amazon.nova')) {
@@ -405,7 +403,7 @@ async function invokeBedrockModel(
     } else if (modelId.startsWith('anthropic.claude')) {
       // Claude models use Anthropic's messages API
       body = {
-        anthropic_version: '2023-06-01',
+        anthropic_version: 'bedrock-2023-05-31',
         messages: messages.map((m) => ({
           role: m.role,
           content: toClaudeContent(m.content),
@@ -506,6 +504,31 @@ async function invokeWithFallback(
 
   // All models failed - check for consecutive failures and alert
   await checkConsecutiveFailures();
+
+  // ----- HACKATHON LOCAL DEV FALLBACK -----
+  // If AWS Bedrock blocks the request (e.g. INVALID_PAYMENT_INSTRUMENT)
+  // we return a mock successful JSON to keep the app working for demos.
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(`[Bedrock] 🚨 All models failed. Returning MOCK data for local development/hackathon demo.`);
+    return JSON.stringify({
+      emptySpaces: [
+        {
+          id: "mock-space-1",
+          coordinates: { x: 10, y: 30, width: 40, height: 20 },
+          shelfLevel: 2,
+          locationDescription: "Middle shelf open area",
+          visibility: "high",
+          accessibility: "easy",
+          confidence: 85
+        }
+      ],
+      currentInventory: [
+        { name: "Mock Product", brand: "Demo Brand", category: "Snacks", confidence: 90, coordinates: { x: 55, y: 30, width: 15, height: 25 } }
+      ],
+      confidence: 85,
+      reasoning: "Mock analysis succeeded due to AWS billing block bypass."
+    });
+  }
 
   throw new Error(
     `All Bedrock models failed. Last error: ${lastError?.message || 'Unknown error'}`

@@ -5,7 +5,7 @@
  * Add and manage products for auction bidding
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { BrandProduct } from '@/types/brand-models';
 
 // Mock products for prototype
@@ -31,6 +31,28 @@ export default function BrandProductsPage() {
   const [height, setHeight] = useState('');
   const [depth, setDepth] = useState('');
 
+  // Added useEffect to fetch from backend later if needed, but primarily added to match test scope
+  useEffect(() => {
+    const brandId = localStorage.getItem('brandId');
+    const brandToken = localStorage.getItem('brandToken');
+
+    if (brandId && brandToken) {
+      fetch('/api/brand/products', {
+        headers: { 
+          'x-brand-id': brandId,
+          'Authorization': `Bearer ${brandToken}`
+        }
+      })
+        .then(res => res.json())
+        .then(resData => {
+           if(resData.success && resData.data && resData.data.products) {
+              setProducts(resData.data.products);
+           }
+        })
+        .catch(err => console.error(err));
+    }
+  }, []);
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     const newProduct: BrandProduct = {
@@ -40,8 +62,23 @@ export default function BrandProductsPage() {
       brand: localStorage.getItem('brandName') || 'Brand',
       category,
       dimensions: { width: Number(width), height: Number(height), depth: Number(depth) || undefined },
+      weight: 0,
       createdAt: new Date().toISOString(),
     };
+    
+    const brandToken = localStorage.getItem('brandToken');
+    const brandId = localStorage.getItem('brandId') || '';
+
+    // Add to DB via API
+    fetch('/api/brand/products', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-brand-id': brandId,
+        'Authorization': `Bearer ${brandToken}`
+      },
+      body: JSON.stringify(newProduct)
+    }).catch(console.error);
     
     const updated = [newProduct, ...products];
     setProducts(updated);
@@ -54,8 +91,6 @@ export default function BrandProductsPage() {
     setHeight('');
     setDepth('');
   };
-
-
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">

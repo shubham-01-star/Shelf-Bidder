@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { DynamoDBClient, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
+import prisma from '@/lib/prisma';
 import { S3Client, HeadBucketCommand } from '@aws-sdk/client-s3';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { logger } from '@/lib/logger';
@@ -37,20 +37,18 @@ interface HealthCheckResponse {
   };
 }
 
-async function checkDynamoDB(): Promise<ServiceHealth> {
+async function checkDatabase(): Promise<ServiceHealth> {
   try {
     const start = Date.now();
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION });
-    const tableName = process.env.DYNAMODB_TABLE_SHOPKEEPERS || 'shelf-bidder-shopkeepers';
-    
-    await client.send(new DescribeTableCommand({ TableName: tableName }));
+    // Test database connection with a simple query
+    await prisma.$queryRaw`SELECT 1`;
     
     const responseTime = Date.now() - start;
-    performanceMonitor.record('health_check_dynamodb', responseTime);
+    performanceMonitor.record('health_check_database', responseTime);
     
     return { status: 'healthy', responseTime };
   } catch (error) {
-    logger.error('DynamoDB health check failed', error);
+    logger.error('Database health check failed', error);
     return { 
       status: 'down', 
       error: error instanceof Error ? error.message : 'Unknown error' 
@@ -133,7 +131,7 @@ export async function GET() {
   try {
     // Run basic health checks (skip Bedrock for now)
     const [database, storage, auth] = await Promise.all([
-      checkDynamoDB(),
+      checkDatabase(),
       checkS3(),
       checkAuth(),
     ]);

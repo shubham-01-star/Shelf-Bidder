@@ -1,0 +1,368 @@
+service: shelf-bidder-api
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${opt:region, 'ap-south-1'}
+  stage: ${opt:stage, 'dev'}
+  memorySize: 512
+  timeout: 30
+
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    DYNAMODB_TABLE_SHOPKEEPERS: ${self:custom.tables.shopkeepers}
+    DYNAMODB_TABLE_SHELF_SPACES: ${self:custom.tables.shelfSpaces}
+    DYNAMODB_TABLE_AUCTIONS: ${self:custom.tables.auctions}
+    DYNAMODB_TABLE_TASKS: ${self:custom.tables.tasks}
+    DYNAMODB_TABLE_TRANSACTIONS: ${self:custom.tables.transactions}
+    S3_BUCKET_PHOTOS: ${self:custom.buckets.photos}
+    COGNITO_USER_POOL_ID: ${self:custom.cognito.userPoolId}
+    COGNITO_CLIENT_ID: ${self:custom.cognito.clientId}
+    BEDROCK_MODEL_ID: anthropic.claude-3-5-sonnet-20241022-v2:0
+
+  iam:
+    role:
+      statements:
+        # DynamoDB permissions
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:BatchGetItem
+            - dynamodb:BatchWriteItem
+          Resource:
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.shopkeepers}
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.shelfSpaces}
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.auctions}
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.tasks}
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.transactions}
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.shopkeepers}/index/*
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.shelfSpaces}/index/*
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.auctions}/index/*
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.tasks}/index/*
+            - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.transactions}/index/*
+
+        # S3 permissions
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+            - s3:ListBucket
+          Resource:
+            - arn:aws:s3:::${self:custom.buckets.photos}
+            - arn:aws:s3:::${self:custom.buckets.photos}/*
+
+        # Cognito permissions
+        - Effect: Allow
+          Action:
+            - cognito-idp:AdminGetUser
+            - cognito-idp:AdminCreateUser
+            - cognito-idp:AdminSetUserPassword
+            - cognito-idp:AdminInitiateAuth
+          Resource:
+            - arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:custom.cognito.userPoolId}
+
+        # Bedrock permissions
+        - Effect: Allow
+          Action:
+            - bedrock:InvokeModel
+          Resource:
+            - arn:aws:bedrock:${self:provider.region}::foundation-model/${self:provider.environment.BEDROCK_MODEL_ID}
+
+custom:
+  # Stage-specific configurations
+  tables:
+    shopkeepers: ${self:provider.stage}-shelf-bidder-shopkeepers
+    shelfSpaces: ${self:provider.stage}-shelf-bidder-shelf-spaces
+    auctions: ${self:provider.stage}-shelf-bidder-auctions
+    tasks: ${self:provider.stage}-shelf-bidder-tasks
+    transactions: ${self:provider.stage}-shelf-bidder-transactions
+
+  buckets:
+    photos: ${self:provider.stage}-shelf-bidder-photos-${aws:accountId}
+
+  cognito:
+    userPoolId: ${ssm:/${self:provider.stage}/shelf-bidder/cognito/user-pool-id}
+    clientId: ${ssm:/${self:provider.stage}/shelf-bidder/cognito/client-id}
+
+  # Serverless plugins
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+    packager: npm
+
+  prune:
+    automatic: true
+    number: 3
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+  - serverless-prune-plugin
+
+functions:
+  # Health check
+  health:
+    handler: lambda/handlers/health.handler
+    events:
+      - http:
+          path: /health
+          method: get
+          cors: true
+
+  # System status
+  systemStatus:
+    handler: lambda/handlers/system-status.handler
+    events:
+      - http:
+          path: /system/status
+          method: get
+          cors: true
+
+  # Authentication
+  authSignup:
+    handler: lambda/handlers/auth/signup.handler
+    events:
+      - http:
+          path: /auth/signup
+          method: post
+          cors: true
+
+  authVerify:
+    handler: lambda/handlers/auth/verify.handler
+    events:
+      - http:
+          path: /auth/verify
+          method: post
+          cors: true
+
+  authResendOtp:
+    handler: lambda/handlers/auth/resend-otp.handler
+    events:
+      - http:
+          path: /auth/resend-otp
+          method: post
+          cors: true
+
+  # Profile
+  profile:
+    handler: lambda/handlers/profile.handler
+    events:
+      - http:
+          path: /profile
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.cognitoAuthorizer}
+      - http:
+          path: /profile
+          method: put
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.cognitoAuthorizer}
+
+  # Photos
+  photosUploadUrl:
+    handler: lambda/handlers/photos/upload-url.handler
+    events:
+      - http:
+          path: /photos/upload-url
+          method: post
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.cognitoAuthorizer}
+
+  photosAnalyze:
+    handler: lambda/handlers/photos/analyze.handler
+    timeout: 60
+    memorySize: 1024
+    events:
+      - http:
+          path: /photos/analyze
+          method: post
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.cognitoAuthorizer}
+
+  photosProcess:
+    handler: lambda/handlers/photos/process.handler
+    timeout: 60
+    events:
+      - s3:
+          bucket: ${self:custom.buckets.photos}
+          event: s3:ObjectCreated:*
+          existing: true
+
+  # Auctions
+  auctionsCreate:
+    handler: lambda/handlers/auctions/create.handler
+    events:
+      - http:
+          path: /auctions
+          method: post
+          cors: true
+
+  auctionsBid:
+    handler: lambda/handlers/auctions/bid.handler
+    events:
+      - http:
+          path: /auctions/{auctionId}/bid
+          method: post
+          cors: true
+
+  auctionsClose:
+    handler: lambda/handlers/auctions/close.handler
+    events:
+      - schedule:
+          rate: rate(5 minutes)
+          enabled: true
+
+  # Tasks
+  tasksGet:
+    handler: lambda/handlers/tasks/get.handler
+    events:
+      - http:
+          path: /tasks
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.cognitoAuthorizer}
+
+  tasksVerify:
+    handler: lambda/handlers/tasks/verify.handler
+    timeout: 60
+    memorySize: 1024
+    events:
+      - http:
+          path: /tasks/verify
+          method: post
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.cognitoAuthorizer}
+
+  # Wallet
+  walletBalance:
+    handler: lambda/handlers/wallet/balance.handler
+    events:
+      - http:
+          path: /wallet/balance
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.cognitoAuthorizer}
+
+  walletTransactions:
+    handler: lambda/handlers/wallet/transactions.handler
+    events:
+      - http:
+          path: /wallet/transactions
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.cognitoAuthorizer}
+
+  walletPayout:
+    handler: lambda/handlers/wallet/payout.handler
+    events:
+      - http:
+          path: /wallet/payout
+          method: post
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.cognitoAuthorizer}
+
+  # Dashboard
+  dashboard:
+    handler: lambda/handlers/dashboard.handler
+    events:
+      - http:
+          path: /dashboard
+          method: get
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: ${self:custom.cognitoAuthorizer}
+
+  # Workflow
+  workflowComplete:
+    handler: lambda/handlers/workflow/complete.handler
+    timeout: 300
+    memorySize: 1024
+    events:
+      - http:
+          path: /workflow/complete
+          method: post
+          cors: true
+
+  # Notifications
+  notificationsMorning:
+    handler: lambda/handlers/notifications/morning.handler
+    events:
+      - schedule:
+          rate: cron(0 2 * * ? *)
+          enabled: true
+
+  # System monitoring
+  systemErrors:
+    handler: lambda/handlers/system/errors.handler
+    events:
+      - http:
+          path: /system/errors
+          method: get
+          cors: true
+
+  systemMetrics:
+    handler: lambda/handlers/system/metrics.handler
+    events:
+      - http:
+          path: /system/metrics
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    # API Gateway Cognito Authorizer
+    CognitoAuthorizer:
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: CognitoAuthorizer
+        Type: COGNITO_USER_POOLS
+        IdentitySource: method.request.header.Authorization
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ProviderARNs:
+          - arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/${self:custom.cognito.userPoolId}
+
+  Outputs:
+    ApiUrl:
+      Description: API Gateway endpoint URL
+      Value:
+        Fn::Join:
+          - ''
+          - - https://
+            - Ref: ApiGatewayRestApi
+            - .execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}
+
+    CognitoAuthorizerId:
+      Description: Cognito Authorizer ID
+      Value:
+        Ref: CognitoAuthorizer
+      Export:
+        Name: ${self:provider.stage}-CognitoAuthorizerId

@@ -1,0 +1,322 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests before deployment'
+        required: false
+        default: 'false'
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - production-dr
+
+env:
+  AWS_REGION: us-east-1
+  NODE_VERSION: '18.x'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    if: github.event.inputs.skip_tests != 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm run test:coverage
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: coverage/
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  deploy-infrastructure:
+    name: Deploy Infrastructure to Production
+    runs-on: ubuntu-latest
+    needs: [test, security-scan]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+      url: ${{ steps.stack-outputs.outputs.api-url }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      api-url: ${{ steps.stack-outputs.outputs.api-url }}
+      user-pool-id: ${{ steps.stack-outputs.outputs.user-pool-id }}
+      user-pool-client-id: ${{ steps.stack-outputs.outputs.user-pool-client-id }}
+      photo-bucket: ${{ steps.stack-outputs.outputs.photo-bucket }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PRODUCTION }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install CDK dependencies
+        working-directory: infrastructure
+        run: npm ci
+
+      - name: CDK Synth
+        working-directory: infrastructure
+        run: npx cdk synth ShelfBidderStack
+
+      - name: CDK Diff
+        working-directory: infrastructure
+        run: npx cdk diff ShelfBidderStack
+        continue-on-error: true
+
+      - name: CDK Deploy
+        working-directory: infrastructure
+        run: |
+          npx cdk deploy ShelfBidderStack \
+            --require-approval never \
+            --outputs-file outputs.json
+
+      - name: Extract stack outputs
+        id: stack-outputs
+        working-directory: infrastructure
+        run: |
+          API_URL=$(jq -r '.ShelfBidderStack.ApiUrl' outputs.json)
+          USER_POOL_ID=$(jq -r '.ShelfBidderStack.UserPoolId' outputs.json)
+          USER_POOL_CLIENT_ID=$(jq -r '.ShelfBidderStack.UserPoolClientId' outputs.json)
+          PHOTO_BUCKET=$(jq -r '.ShelfBidderStack.PhotoBucketName' outputs.json)
+
+          echo "api-url=$API_URL" >> $GITHUB_OUTPUT
+          echo "user-pool-id=$USER_POOL_ID" >> $GITHUB_OUTPUT
+          echo "user-pool-client-id=$USER_POOL_CLIENT_ID" >> $GITHUB_OUTPUT
+          echo "photo-bucket=$PHOTO_BUCKET" >> $GITHUB_OUTPUT
+
+      - name: Upload CDK outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdk-outputs-production
+          path: infrastructure/outputs.json
+
+      - name: Create backup snapshot
+        run: |
+          aws dynamodb create-backup \
+            --table-name ShelfBidder-Shopkeepers \
+            --backup-name "pre-deploy-$(date +%Y%m%d-%H%M%S)"
+
+  deploy-application:
+    name: Deploy Application to Production
+    runs-on: ubuntu-latest
+    needs: deploy-infrastructure
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        env:
+          NEXT_PUBLIC_API_URL: ${{ needs.deploy-infrastructure.outputs.api-url }}
+          NEXT_PUBLIC_USER_POOL_ID: ${{ needs.deploy-infrastructure.outputs.user-pool-id }}
+          NEXT_PUBLIC_USER_POOL_CLIENT_ID: ${{ needs.deploy-infrastructure.outputs.user-pool-client-id }}
+          NEXT_PUBLIC_AWS_REGION: ${{ env.AWS_REGION }}
+          NEXT_PUBLIC_PHOTO_BUCKET_NAME: ${{ needs.deploy-infrastructure.outputs.photo-bucket }}
+          NEXT_PUBLIC_ENVIRONMENT: production
+        run: npm run build
+
+      - name: Deploy to Vercel (Production)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install -g vercel
+          vercel deploy --prod \
+            --token=$VERCEL_TOKEN \
+            --env NEXT_PUBLIC_API_URL=${{ needs.deploy-infrastructure.outputs.api-url }} \
+            --env NEXT_PUBLIC_USER_POOL_ID=${{ needs.deploy-infrastructure.outputs.user-pool-id }} \
+            --env NEXT_PUBLIC_USER_POOL_CLIENT_ID=${{ needs.deploy-infrastructure.outputs.user-pool-client-id }} \
+            --env NEXT_PUBLIC_AWS_REGION=${{ env.AWS_REGION }} \
+            --env NEXT_PUBLIC_PHOTO_BUCKET_NAME=${{ needs.deploy-infrastructure.outputs.photo-bucket }} \
+            --env NEXT_PUBLIC_ENVIRONMENT=production
+
+  smoke-tests:
+    name: Run Production Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-infrastructure, deploy-application]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run smoke tests
+        env:
+          STAGING_API_URL: ${{ needs.deploy-infrastructure.outputs.api-url }}
+          STAGING_USER_POOL_ID: ${{ needs.deploy-infrastructure.outputs.user-pool-id }}
+          STAGING_USER_POOL_CLIENT_ID: ${{ needs.deploy-infrastructure.outputs.user-pool-client-id }}
+          STAGING_PHOTO_BUCKET: ${{ needs.deploy-infrastructure.outputs.photo-bucket }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: npm run test:smoke
+
+      - name: Upload smoke test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test-results-production
+          path: test-results/
+
+  setup-monitoring:
+    name: Setup CloudWatch Alarms
+    runs-on: ubuntu-latest
+    needs: deploy-infrastructure
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PRODUCTION }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create CloudWatch alarms
+        run: |
+          # API Gateway 5xx errors
+          aws cloudwatch put-metric-alarm \
+            --alarm-name production-api-5xx-errors \
+            --alarm-description "Alert on API 5xx errors in production" \
+            --metric-name 5XXError \
+            --namespace AWS/ApiGateway \
+            --statistic Sum \
+            --period 300 \
+            --threshold 10 \
+            --comparison-operator GreaterThanThreshold \
+            --evaluation-periods 1 \
+            --alarm-actions ${{ secrets.SNS_ALARM_TOPIC_ARN }}
+
+          # DynamoDB throttling
+          aws cloudwatch put-metric-alarm \
+            --alarm-name production-dynamodb-throttling \
+            --alarm-description "Alert on DynamoDB throttling" \
+            --metric-name UserErrors \
+            --namespace AWS/DynamoDB \
+            --statistic Sum \
+            --period 300 \
+            --threshold 5 \
+            --comparison-operator GreaterThanThreshold \
+            --evaluation-periods 1 \
+            --alarm-actions ${{ secrets.SNS_ALARM_TOPIC_ARN }}
+
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs:
+      [deploy-infrastructure, deploy-application, smoke-tests, setup-monitoring]
+    if: always()
+
+    steps:
+      - name: Deployment Success
+        if: needs.smoke-tests.result == 'success'
+        run: |
+          echo "✅ Production deployment successful!"
+          echo "API URL: ${{ needs.deploy-infrastructure.outputs.api-url }}"
+          echo "Deployment completed at: $(date)"
+
+      - name: Deployment Failed
+        if: needs.smoke-tests.result != 'success'
+        run: |
+          echo "❌ Production deployment failed!"
+          exit 1
+
+      - name: Send Slack notification
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Production Deployment ${{ needs.smoke-tests.result == 'success' && 'Successful ✅' || 'Failed ❌' }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Deployment Status*\nResult: ${{ needs.smoke-tests.result == 'success' && '✅ Success' || '❌ Failed' }}\nAPI: ${{ needs.deploy-infrastructure.outputs.api-url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

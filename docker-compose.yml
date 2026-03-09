@@ -1,0 +1,84 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: shelfbidder-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-shelfbidder}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres_dev_password}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shelfbidder-network
+    restart: unless-stopped
+
+  # Next.js App
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shelfbidder-app
+    env_file:
+      - .env.local
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-shelfbidder}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres_dev_password}
+      DB_SSL: "false"
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres_dev_password}@postgres:5432/${DB_NAME:-shelfbidder}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
+      AWS_PROFILE: ${AWS_PROFILE:-default}
+      AWS_SDK_LOAD_CONFIG: "1"
+      AWS_SHARED_CREDENTIALS_FILE: /home/nextjs/.aws/credentials
+      AWS_CONFIG_FILE: /home/nextjs/.aws/config
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - ${HOME}/.aws:/home/nextjs/.aws:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - shelfbidder-network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: shelfbidder-nginx
+    profiles:
+      - proxy
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - shelfbidder-network
+    restart: unless-stopped
+
+
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  shelfbidder-network:
+    driver: bridge

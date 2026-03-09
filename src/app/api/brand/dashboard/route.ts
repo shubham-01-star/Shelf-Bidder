@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 0. Get Brand Balance
-    const brand = await BrandOperations.getById(actualBrandId);
+    const brand = await BrandOperations.getById(actualBrandId as string);
     if (!brand) {
       return NextResponse.json({ success: false, error: 'Brand not found' }, { status: 404 });
     }

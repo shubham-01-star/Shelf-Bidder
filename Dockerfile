@@ -33,6 +33,17 @@ COPY . .
 RUN npm run prisma:generate
 RUN npm run build
 
+FROM base AS studio
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+RUN npm run prisma:generate
+
+EXPOSE 5555
+
+CMD ["npx", "prisma", "studio", "--hostname", "0.0.0.0", "--port", "5555"]
+
 # Production image, copy all the files and run next
 FROM base AS runner
 

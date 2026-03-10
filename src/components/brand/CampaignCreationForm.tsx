@@ -31,19 +31,10 @@ export default function CampaignCreationForm({ onSubmit, loading = false }: Camp
   });
 
   const [errors, setErrors] = useState<Partial<CampaignFormData>>({});
-  const [potentialReach, setPotentialReach] = useState<number>(0);
-
-  // Calculate potential reach in real-time
-  useEffect(() => {
-    const budget = parseFloat(formData.totalBudget) || 0;
-    const reward = parseFloat(formData.rewardPerPlacement) || 0;
-    
-    if (budget > 0 && reward > 0) {
-      setPotentialReach(Math.floor(budget / reward));
-    } else {
-      setPotentialReach(0);
-    }
-  }, [formData.totalBudget, formData.rewardPerPlacement]);
+  // Calculate potential reach - derived state is preferred over useEffect to avoid cascading renders
+  const budget = parseFloat(formData.totalBudget) || 0;
+  const reward = parseFloat(formData.rewardPerPlacement) || 0;
+  const potentialReach = (budget > 0 && reward > 0) ? Math.floor(budget / reward) : 0;
 
   const validateForm = (): boolean => {
     const newErrors: Partial<CampaignFormData> = {};
@@ -72,7 +63,7 @@ export default function CampaignCreationForm({ onSubmit, loading = false }: Camp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -83,7 +74,7 @@ export default function CampaignCreationForm({ onSubmit, loading = false }: Camp
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear error for this field when user starts typing
     if (errors[name as keyof CampaignFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
@@ -104,9 +95,8 @@ export default function CampaignCreationForm({ onSubmit, loading = false }: Camp
           value={formData.productName}
           onChange={handleChange}
           disabled={loading}
-          className={`w-full px-4 py-2 rounded-lg border ${
-            errors.productName ? 'border-red-500' : 'border-gray-300'
-          } focus:outline-none focus:ring-2 focus:ring-[#ff5c61] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed`}
+          className={`w-full px-4 py-2 rounded-lg border ${errors.productName ? 'border-red-500' : 'border-gray-300'
+            } focus:outline-none focus:ring-2 focus:ring-[#ff5c61] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed`}
           placeholder="e.g., Diet Coke 330ml"
         />
         {errors.productName && (
@@ -126,9 +116,8 @@ export default function CampaignCreationForm({ onSubmit, loading = false }: Camp
           value={formData.category}
           onChange={handleChange}
           disabled={loading}
-          className={`w-full px-4 py-2 rounded-lg border ${
-            errors.category ? 'border-red-500' : 'border-gray-300'
-          } focus:outline-none focus:ring-2 focus:ring-[#ff5c61] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed`}
+          className={`w-full px-4 py-2 rounded-lg border ${errors.category ? 'border-red-500' : 'border-gray-300'
+            } focus:outline-none focus:ring-2 focus:ring-[#ff5c61] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed`}
           placeholder="e.g., Beverages"
         />
         {errors.category && (
@@ -150,9 +139,8 @@ export default function CampaignCreationForm({ onSubmit, loading = false }: Camp
           disabled={loading}
           min="0"
           step="0.01"
-          className={`w-full px-4 py-2 rounded-lg border ${
-            errors.totalBudget ? 'border-red-500' : 'border-gray-300'
-          } focus:outline-none focus:ring-2 focus:ring-[#ff5c61] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed`}
+          className={`w-full px-4 py-2 rounded-lg border ${errors.totalBudget ? 'border-red-500' : 'border-gray-300'
+            } focus:outline-none focus:ring-2 focus:ring-[#ff5c61] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed`}
           placeholder="10000"
         />
         {errors.totalBudget && (
@@ -174,9 +162,8 @@ export default function CampaignCreationForm({ onSubmit, loading = false }: Camp
           disabled={loading}
           min="0"
           step="0.01"
-          className={`w-full px-4 py-2 rounded-lg border ${
-            errors.rewardPerPlacement ? 'border-red-500' : 'border-gray-300'
-          } focus:outline-none focus:ring-2 focus:ring-[#ff5c61] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed`}
+          className={`w-full px-4 py-2 rounded-lg border ${errors.rewardPerPlacement ? 'border-red-500' : 'border-gray-300'
+            } focus:outline-none focus:ring-2 focus:ring-[#ff5c61] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed`}
           placeholder="100"
         />
         {errors.rewardPerPlacement && (

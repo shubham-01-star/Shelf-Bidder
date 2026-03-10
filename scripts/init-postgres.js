@@ -34,6 +34,53 @@ console.log('Configuration:', {
 });
 console.log('');
 
+function readInitSql(relativePath) {
+  return fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
+}
+
+async function listBaseTables(pool) {
+  return pool.query(`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_type = 'BASE TABLE'
+    ORDER BY table_name
+  `);
+}
+
+async function ensureUpdatedAtFunction(pool) {
+  const functionResult = await pool.query(`
+    SELECT 1
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE p.proname = 'update_updated_at_column'
+      AND n.nspname = 'public'
+    LIMIT 1
+  `);
+
+  if (functionResult.rows.length > 0) {
+    return;
+  }
+
+  await pool.query(`
+    CREATE OR REPLACE FUNCTION update_updated_at_column()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = CURRENT_TIMESTAMP;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+
+  console.log('✅ Created update_updated_at_column() helper');
+}
+
+async function applyInitSql(pool, relativePath, label) {
+  console.log(`📄 Applying ${relativePath}...`);
+  await pool.query(readInitSql(relativePath));
+  console.log(`✅ ${label}\n`);
+}
+
 async function main() {
   const pool = new Pool(dbConfig);
 
@@ -58,32 +105,30 @@ async function main() {
 
     // Check tables
     console.log('📊 Checking database schema...');
-    const tablesResult = await pool.query(`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
-        AND table_type = 'BASE TABLE'
-      ORDER BY table_name
-    `);
+    let tablesResult = await listBaseTables(pool);
 
     if (tablesResult.rows.length === 0) {
-      console.log('⚠️  No tables found. Applying database/init/01-schema.sql...');
+      console.log('⚠️  No tables found. Applying core SQL schema files...');
+      await applyInitSql(pool, 'database/init/01-schema.sql', 'Core schema initialized from 01-schema.sql');
+      await ensureUpdatedAtFunction(pool);
+      await applyInitSql(pool, 'database/init/03-photo-metadata.sql', 'Photo metadata schema initialized from 03-photo-metadata.sql');
+      await applyInitSql(pool, 'database/init/04-bedrock-usage-logs.sql', 'Bedrock usage log schema initialized from 04-bedrock-usage-logs.sql');
+      tablesResult = await listBaseTables(pool);
+    } else {
+      const existingTables = new Set(tablesResult.rows.map(row => row.table_name));
 
-      const schemaPath = path.join(__dirname, '..', 'database', 'init', '01-schema.sql');
-      const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-      await pool.query(schemaSql);
+      if (!existingTables.has('photo_metadata')) {
+        console.log('⚠️  photo_metadata table is missing. Applying database/init/03-photo-metadata.sql...');
+        await ensureUpdatedAtFunction(pool);
+        await applyInitSql(pool, 'database/init/03-photo-metadata.sql', 'Photo metadata schema reconciled');
+        tablesResult = await listBaseTables(pool);
+      }
 
-      console.log('✅ Schema initialized from 01-schema.sql\n');
-
-      const refreshedTablesResult = await pool.query(`
-        SELECT table_name
-        FROM information_schema.tables
-        WHERE table_schema = 'public'
-          AND table_type = 'BASE TABLE'
-        ORDER BY table_name
-      `);
-
-      tablesResult.rows = refreshedTablesResult.rows;
+      if (!existingTables.has('bedrock_usage_logs')) {
+        console.log('⚠️  bedrock_usage_logs table is missing. Applying database/init/04-bedrock-usage-logs.sql...');
+        await applyInitSql(pool, 'database/init/04-bedrock-usage-logs.sql', 'Bedrock usage log schema reconciled');
+        tablesResult = await listBaseTables(pool);
+      }
     }
 
     if (tablesResult.rows.length > 0) {

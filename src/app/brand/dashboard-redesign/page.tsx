@@ -73,8 +73,8 @@ export default function BrandDashboardRedesignPage() {
               <button className="size-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                 <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">notifications</span>
               </button>
-              <div 
-                className="size-10 rounded-xl bg-cover bg-center" 
+              <div
+                className="size-10 rounded-xl bg-cover bg-center"
                 style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBgpRxsnTJlDpHB8dwXi_8s-O6dWRlfs-F4hGt9Aipf8pw4xm0nLi74QeEBI0a-hpYzspIbqJ19Jer7wmwV4XcbeothSrqHhEL1JMhH_59iUE9T6AuE5vAkVMvQowY3zoQHXCKdtPwUqIAVBemKFskPOnUpvPfgEwfAEJMpbZ91OP33HYxLPDQWU7yrj4vA9e2jhkOQAvJDcXj2tmu8OesvbcsiSGSW9M3TPzayL4pAw_mPdLlXBuoKrChsfiPaTmHubY3sLB9hogw')" }}
               ></div>
             </div>
@@ -194,7 +194,7 @@ export default function BrandDashboardRedesignPage() {
               <div className="absolute -right-10 -bottom-10 size-40 bg-primary/20 rounded-full blur-3xl"></div>
               <div className="absolute -left-10 -top-10 size-40 bg-accent-teal/20 rounded-full blur-3xl"></div>
             </div>
-            
+
             <h3 className="font-bold text-sm mb-3 px-1">Recent Transactions</h3>
             <div className="space-y-1">
               <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-50 dark:border-slate-800">
@@ -209,7 +209,7 @@ export default function BrandDashboardRedesignPage() {
                 </div>
                 <p className="text-xs font-bold text-accent-red">-₹310</p>
               </div>
-              
+
               <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-50 dark:border-slate-800">
                 <div className="flex items-center gap-3">
                   <div className="size-8 rounded-full bg-accent-teal/10 flex items-center justify-center text-accent-teal">
@@ -232,8 +232,8 @@ export default function BrandDashboardRedesignPage() {
             <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
               {/* Proof Card 1 */}
               <div className="min-w-[240px] w-[240px] bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm flex-shrink-0">
-                <div 
-                  className="relative h-40 bg-cover bg-center" 
+                <div
+                  className="relative h-40 bg-cover bg-center"
                   style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCkODiq9zFAqo0fskkcmXbE7vB3p4tpD6Qf9X89rn3WMXxugyI4hshtSfNB7FWmHxSKo9d2PP6qKVEhnQGDC__tQO9sfnWTQpdesDnsYORNIPrf3RqggVib3e_6tQ54upyXed0QcMqHSHvq13_6Db1Q03GTNXc_krVtocz3sUOzKRUWpv_abDDwD2YRkcZA5-XJtGnb6WQavB-BqW5vmr0ITDvg_zoxo6kfK8MhFFkb5XhWoIOAVnkYarCV1-ysQw8qxezkDMjsRj0')" }}
                 >
                   <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-lg">
@@ -250,8 +250,8 @@ export default function BrandDashboardRedesignPage() {
 
               {/* Proof Card 2 */}
               <div className="min-w-[240px] w-[240px] bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm flex-shrink-0">
-                <div 
-                  className="relative h-40 bg-cover bg-center" 
+                <div
+                  className="relative h-40 bg-cover bg-center"
                   style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCXhwFNmP7kfsHrk0YXIkU1fzFCY4jwlBHrP112bfbrpzmiXy90RZhamkfBe20V9f1IyRNGMKxCrdlEKQEI5qrVjBJmo8IEg0numuuynzOzg_ldmblCM131WqoIIHbAMlHX_FwCgtDBoytl3jl7ef_HRHIWys6KYarudX2a_qT_NXgxRuKp0GHPOTdh3iU_VrHgn3JCyiRECqjokGJ6oHqE0AQMPJzMRZrDmkTTGnreXG7D0JCEx7p94JQzGZ-3jVUc5_V2V1Mkb44')" }}
                 >
                   <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-lg">
@@ -259,7 +259,7 @@ export default function BrandDashboardRedesignPage() {
                   </div>
                 </div>
                 <div className="p-3">
-                  <h4 className="text-xs font-bold">Lay's Classic - Eye Level</h4>
+                  <h4 className="text-xs font-bold">Lay&apos;s Classic - Eye Level</h4>
                   <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
                     <span className="material-symbols-outlined text-[12px]">store</span> City Mart, Jayanagar
                   </p>

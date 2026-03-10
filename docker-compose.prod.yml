@@ -50,6 +50,27 @@ services:
       - shelfbidder-network
     restart: unless-stopped
 
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: studio
+    container_name: shelfbidder-prisma-studio
+    profiles:
+      - tools
+    env_file:
+      - ${APP_ENV_FILE:-.env.ec2}
+    environment:
+      PRISMA_ENV_FILE: ${APP_ENV_FILE:-.env.ec2}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PRISMA_STUDIO_PORT:-5555}:5555"
+    networks:
+      - shelfbidder-network
+    restart: "no"
+
   nginx:
     image: nginx:1.27-alpine
     container_name: shelfbidder-nginx

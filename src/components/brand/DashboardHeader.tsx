@@ -21,7 +21,7 @@ interface DashboardHeaderProps {
  */
 export function getGreeting(hour?: number): string {
   const currentHour = hour ?? new Date().getHours();
-  
+
   if (currentHour < 12) {
     return 'Good Morning';
   } else if (currentHour < 17) {
@@ -36,21 +36,15 @@ export function getGreeting(hour?: number): string {
  */
 export default function DashboardHeader({ className = '' }: DashboardHeaderProps) {
   const router = useRouter();
-  const [brandName, setBrandName] = useState<string>('Brand');
-  const [greeting, setGreeting] = useState<string>('');
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    // Get brand name from localStorage
-    if (typeof window !== 'undefined') {
-      const storedBrandName = localStorage.getItem('brandName');
-      if (storedBrandName) {
-        setBrandName(storedBrandName);
-      }
-    }
-
-    // Set greeting based on current time
-    setGreeting(getGreeting());
+    const handle = requestAnimationFrame(() => setIsMounted(true));
+    return () => cancelAnimationFrame(handle);
   }, []);
+
+  const brandName = isMounted ? (localStorage.getItem('brandName') || 'Brand') : 'Brand';
+  const greeting = isMounted ? getGreeting() : '';
 
   const handleAvatarClick = () => {
     router.push('/brand/login');
@@ -59,7 +53,7 @@ export default function DashboardHeader({ className = '' }: DashboardHeaderProps
   const avatarLetter = brandName.charAt(0).toUpperCase();
 
   return (
-    <header 
+    <header
       className={`px-6 py-4 flex justify-between items-center bg-white/80 backdrop-blur-sm border-b border-gray-200/50 ${className}`}
     >
       {/* Greeting and Brand Name */}

@@ -98,6 +98,39 @@ model shelf_spaces {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model photo_metadata {
+  id                String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  photo_id          String      @unique @db.VarChar(255)
+  shopkeeper_id     String      @db.Uuid
+  photo_type        String      @db.VarChar(10)
+  s3_key            String
+  s3_url            String
+  s3_bucket         String      @db.VarChar(255)
+  file_size         BigInt
+  original_size     BigInt
+  compressed_size   BigInt?
+  width             Int
+  height            Int
+  format            String      @db.VarChar(10)
+  has_alpha         Boolean?    @default(false)
+  orientation       Int?
+  compression_ratio Decimal?    @db.Decimal(5, 2)
+  device_info       Json?
+  location_info     Json?
+  uploaded_at       DateTime?   @default(now()) @db.Timestamp(6)
+  created_at        DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?   @default(now()) @db.Timestamp(6)
+  shopkeepers       shopkeepers @relation(fields: [shopkeeper_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([photo_id], map: "idx_photo_metadata_photo_id")
+  @@index([photo_type], map: "idx_photo_metadata_photo_type")
+  @@index([s3_key], map: "idx_photo_metadata_s3_key")
+  @@index([shopkeeper_id], map: "idx_photo_metadata_shopkeeper")
+  @@index([uploaded_at(sort: Desc)], map: "idx_photo_metadata_uploaded_at")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model shopkeepers {
   id                  String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   shopkeeper_id       String                @unique @db.VarChar(255)
@@ -115,6 +148,7 @@ model shopkeepers {
   created_at          DateTime?             @default(now()) @db.Timestamp(6)
   updated_at          DateTime?             @default(now()) @db.Timestamp(6)
   bedrock_usage_logs  bedrock_usage_logs[]
+  photo_metadata      photo_metadata[]
   shelf_spaces        shelf_spaces[]
   tasks               tasks[]
   wallet_transactions wallet_transactions[]
